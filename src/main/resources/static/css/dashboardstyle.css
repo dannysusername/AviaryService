@@ -142,8 +142,9 @@ td input:focus {
 .input-with-dropdown {
     position: relative;
     display: flex;
+    justify-content: space-between; /* Keeps trigger-dropdown on the right */
     align-items: center;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .trigger-dropdown {

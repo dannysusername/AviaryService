@@ -9,18 +9,21 @@ function autoSave(input) {
     const id = row.getAttribute('data-id');
     const status = row.querySelector('.save-status');
     const formData = new FormData();
-    row.querySelectorAll('input').forEach(input => {
-        if (input.name === 'lastDone' || input.name === 'dueDate') {
-            const container = input.closest('.input-with-dropdown');
-            const dateInput = container.querySelector('input[type="date"]');
-            const timeInput = container.querySelector('input[type="time"]');
-            let value = input.value;
-            if (dateInput) value += ` ${dateInput.value}`;
-            if (timeInput) value += ` ${timeInput.value}`;
-            formData.append(input.name, value.trim());
-        } else {
-            formData.append(input.name, input.value);
-        }
+
+    // Handle regular inputs (item, cycle, timeLeft, description)
+    row.querySelectorAll('input:not(.extra-input)').forEach(input => {
+        formData.append(input.name, input.value);
+    });
+
+    // Handle lastDone and dueDate from extra inputs only
+    ['lastDone', 'dueDate'].forEach(field => {
+        const container = row.querySelector(`td:nth-child(${field === 'lastDone' ? 4 : 5}) .input-with-dropdown`);
+        const dateInput = container.querySelector('input[type="date"]');
+        const textInput = container.querySelector('input[type="text"].extra-input');
+        let value = '';
+        if (dateInput) value += dateInput.value;
+        if (textInput) value += value ? ` ${textInput.value}` : textInput.value;
+        formData.append(field, value.trim());
     });
 
     clearTimeout(timeout);
@@ -176,36 +179,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Add date picker or time input when plus is clicked
+    // Add date picker or text input when plus is clicked
     document.querySelectorAll('.add-type').forEach(button => {
         button.addEventListener('click', function() {
             const type = this.getAttribute('data-type');
             const container = this.closest('.input-with-dropdown');
-            const mainInput = container.querySelector('.main-input');
+            const fieldName = container.closest('td').contains(container.closest('tr').querySelector('input[name="lastDone"]')) ? 'lastDone' : 'dueDate';
             const existingDate = container.querySelector('input[type="date"]');
-            const existingTime = container.querySelector('input[type="time"]');
+            const existingText = container.querySelector('input[type="text"].extra-input');
 
-            // Check limits: max one calendar and one clock
+            // Check limits: max one calendar and one text
             if (type === 'calendar' && existingDate) return;
-            if (type === 'clock' && existingTime) return;
+            if (type === 'clock' && existingText) return;
 
             // Create new input
             let newInput;
             if (type === 'calendar') {
                 newInput = document.createElement('input');
                 newInput.type = 'date';
-                newInput.name = `${mainInput.name}_date`;
+                newInput.name = `${fieldName}_date`;
                 newInput.className = 'extra-input';
-                newInput.oninput = () => autoSave(mainInput);
+                newInput.oninput = () => autoSave(newInput);
             } else if (type === 'clock') {
                 newInput = document.createElement('input');
                 newInput.type = 'text';
-                newInput.name = `${mainInput.name}_time`;
+                newInput.name = `${fieldName}_text`;
                 newInput.className = 'extra-input';
-                newInput.oninput = () => autoSave(mainInput);
+                newInput.placeholder = 'Enter time';
+                newInput.oninput = () => autoSave(newInput);
             }
 
-            // Insert before the dropdown button
+            // Insert before the trigger-dropdown
             container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
             this.closest('.type-dropdown').style.display = 'none';
         });

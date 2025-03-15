@@ -50,7 +50,6 @@
                 <td><input type="text" name="cycle" th:value="${timeline.cycle}" oninput="autoSave(this)"></td>
                 <td>
                     <div class="input-with-dropdown">
-                        <input type="text" name="lastDone" th:value="${timeline.lastDone}" oninput="autoSave(this)" class="main-input">
                         <button class="trigger-dropdown">▼</button>
                         <div class="type-dropdown" style="display: none;">
                             <div class="type-option">
@@ -66,7 +65,6 @@
                 </td>       
                 <td>
                     <div class="input-with-dropdown">
-                        <input type="text" name="dueDate" th:value="${timeline.dueDate}" oninput="autoSave(this)" class="main-input">
                         <button class="trigger-dropdown">▼</button>
                         <div class="type-dropdown" style="display: none;">
                             <div class="type-option">
@@ -111,7 +109,6 @@
                     <td><input type="text" name="cycle"></td>
                     <td>
                         <div class="input-with-dropdown">
-                            <input type="text" name="lastDone" class="main-input">
                             <button class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
                                 <div class="type-option">
@@ -127,7 +124,6 @@
                     </td>
                     <td>
                         <div class="input-with-dropdown">
-                            <input type="text" name="dueDate" class="main-input">
                             <button class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
                                 <div class="type-option">
@@ -152,5 +148,5 @@
     <form method="post" th:action="@{/logout}">
         <button type="submit">Logout</button>
     </form>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'920d47e01a5e4fce',t:'MTc0MjA1NTAyNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
