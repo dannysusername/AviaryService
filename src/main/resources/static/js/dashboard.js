@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Add date picker or text input when plus is clicked
+    // Add or remove date picker or text input when plus/minus is clicked
     document.querySelectorAll('.add-type').forEach(button => {
         button.addEventListener('click', function() {
             const type = this.getAttribute('data-type');
@@ -187,30 +187,45 @@ document.addEventListener('DOMContentLoaded', () => {
             const fieldName = container.closest('td').contains(container.closest('tr').querySelector('input[name="lastDone"]')) ? 'lastDone' : 'dueDate';
             const existingDate = container.querySelector('input[type="date"]');
             const existingText = container.querySelector('input[type="text"].extra-input');
+            const isAddMode = this.textContent === '+';
 
-            // Check limits: max one calendar and one text
-            if (type === 'calendar' && existingDate) return;
-            if (type === 'clock' && existingText) return;
+            if (isAddMode) {
+                // Add mode: check limits and add input
+                if (type === 'calendar' && existingDate) return;
+                if (type === 'clock' && existingText) return;
 
-            // Create new input
-            let newInput;
-            if (type === 'calendar') {
-                newInput = document.createElement('input');
-                newInput.type = 'date';
-                newInput.name = `${fieldName}_date`;
-                newInput.className = 'extra-input';
-                newInput.oninput = () => autoSave(newInput);
-            } else if (type === 'clock') {
-                newInput = document.createElement('input');
-                newInput.type = 'text';
-                newInput.name = `${fieldName}_text`;
-                newInput.className = 'extra-input';
-                newInput.placeholder = 'Enter time';
-                newInput.oninput = () => autoSave(newInput);
+                let newInput;
+                if (type === 'calendar') {
+                    newInput = document.createElement('input');
+                    newInput.type = 'date';
+                    newInput.name = `${fieldName}_date`;
+                    newInput.className = 'extra-input';
+                    newInput.oninput = () => autoSave(newInput);
+                } else if (type === 'clock') {
+                    newInput = document.createElement('input');
+                    newInput.type = 'text';
+                    newInput.name = `${fieldName}_text`;
+                    newInput.className = 'extra-input';
+                    newInput.placeholder = 'Enter time';
+                    newInput.oninput = () => autoSave(newInput);
+                }
+
+                // Insert before the trigger-dropdown and change to minus
+                container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                this.textContent = '-';
+            } else {
+                // Remove mode: delete the input and change back to plus
+                if (type === 'calendar' && existingDate) {
+                    existingDate.remove();
+                    this.textContent = '+';
+                    if (row) autoSave(this); // Trigger autosave to update empty value
+                } else if (type === 'clock' && existingText) {
+                    existingText.remove();
+                    this.textContent = '+';
+                    if (row) autoSave(this); // Trigger autosave to update empty value
+                }
             }
 
-            // Insert before the trigger-dropdown
-            container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
             this.closest('.type-dropdown').style.display = 'none';
         });
     });

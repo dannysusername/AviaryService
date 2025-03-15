@@ -51,6 +51,61 @@ td input:focus {
     border-radius: 3px;
 }
 
+.input-with-dropdown {
+    position: relative;
+    display: flex;
+    justify-content: space-between; /* Keeps trigger-dropdown on the right */
+    align-items: center;
+    width: 100%;
+}
+
+.trigger-dropdown {
+    margin-left: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.type-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0; /* Aligns dropdown with the right side */
+    background: white;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.type-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    min-width: 100px;
+}
+
+.type-option:hover {
+    background: #f5f5f5;
+}
+
+.add-type {
+    cursor: pointer;
+    color: #007bff;
+    background: none;
+    border: none;
+    padding: 0 4px;
+    font-size: 16px;
+    width: 16px; /* Ensures consistent width for + and - */
+    text-align: center;
+}
+
+.add-type:hover {
+    color: #0056b3;
+}
+
 .custom-dropdown {
     position: relative;
     min-height: 25px;
@@ -137,59 +192,6 @@ td input:focus {
 
 .add-option-btn:hover {
     background-color: #0056b3;
-}
-
-.input-with-dropdown {
-    position: relative;
-    display: flex;
-    justify-content: space-between; /* Keeps trigger-dropdown on the right */
-    align-items: center;
-    width: 100%;
-}
-
-.trigger-dropdown {
-    margin-left: 4px;
-    cursor: pointer;
-    padding: 2px 6px;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-}
-
-.type-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: white;
-    border: 1px solid #ddd;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    z-index: 1000;
-    display: none;
-}
-
-.type-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 8px;
-    min-width: 100px;
-}
-
-.type-option:hover {
-    background: #f5f5f5;
-}
-
-.add-type {
-    cursor: pointer;
-    color: #007bff;
-    background: none;
-    border: none;
-    padding: 0 4px;
-    font-size: 16px;
-}
-
-.add-type:hover {
-    color: #0056b3;
 }
 
 .save-status {
