@@ -146,6 +146,7 @@ function updateDropdownWidths() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize custom dropdowns
     document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
         const hiddenInput = dropdown.querySelector('input[type="hidden"]');
         const selected = dropdown.querySelector('.selected-option');
@@ -165,6 +166,41 @@ document.addEventListener('DOMContentLoaded', () => {
             selected.textContent = '';
         }
     }
+
+    // Initialize lastDone and dueDate inputs from database values
+    document.querySelectorAll('.auto-save-row').forEach(row => {
+        ['lastDone', 'dueDate'].forEach((field, index) => {
+            const container = row.querySelector(`td:nth-child(${index === 0 ? 4 : 5}) .input-with-dropdown`);
+            const savedValue = row.getAttribute(`data-${field}`) || '';
+            if (savedValue) {
+                const parts = savedValue.split(' ');
+                const datePart = parts[0] && parts[0].match(/^\d{4}-\d{2}-\d{2}$/) ? parts[0] : null;
+                const textPart = parts.length > 1 ? parts.slice(1).join(' ') : null;
+
+                if (datePart) {
+                    const dateInput = document.createElement('input');
+                    dateInput.type = 'date';
+                    dateInput.name = `${field}_date`;
+                    dateInput.className = 'extra-input';
+                    dateInput.value = datePart; // Set date in YYYY-MM-DD format
+                    dateInput.oninput = () => autoSave(dateInput);
+                    container.insertBefore(dateInput, container.querySelector('.trigger-dropdown'));
+                    container.querySelector('.add-type[data-type="calendar"]').textContent = '-';
+                }
+                if (textPart) {
+                    const textInput = document.createElement('input');
+                    textInput.type = 'text';
+                    textInput.name = `${field}_text`;
+                    textInput.className = 'extra-input';
+                    textInput.placeholder = 'Enter time';
+                    textInput.value = textPart; // Set text part (e.g., "blop")
+                    textInput.oninput = () => autoSave(textInput);
+                    container.insertBefore(textInput, container.querySelector('.trigger-dropdown'));
+                    container.querySelector('.add-type[data-type="clock"]').textContent = '-';
+                }
+            }
+        });
+    });
 
     // Toggle dropdown visibility
     document.querySelectorAll('.trigger-dropdown').forEach(button => {
@@ -188,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const existingDate = container.querySelector('input[type="date"]');
             const existingText = container.querySelector('input[type="text"].extra-input');
             const isAddMode = this.textContent === '+';
+            const row = container.closest('.auto-save-row');
 
             if (isAddMode) {
                 // Add mode: check limits and add input

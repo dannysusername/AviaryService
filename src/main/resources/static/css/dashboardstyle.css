@@ -54,7 +54,7 @@ td input:focus {
 .input-with-dropdown {
     position: relative;
     display: flex;
-    justify-content: space-between; /* Keeps trigger-dropdown on the right */
+    justify-content: space-between;
     align-items: center;
     width: 100%;
 }
@@ -71,7 +71,7 @@ td input:focus {
 .type-dropdown {
     position: absolute;
     top: 100%;
-    right: 0; /* Aligns dropdown with the right side */
+    right: 0;
     background: white;
     border: 1px solid #ddd;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -98,7 +98,7 @@ td input:focus {
     border: none;
     padding: 0 4px;
     font-size: 16px;
-    width: 16px; /* Ensures consistent width for + and - */
+    width: 16px;
     text-align: center;
 }
 
