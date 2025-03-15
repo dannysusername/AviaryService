@@ -1,0 +1,239 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th:not(.status-header):not(.delete-header),
+td:not(.status-cell):not(.delete-cell) {
+    min-width: 100px;
+}
+
+.status-header,
+.status-cell {
+    text-align: center;
+    width: 60px;
+}
+
+.delete-header,
+.delete-cell {
+    width: 30px;
+    text-align: center;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+td input {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    padding: 4px;
+}
+
+td input:focus {
+    outline: 1px solid #007bff;
+}
+
+.extra-input {
+    width: auto;
+    margin-left: 4px;
+    padding: 2px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.custom-dropdown {
+    position: relative;
+    min-height: 25px;
+}
+
+.selected-option {
+    width: 100%;
+    min-height: 25px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    white-space: normal;
+    text-align: center;
+    max-width: 200px;
+}
+
+.custom-dropdown:has(input[value=""]) .selected-option::after {
+    content: '>';
+    position: absolute;
+    right: 30px;
+    top: 10%;
+    transform: rotate(90deg) translateY(-50%);
+    font-size: 16px;
+    color: #666;
+}
+
+.selected-option:hover {
+    background: #f0f0f0;
+}
+
+.dropdown-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    z-index: 1000;
+    max-height: 200px;
+    min-width: 100px;
+    overflow-y: auto;
+}
+
+.option {
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.custom-option {
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 150px;
+}
+
+.option:hover {
+    background: #f0f0f0;
+}
+
+.add-option-container {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-top: 1px solid #ddd;
+}
+
+.custom-description {
+    flex-grow: 1;
+    padding: 2px;
+    border: 1px solid #ccc;
+    margin-right: 4px;
+}
+
+.add-option-btn {
+    padding: 2px 6px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.add-option-btn:hover {
+    background-color: #0056b3;
+}
+
+.input-with-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.trigger-dropdown {
+    margin-left: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.type-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.type-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    min-width: 100px;
+}
+
+.type-option:hover {
+    background: #f5f5f5;
+}
+
+.add-type {
+    cursor: pointer;
+    color: #007bff;
+    background: none;
+    border: none;
+    padding: 0 4px;
+    font-size: 16px;
+}
+
+.add-type:hover {
+    color: #0056b3;
+}
+
+.save-status {
+    display: inline-block;
+    padding: 2px 6px;
+    text-align: center;
+    width: 60px;
+}
+
+.save-status.saving {
+    color: orange;
+    font-style: italic;
+}
+
+.save-status.saved {
+    color: green;
+}
+
+.save-status.error {
+    color: red;
+}
+
+.delete-icon {
+    cursor: pointer;
+    color: #ff4444;
+    font-size: 18px;
+}
+
+.delete-icon:hover {
+    color: #cc0000;
+}
+
+.add-row td {
+    background-color: #f9f9f9;
+}
+
+.add-button {
+    width: 100%;
+    padding: 4px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.add-button:hover {
+    background-color: #218838;
+}

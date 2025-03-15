@@ -1,0 +1,46 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    text-align: center;
+    margin: 0px 0px 50px;
+}
+
+.register-container {
+    margin-top: 50px;
+    width: 65%;
+    height: 300px;
+    border: 2px solid black;
+    justify-self: center;
+    padding: 20px;
+    border-radius: 100px;
+}
+
+form {
+    text-align: center;
+}
+
+label {
+    display: block;
+    margin: 5px;
+}
+
+input {
+    height: 25px;
+    border: 1px solid rgb(128, 123, 123);
+    outline: none;
+    border-radius: 5px;
+}
+
+button {
+    height: 40px;
+    width: 80px;
+    border-radius: 20px;
+}
+
+p {
+    text-align: center;
+}

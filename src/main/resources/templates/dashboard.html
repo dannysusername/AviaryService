@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/dashboardstyle.css}" href="/css/dashboardstyle.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script th:src="@{/js/dashboard.js}"></script>
+</head>
+<body>
+    <h1>Welcome to Your Dashboard</h1>
+    <p th:text="'Hello, ' + ${username} + '!'"></p>
+    
+    <h2>Your Service Timeline</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th>Cycle</th>
+                <th>Last Done</th>
+                <th>Due Date</th>
+                <th>Time Left</th>
+                <th class="status-header">Status</th>
+                <th class="delete-header">Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="timeline : ${timelines}" th:data-id="${timeline.id}" class="auto-save-row">
+                <td><input type="text" name="item" th:value="${timeline.item}" required oninput="autoSave(this)"></td>
+                <td>
+                    <div class="custom-dropdown">
+                        <div class="selected-option" onclick="toggleDropdown(this)"></div>
+                        <input type="hidden" name="description" th:value="${timeline.description}">
+                        <div class="dropdown-options">
+                            <div class="option" data-value="">--None--</div>
+                            <div class="option" data-value="inspect">Inspect</div>
+                            <div class="option" data-value="test">Test</div>
+                            <div class="option" data-value="replace">Replace</div>
+                            <div class="option" data-value="overhaul">Overhaul</div>
+                            <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
+                            <div class="add-option-container">
+                                <input type="text" class="custom-description" placeholder="New option">
+                                <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td><input type="text" name="cycle" th:value="${timeline.cycle}" oninput="autoSave(this)"></td>
+                <td>
+                    <div class="input-with-dropdown">
+                        <input type="text" name="lastDone" th:value="${timeline.lastDone}" oninput="autoSave(this)" class="main-input">
+                        <button class="trigger-dropdown">▼</button>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option">
+                                <span>Calendar</span>
+                                <button class="add-type" data-type="calendar">+</button>
+                            </div>
+                            <div class="type-option">
+                                <span>Clock</span>
+                                <button class="add-type" data-type="clock">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </td>       
+                <td>
+                    <div class="input-with-dropdown">
+                        <input type="text" name="dueDate" th:value="${timeline.dueDate}" oninput="autoSave(this)" class="main-input">
+                        <button class="trigger-dropdown">▼</button>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option">
+                                <span>Calendar</span>
+                                <button class="add-type" data-type="calendar">+</button>
+                            </div>
+                            <div class="type-option">
+                                <span>Clock</span>
+                                <button class="add-type" data-type="clock">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td><input type="text" name="timeLeft" th:value="${timeline.timeLeft}" oninput="autoSave(this)"></td>
+                <td class="status-cell"><span class="save-status">Saved</span></td>
+                <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
+            </tr>
+            <tr th:if="${timelines.isEmpty()}">
+                <td colspan="8">No service entries yet.</td>
+            </tr>
+            <tr class="add-row">
+                <form method="post" th:action="@{/dashboard}">
+                    <td><input type="text" name="item" required></td>
+                    <td>
+                        <div class="custom-dropdown">
+                            <div class="selected-option" onclick="toggleDropdown(this)"></div>
+                            <input type="hidden" name="description">
+                            <div class="dropdown-options">
+                                <div class="option" data-value="">--None--</div>
+                                <div class="option" data-value="inspect">Inspect</div>
+                                <div class="option" data-value="test">Test</div>
+                                <div class="option" data-value="replace">Replace</div>
+                                <div class="option" data-value="overhaul">Overhaul</div>
+                                <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
+                                <div class="add-option-container">
+                                    <input type="text" class="custom-description" placeholder="New option">
+                                    <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><input type="text" name="cycle"></td>
+                    <td>
+                        <div class="input-with-dropdown">
+                            <input type="text" name="lastDone" class="main-input">
+                            <button class="trigger-dropdown">▼</button>
+                            <div class="type-dropdown" style="display: none;">
+                                <div class="type-option">
+                                    <span>Calendar</span>
+                                    <button class="add-type" data-type="calendar">+</button>
+                                </div>
+                                <div class="type-option">
+                                    <span>Clock</span>
+                                    <button class="add-type" data-type="clock">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="input-with-dropdown">
+                            <input type="text" name="dueDate" class="main-input">
+                            <button class="trigger-dropdown">▼</button>
+                            <div class="type-dropdown" style="display: none;">
+                                <div class="type-option">
+                                    <span>Calendar</span>
+                                    <button class="add-type" data-type="calendar">+</button>
+                                </div>
+                                <div class="type-option">
+                                    <span>Clock</span>
+                                    <button class="add-type" data-type="clock">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><input type="text" name="timeLeft"></td>
+                    <td class="status-cell"><span class="save-status"></span></td>
+                    <td class="delete-cell"><button type="submit" class="add-button">Add</button></td>
+                </form>
+            </tr>
+        </tbody>
+    </table>
+
+    <form method="post" th:action="@{/logout}">
+        <button type="submit">Logout</button>
+    </form>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'920d47e01a5e4fce',t:'MTc0MjA1NTAyNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
