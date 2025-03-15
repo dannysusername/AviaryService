@@ -2,6 +2,16 @@ console.log('dashboard.js loaded');
 
 let timeout;
 
+function setTextareaMinHeight(textarea) {
+    // Reset height to auto to measure true scrollHeight
+    textarea.style.height = 'auto';
+    // Set min-height to the content's scrollHeight
+    textarea.style.minHeight = `${textarea.scrollHeight}px`;
+    // Let height adjust naturally above min-height, up to max-height (handled by CSS)
+    textarea.style.height = 'auto';
+}
+
+
 function autoSave(input) {
     const row = input.closest('.auto-save-row');
     if (!row) return;
@@ -11,8 +21,8 @@ function autoSave(input) {
     const formData = new FormData();
 
     // Handle regular inputs (item, cycle, timeLeft, description)
-    row.querySelectorAll('input:not(.extra-input)').forEach(input => {
-        formData.append(input.name, input.value);
+    row.querySelectorAll('input:not(.extra-input), textarea').forEach(element => {
+        formData.append(element.name, element.value);
     });
 
     // Handle lastDone and dueDate from extra inputs only
@@ -146,7 +156,7 @@ function updateDropdownWidths() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize custom dropdowns
+    // Initialize custom dropdowns (unchanged)
     document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
         const hiddenInput = dropdown.querySelector('input[type="hidden"]');
         const selected = dropdown.querySelector('.selected-option');
@@ -167,8 +177,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize lastDone and dueDate inputs from database values
+    // Initialize lastDone, dueDate, and cycle inputs from database values
     document.querySelectorAll('.auto-save-row').forEach(row => {
+        // Initialize Cycle textarea
+        const cycleTextarea = row.querySelector('textarea[name="cycle"]');
+        const savedCycle = row.getAttribute('data-cycle') || '';
+        if (cycleTextarea) {
+            if (savedCycle) {
+                cycleTextarea.value = savedCycle;
+            }
+            // Set min-height on load
+            setTextareaMinHeight(cycleTextarea);
+            // Update min-height and autosave on input
+            cycleTextarea.addEventListener('input', () => {
+                setTextareaMinHeight(cycleTextarea);
+                autoSave(cycleTextarea);
+            });
+        }
+
+        // Initialize lastDone and dueDate (unchanged)
         ['lastDone', 'dueDate'].forEach((field, index) => {
             const container = row.querySelector(`td:nth-child(${index === 0 ? 4 : 5}) .input-with-dropdown`);
             const savedValue = row.getAttribute(`data-${field}`) || '';
@@ -182,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateInput.type = 'date';
                     dateInput.name = `${field}_date`;
                     dateInput.className = 'extra-input';
-                    dateInput.value = datePart; // Set date in YYYY-MM-DD format
+                    dateInput.value = datePart;
                     dateInput.oninput = () => autoSave(dateInput);
                     container.insertBefore(dateInput, container.querySelector('.trigger-dropdown'));
                     container.querySelector('.add-type[data-type="calendar"]').textContent = '-';
@@ -193,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     textInput.name = `${field}_text`;
                     textInput.className = 'extra-input';
                     textInput.placeholder = 'Enter time';
-                    textInput.value = textPart; // Set text part (e.g., "blop")
+                    textInput.value = textPart;
                     textInput.oninput = () => autoSave(textInput);
                     container.insertBefore(textInput, container.querySelector('.trigger-dropdown'));
                     container.querySelector('.add-type[data-type="clock"]').textContent = '-';
@@ -255,11 +282,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (type === 'calendar' && existingDate) {
                     existingDate.remove();
                     this.textContent = '+';
-                    if (row) autoSave(this); // Trigger autosave to update empty value
+                    if (row) autoSave(this);
                 } else if (type === 'clock' && existingText) {
                     existingText.remove();
                     this.textContent = '+';
-                    if (row) autoSave(this); // Trigger autosave to update empty value
+                    if (row) autoSave(this);
                 }
             }
 

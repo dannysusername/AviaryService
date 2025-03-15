@@ -12,7 +12,7 @@ th, td {
 
 th:not(.status-header):not(.delete-header),
 td:not(.status-cell):not(.delete-cell) {
-    min-width: 100px;
+    min-width: 120px;
 }
 
 .status-header,
@@ -43,6 +43,25 @@ td input:focus {
     outline: 1px solid #007bff;
 }
 
+td textarea {
+    width: 100%;
+    min-height: 25px; /* Minimum height to match other fields */
+    max-height: 120px;
+    box-sizing: border-box;
+    border: 1px solid #ddd; /* Matches input style */
+    padding: 4px;
+    resize: vertical; /* Allows vertical resizing, disable with 'none' if unwanted */
+    overflow-y: auto; /* Scrollbar only when content exceeds max-height */
+    white-space: pre-wrap; /* Ensures text wraps */
+    word-wrap: break-word; /* Breaks long words */
+    height: auto; /* Allows height to adjust above min-height */
+}
+
+/* Focus state to match input */
+td textarea:focus {
+    outline: 1px solid #007bff;
+}
+
 .extra-input {
     width: auto;
     margin-left: 4px;
@@ -54,13 +73,19 @@ td input:focus {
 .input-with-dropdown {
     position: relative;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
+    justify-content: flex-end; /* Always pushes trigger-dropdown to the right */
+    gap: 4px; /* Adds spacing between inputs and button */
+}
+
+.input-with-dropdown .extra-input {
+    min-width: 120px;
+    width: 45%;
+    order: -1; /* Ensures inputs stay to the left of the trigger-dropdown */
 }
 
 .trigger-dropdown {
-    margin-left: 4px;
     cursor: pointer;
     padding: 2px 6px;
     background: #f0f0f0;
@@ -122,6 +147,7 @@ td input:focus {
     white-space: normal;
     text-align: center;
     max-width: 200px;
+    word-wrap: break-word;
 }
 
 .custom-dropdown:has(input[value=""]) .selected-option::after {

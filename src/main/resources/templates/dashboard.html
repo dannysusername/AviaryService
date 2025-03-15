@@ -27,7 +27,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr th:each="timeline : ${timelines}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" class="auto-save-row">
+            <tr th:each="timeline : ${timelines}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
                 <td><input type="text" name="item" th:value="${timeline.item}" required oninput="autoSave(this)"></td>
                 <td>
                     <div class="custom-dropdown">
@@ -47,7 +47,7 @@
                         </div>
                     </div>
                 </td>
-                <td><input type="text" name="cycle" th:value="${timeline.cycle}" oninput="autoSave(this)"></td>
+                <td><textarea name="cycle" oninput="autoSave(this)"></textarea></td>
                 <td>
                     <div class="input-with-dropdown">
                         <button class="trigger-dropdown">▼</button>
@@ -106,7 +106,7 @@
                             </div>
                         </div>
                     </td>
-                    <td><input type="text" name="cycle"></td>
+                    <td><textarea name="cycle"></textarea></td>
                     <td>
                         <div class="input-with-dropdown">
                             <button class="trigger-dropdown">▼</button>
