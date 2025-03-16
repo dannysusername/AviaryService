@@ -45,19 +45,19 @@ td input:focus {
 
 td textarea {
     width: 100%;
-    min-height: 25px; /* Minimum height to match other fields */
-    max-height: 120px;
+    min-height: 25px; /* Fallback for empty content */
+    max-height: 120px; /* Hard cap on height */
     box-sizing: border-box;
-    border: 1px solid #ddd; /* Matches input style */
+    border: 1px solid #ddd;
     padding: 4px;
-    resize: vertical; /* Allows vertical resizing, disable with 'none' if unwanted */
-    overflow-y: auto; /* Scrollbar only when content exceeds max-height */
+    resize: none; /* Prevents manual resizing beyond max-height */
+    overflow: hidden; /* No scrollbar, content is truncated or limited */
     white-space: pre-wrap; /* Ensures text wraps */
     word-wrap: break-word; /* Breaks long words */
-    height: auto; /* Allows height to adjust above min-height */
+    height: auto; /* Allows height to adjust up to max-height */
 }
 
-/* Focus state to match input */
+/* Focus state unchanged */
 td textarea:focus {
     outline: 1px solid #007bff;
 }

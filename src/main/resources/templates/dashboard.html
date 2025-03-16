@@ -109,33 +109,24 @@
                     <td><textarea name="cycle"></textarea></td>
                     <td>
                         <div class="input-with-dropdown">
-                            <button class="trigger-dropdown">▼</button>
+                            <button type="button" class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
-                                <div class="type-option">
-                                    <span>Calendar</span>
-                                    <button class="add-type" data-type="calendar">+</button>
-                                </div>
-                                <div class="type-option">
-                                    <span>Clock</span>
-                                    <button class="add-type" data-type="clock">+</button>
-                                </div>
+                                <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
+                                <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
                             </div>
                         </div>
+                        <input type="hidden" name="lastDone" id="lastDoneHidden">
                     </td>
                     <td>
                         <div class="input-with-dropdown">
-                            <button class="trigger-dropdown">▼</button>
+                            <button type="button" class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
-                                <div class="type-option">
-                                    <span>Calendar</span>
-                                    <button class="add-type" data-type="calendar">+</button>
-                                </div>
-                                <div class="type-option">
-                                    <span>Clock</span>
-                                    <button class="add-type" data-type="clock">+</button>
-                                </div>
+                                <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
+                                <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
                             </div>
                         </div>
+                        <input type="hidden" name="dueDate" id="dueDateHidden">
+                        <!--here-->
                     </td>
                     <td><input type="text" name="timeLeft"></td>
                     <td class="status-cell"><span class="save-status"></span></td>
