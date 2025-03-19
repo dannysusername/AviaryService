@@ -3,31 +3,24 @@ console.log('dashboard.js loaded');
 let timeout;
 
 function setTextareaMinHeight(textarea) {
-    // Reset both height and min-height to measure true scrollHeight
     textarea.style.height = 'auto';
-    textarea.style.minHeight = '0'; // Reset min-height to allow full shrinkage
+    textarea.style.minHeight = '0';
     const scrollHeight = textarea.scrollHeight;
-
-    // Set min-height to content height, capped at 120px
     textarea.style.minHeight = `${Math.min(scrollHeight, 120)}px`;
-    textarea.style.height = 'auto'; // Let height adjust naturally
-
-    // If content exceeds 120px, truncate it
+    textarea.style.height = 'auto';
     if (scrollHeight > 120) {
         const currentValue = textarea.value;
         let truncatedValue = currentValue;
-        textarea.style.height = 'auto'; // Reset for measurement
-        textarea.style.minHeight = '0'; // Reset min-height again for accurate truncation
+        textarea.style.height = 'auto';
+        textarea.style.minHeight = '0';
         while (textarea.scrollHeight > 120 && truncatedValue.length > 0) {
-            truncatedValue = truncatedValue.slice(0, -1); // Remove last character
+            truncatedValue = truncatedValue.slice(0, -1);
             textarea.value = truncatedValue;
         }
-        // Restore cursor position to end
         textarea.setSelectionRange(truncatedValue.length, truncatedValue.length);
-        textarea.style.minHeight = '120px'; // Lock min-height at max when truncated
+        textarea.style.minHeight = '120px';
     }
 }
-
 
 function autoSave(input) {
     const row = input.closest('.auto-save-row');
@@ -37,14 +30,12 @@ function autoSave(input) {
     const status = row.querySelector('.save-status');
     const formData = new FormData();
 
-    // Handle regular inputs (item, cycle, timeLeft, description)
     row.querySelectorAll('input:not(.extra-input), textarea').forEach(element => {
         formData.append(element.name, element.value);
     });
 
-    // Handle lastDone and dueDate from extra inputs only
-    ['lastDone', 'dueDate'].forEach(field => {
-        const container = row.querySelector(`td:nth-child(${field === 'lastDone' ? 4 : 5}) .input-with-dropdown`);
+    ['lastDone', 'dueDate'].forEach((field, index) => {
+        const container = row.querySelector(`td:nth-child(${index === 0 ? 5 : 6}) .input-with-dropdown`);
         const dateInput = container.querySelector('input[type="date"]');
         const textInput = container.querySelector('input[type="text"].extra-input');
         let value = '';
@@ -80,17 +71,39 @@ function autoSave(input) {
 }
 
 function deleteRow(icon) {
-    const row = icon.closest('.auto-save-row');
+    const row = icon.closest('tr');
     if (!row) return;
     const id = row.getAttribute('data-id');
+    if (!id) {
+        console.error('No data-id found for the row');
+        return;
+    }
     const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-
     if (confirm('Are you sure you want to delete this entry?')) {
         axios.delete(`/delete/${id}`, { headers: { [csrfHeader]: csrfToken } })
             .then(() => row.remove())
             .catch(error => console.error('Error deleting:', error.response ? error.response.data : error));
     }
+}
+
+function updateOrderOnServer() {
+    const rows = document.querySelectorAll('table tbody tr:not(.add-row)');
+    const order = Array.from(rows).map(row => row.getAttribute('data-id'));
+    const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+    axios.post('/updateOrder', order, {
+        headers: {
+            [csrfHeader]: csrfToken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Order updated');
+    })
+    .catch(error => {
+        console.error('Error updating order:', error);
+    });
 }
 
 function toggleDropdown(selected) {
@@ -173,11 +186,26 @@ function updateDropdownWidths() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-
-    console.log('add-row td:nth-child(4) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(4) .input-with-dropdown'));
     console.log('add-row td:nth-child(5) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(5) .input-with-dropdown'));
-    
-    // Initialize custom dropdowns (unchanged)
+    console.log('add-row td:nth-child(6) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(6) .input-with-dropdown'));
+
+
+    document.querySelectorAll('.auto-save-row textarea[name="item"]').forEach(textarea => {
+        setTextareaMinHeight(textarea);
+        textarea.addEventListener('input', () => {
+            setTextareaMinHeight(textarea);
+        });
+    });
+    // Initialize Sortable.js
+    const tbody = document.querySelector('.sortable');
+    Sortable.create(tbody, {
+        handle: '.grip-icon',
+        animation: 150,
+        onEnd: function (evt) {
+            updateOrderOnServer();
+        }
+    });
+
     document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
         const hiddenInput = dropdown.querySelector('input[type="hidden"]');
         const selected = dropdown.querySelector('.selected-option');
@@ -198,33 +226,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize lastDone, dueDate, and cycle inputs from database values
     document.querySelectorAll('.auto-save-row').forEach(row => {
-        // Initialize Cycle textarea
-        const cycleTextarea = row.querySelector('textarea[name="cycle"]');
-        const savedCycle = row.getAttribute('data-cycle') || '';
-        if (cycleTextarea) {
-            if (savedCycle) {
-                cycleTextarea.value = savedCycle;
-            }
-            // Set min-height on load and enforce 120px limit
-            setTextareaMinHeight(cycleTextarea);
-            // Update min-height, limit content, and autosave on input
-            cycleTextarea.addEventListener('input', () => {
-                setTextareaMinHeight(cycleTextarea);
-                autoSave(cycleTextarea);
-            });
-        }
-
-        // Initialize lastDone and dueDate (unchanged)
         ['lastDone', 'dueDate'].forEach((field, index) => {
-            const container = row.querySelector(`td:nth-child(${index === 0 ? 4 : 5}) .input-with-dropdown`);
+            const container = row.querySelector(`td:nth-child(${index === 0 ? 5 : 6}) .input-with-dropdown`);
             const savedValue = row.getAttribute(`data-${field}`) || '';
             if (savedValue) {
                 const parts = savedValue.split(' ');
-                const datePart = parts[0] && parts[0].match(/^\d{4}-\d{2}-\d{2}$/) ? parts[0] : null;
-                const textPart = parts.length > 1 ? parts.slice(1).join(' ') : null;
-
+                let datePart = null;
+                let textPart = null;
+    
+                // Check if the first part is a date
+                if (parts[0] && parts[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    datePart = parts[0];
+                    if (parts.length > 1) {
+                        textPart = parts.slice(1).join(' '); // Time follows the date
+                    }
+                } else {
+                    textPart = savedValue; // No date, so treat the whole value as time
+                }
+    
+                // Create date input if there’s a date
                 if (datePart) {
                     const dateInput = document.createElement('input');
                     dateInput.type = 'date';
@@ -235,6 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.insertBefore(dateInput, container.querySelector('.trigger-dropdown'));
                     container.querySelector('.add-type[data-type="calendar"]').textContent = '-';
                 }
+    
+                // Create time input if there’s a time
                 if (textPart) {
                     const textInput = document.createElement('input');
                     textInput.type = 'text';
@@ -250,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Toggle dropdown visibility
     document.querySelectorAll('.trigger-dropdown').forEach(button => {
         button.addEventListener('click', function() {
             const dropdown = this.nextElementSibling;
@@ -265,117 +287,203 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addRowCycleTextarea = document.querySelector('.add-row textarea[name="cycle"]');
     if (addRowCycleTextarea) {
-        setTextareaMinHeight(addRowCycleTextarea); // Initial adjustment
+        setTextareaMinHeight(addRowCycleTextarea);
         addRowCycleTextarea.addEventListener('input', () => {
-            setTextareaMinHeight(addRowCycleTextarea); // Adjust on input
+            setTextareaMinHeight(addRowCycleTextarea);
         });
     }
 
-    // Add or remove date picker or text input when plus/minus is clicked
-    // Update function to accept a container context
-// Update function to accept a container context
-// Update function to accept a container context
-function updateAddRowHiddenInputs() {
-    const lastDoneTd = document.getElementById('lastDoneHidden').parentElement;
-    const dueDateTd = document.getElementById('dueDateHidden').parentElement;
+    function updateAddRowHiddenInputs() {
+        const lastDoneTd = document.getElementById('lastDoneHidden').parentElement;
+        const dueDateTd = document.getElementById('dueDateHidden').parentElement;
 
-    console.log('lastDoneTd:', lastDoneTd);
-    console.log('dueDateTd:', dueDateTd);
+        const lastDoneContainer = lastDoneTd.querySelector('.input-with-dropdown');
+        const dueDateContainer = dueDateTd.querySelector('.input-with-dropdown');
 
-    const lastDoneContainer = lastDoneTd.querySelector('.input-with-dropdown');
-    const dueDateContainer = dueDateTd.querySelector('.input-with-dropdown');
-
-    if (!lastDoneContainer) {
-        console.warn('lastDoneContainer not found in lastDoneTd');
-    } else {
-        const lastDoneDate = lastDoneContainer.querySelector('input[type="date"]');
-        const lastDoneText = lastDoneContainer.querySelector('input[type="text"].extra-input');
-        let lastDoneValue = '';
-        if (lastDoneDate) lastDoneValue += lastDoneDate.value;
-        if (lastDoneText) lastDoneValue += lastDoneValue ? ` ${lastDoneText.value}` : lastDoneText.value;
-        document.getElementById('lastDoneHidden').value = lastDoneValue.trim();
-        console.log('Updated lastDone:', lastDoneValue);
-    }
-
-    if (!dueDateContainer) {
-        console.warn('dueDateContainer not found in dueDateTd');
-    } else {
-        const dueDateDate = dueDateContainer.querySelector('input[type="date"]');
-        const dueDateText = dueDateContainer.querySelector('input[type="text"].extra-input');
-        let dueDateValue = '';
-        if (dueDateDate) dueDateValue += dueDateDate.value;
-        if (dueDateText) dueDateValue += dueDateValue ? ` ${dueDateText.value}` : dueDateText.value;
-        document.getElementById('dueDateHidden').value = dueDateValue.trim();
-        console.log('Updated dueDate:', dueDateValue);
-    }
-}
-
-document.querySelectorAll('.add-type').forEach(button => {
-    button.addEventListener('click', function() {
-        const type = this.getAttribute('data-type');
-        const container = this.closest('.input-with-dropdown');
-        const tdIndex = Array.from(container.closest('tr').children).indexOf(container.closest('td'));
-        const fieldName = tdIndex === 3 ? 'lastDone' : 'dueDate';
-        const existingDate = container.querySelector('input[type="date"]');
-        const existingText = container.querySelector('input[type="text"].extra-input');
-        const isAddMode = this.textContent === '+';
-        const row = container.closest('.auto-save-row');
-
-        if (isAddMode) {
-            if (type === 'calendar' && existingDate) return;
-            if (type === 'clock' && existingText) return;
-
-            let newInput;
-            if (type === 'calendar') {
-                newInput = document.createElement('input');
-                newInput.type = 'date';
-                newInput.name = `${fieldName}_date`;
-                newInput.className = 'extra-input';
-                newInput.oninput = () => {
-                    if (row) autoSave(newInput);
-                    else updateAddRowHiddenInputs();
-                };
-            } else if (type === 'clock') {
-                newInput = document.createElement('input');
-                newInput.type = 'text';
-                newInput.name = `${fieldName}_text`;
-                newInput.className = 'extra-input';
-                newInput.placeholder = 'Enter time';
-                newInput.oninput = () => {
-                    if (row) autoSave(newInput);
-                    else updateAddRowHiddenInputs();
-                };
-            }
-
-            container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
-            this.textContent = '-';
-            if (!row) updateAddRowHiddenInputs();
-        } else {
-            if (type === 'calendar' && existingDate) {
-                existingDate.remove();
-                this.textContent = '+';
-                if (row) autoSave(this);
-                else updateAddRowHiddenInputs();
-            } else if (type === 'clock' && existingText) {
-                existingText.remove();
-                this.textContent = '+';
-                if (row) autoSave(this);
-                else updateAddRowHiddenInputs();
-            }
+        if (lastDoneContainer) {
+            const lastDoneDate = lastDoneContainer.querySelector('input[type="date"]');
+            const lastDoneText = lastDoneContainer.querySelector('input[type="text"].extra-input');
+            let lastDoneValue = '';
+            if (lastDoneDate) lastDoneValue += lastDoneDate.value;
+            if (lastDoneText) lastDoneValue += lastDoneValue ? ` ${lastDoneText.value}` : lastDoneText.value;
+            document.getElementById('lastDoneHidden').value = lastDoneValue.trim();
         }
 
-        this.closest('.type-dropdown').style.display = 'none';
-    });
-});
+        if (dueDateContainer) {
+            const dueDateDate = dueDateContainer.querySelector('input[type="date"]');
+            const dueDateText = dueDateContainer.querySelector('input[type="text"].extra-input');
+            let dueDateValue = '';
+            if (dueDateDate) dueDateValue += dueDateDate.value;
+            if (dueDateText) dueDateValue += dueDateValue ? ` ${dueDateText.value}` : dueDateText.value;
+            document.getElementById('dueDateHidden').value = dueDateValue.trim();
+        }
+    }
 
-// Submit listener
-const addForm = document.querySelector('.add-row form');
-if (addForm) {
-    addForm.addEventListener('submit', function(event) {
-        updateAddRowHiddenInputs();
-        console.log('Submitting - lastDoneHidden:', document.getElementById('lastDoneHidden').value, 'dueDateHidden:', document.getElementById('dueDateHidden').value);
+    function updateItemHiddenInputs() {
+        const itemContainer = document.querySelector('.add-row td:nth-child(2) .input-with-dropdown');
+        const itemInput = itemContainer.querySelector('input[type="text"].extra-input');
+        const titleInput = itemContainer.querySelector('input[type="text"].title-input');
+        
+        if (itemInput) {
+            document.getElementById('itemHidden').value = itemInput.value;
+            document.getElementById('isTitleHidden').value = 'false';
+        } else if (titleInput) {
+            document.getElementById('itemHidden').value = titleInput.value;
+            document.getElementById('isTitleHidden').value = 'true';
+        } else {
+            document.getElementById('itemHidden').value = '';
+            document.getElementById('isTitleHidden').value = 'false';
+        }
+    }
+
+    document.querySelectorAll('.add-type').forEach(button => {
+        button.addEventListener('click', function() {
+            const type = this.getAttribute('data-type');
+            const container = this.closest('.input-with-dropdown');
+            const tr = this.closest('tr');
+            
+            if (!tr || !container) {
+                console.error('No tr or container found for add-type button');
+                return;
+            }
+    
+            const td = this.closest('td');
+            const tdIndex = Array.from(tr.children).indexOf(td);
+            const existingDate = container.querySelector('input[type="date"]');
+            const existingText = container.querySelector('input[type="text"].extra-input');
+            const existingTitle = container.querySelector('input[type="text"].title-input');
+            const isAddMode = this.textContent === '+';
+            const row = tr.classList.contains('auto-save-row') ? tr : null;
+    
+            if (tdIndex === 1 && tr.classList.contains('add-row')) {
+                // Handle item column in add row
+                if (isAddMode) {
+                    if (type === 'item' && existingTitle) {
+                        existingTitle.remove();
+                        container.querySelector('.add-type[data-type="title"]').textContent = '+';
+                    } else if (type === 'title' && existingText) {
+                        existingText.remove();
+                        container.querySelector('.add-type[data-type="item"]').textContent = '+';
+                    }
+    
+                    if (type === 'item' && !existingText) {
+                        const newInput = document.createElement('input');
+                        newInput.type = 'text';
+                        newInput.name = 'item_text';
+                        newInput.className = 'extra-input';
+                        newInput.placeholder = 'Enter item';
+                        newInput.oninput = () => updateItemHiddenInputs();
+                        container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                        this.textContent = '-';
+                        tr.classList.remove('title-mode');
+                        updateItemHiddenInputs();
+                    } else if (type === 'title' && !existingTitle) {
+                        const newInput = document.createElement('input');
+                        newInput.type = 'text';
+                        newInput.name = 'title_text';
+                        newInput.className = 'title-input';
+                        newInput.placeholder = 'Enter title';
+                        newInput.oninput = () => updateItemHiddenInputs();
+                        container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                        this.textContent = '-';
+                        tr.classList.add('title-mode');
+                        tr.querySelectorAll('td:not(:nth-child(1)):not(:last-child) input, td:not(:nth-child(1)):not(:last-child) textarea').forEach(el => el.value = '');
+                        updateItemHiddenInputs();
+                    }
+                } else {
+                    if (type === 'item' && existingText) {
+                        existingText.remove();
+                        this.textContent = '+';
+                        tr.classList.remove('title-mode');
+                        updateItemHiddenInputs();
+                    } else if (type === 'title' && existingTitle) {
+                        existingTitle.remove();
+                        this.textContent = '+';
+                        tr.classList.remove('title-mode');
+                        updateItemHiddenInputs();
+                    }
+                }
+            } else if (tdIndex === 4 || tdIndex === 5) {
+                // Handle last done and due date for both add row and existing rows
+                const fieldName = tdIndex === 4 ? 'lastDone' : 'dueDate';
+    
+                if (isAddMode) {
+                    if (type === 'calendar' && existingDate) return;
+                    if (type === 'clock' && existingText) return;
+    
+                    let newInput;
+                    if (type === 'calendar') {
+                        newInput = document.createElement('input');
+                        newInput.type = 'date';
+                        newInput.name = `${fieldName}_date`;
+                        newInput.className = 'extra-input';
+                        newInput.oninput = () => {
+                            if (row) autoSave(newInput);
+                            else updateAddRowHiddenInputs();
+                        };
+                    } else if (type === 'clock') {
+                        newInput = document.createElement('input');
+                        newInput.type = 'text';
+                        newInput.name = `${fieldName}_text`;
+                        newInput.className = 'extra-input';
+                        newInput.placeholder = 'Enter time';
+                        newInput.oninput = () => {
+                            if (row) autoSave(newInput);
+                            else updateAddRowHiddenInputs();
+                        };
+                    }
+    
+                    if (newInput) {
+                        const trigger = container.querySelector('.trigger-dropdown');
+                        if (trigger) {
+                            container.insertBefore(newInput, trigger);
+                        } else {
+                            container.appendChild(newInput);
+                        }
+                        this.textContent = '-';
+                        if (!row) updateAddRowHiddenInputs();
+                    }
+                } else {
+                    if (type === 'calendar' && existingDate) {
+                        existingDate.remove();
+                        this.textContent = '+';
+                        if (row) autoSave(this);
+                        else updateAddRowHiddenInputs();
+                    } else if (type === 'clock' && existingText) {
+                        existingText.remove();
+                        this.textContent = '+';
+                        if (row) autoSave(this);
+                        else updateAddRowHiddenInputs();
+                    }
+                }
+            }
+    
+            this.closest('.type-dropdown').style.display = 'none';
+        });
     });
-}
+
+    const addForm = document.querySelector('.add-row form');
+    if (addForm) {
+        addForm.addEventListener('submit', function(event) {
+            updateItemHiddenInputs();
+            updateAddRowHiddenInputs();
+            const item = document.getElementById('itemHidden').value;
+            const isTitle = document.getElementById('isTitleHidden').value;
+            const description = document.querySelector('.add-row .custom-dropdown input[name="description"]').value;
+            const cycle = document.querySelector('.add-row textarea[name="cycle"]').value;
+            const lastDone = document.getElementById('lastDoneHidden').value;
+            const dueDate = document.getElementById('dueDateHidden').value;
+            const timeLeft = document.querySelector('.add-row input[name="timeLeft"]').value;
+
+            document.getElementById('itemHiddenDuplicate').value = item;
+            document.getElementById('isTitleHiddenDuplicate').value = isTitle;
+            document.getElementById('descriptionHidden').value = description;
+            document.getElementById('cycleHidden').value = cycle;
+            document.getElementById('lastDoneHiddenDuplicate').value = lastDone;
+            document.getElementById('dueDateHiddenDuplicate').value = dueDate;
+            document.getElementById('timeLeftHidden').value = timeLeft;
+        });
+    }
 
     function closeTypeDropdowns(event) {
         if (!event.target.closest('.input-with-dropdown')) {
@@ -384,9 +492,4 @@ if (addForm) {
             });
         }
     }
-
-        // Handle add-row form submission
-        
-        // *** END OF UPDATED CODE ***
-
 });

@@ -1,29 +1,18 @@
-
 package com.example.AviaryService.controllers;
 
-//import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
+import org.springframework.web.bind.annotation.*;
 import com.example.AviaryService.entity.DescriptionOption;
 import com.example.AviaryService.entity.ServiceTimeline;
 import com.example.AviaryService.entity.User;
 import com.example.AviaryService.repositories.DescriptionOptionRepository;
 import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
-
-
+import java.util.List;
 
 @Controller
 public class UserController {
@@ -66,6 +55,7 @@ public class UserController {
     @PostMapping("/dashboard")
     public String addTimeline(
         @RequestParam String item,
+        @RequestParam(required = false) String isTitle,
         @RequestParam(required = false) String description,
         @RequestParam(required = false) String cycle,
         @RequestParam(required = false) String lastDone,
@@ -75,15 +65,25 @@ public class UserController {
         User user = userRepository.findByUsername(authentication.getName());
         ServiceTimeline timeline = new ServiceTimeline();
         timeline.setItem(item);
-        if (description != null) {
-            timeline.setDescription(description);
-            saveCustomDescriptionOption(description, user);
+        boolean isTitleRow = "true".equals(isTitle);
+        timeline.setIsTitle(isTitleRow);
+        if (!isTitleRow) {
+            if (description != null) {
+                timeline.setDescription(description);
+                saveCustomDescriptionOption(description, user);
+            }
+            timeline.setCycle(cycle);
+            timeline.setLastDone(lastDone);
+            timeline.setDueDate(dueDate);
+            timeline.setTimeLeft(timeLeft);
         }
-        timeline.setCycle(cycle);
-        timeline.setLastDone(lastDone);
-        timeline.setDueDate(dueDate);
-        timeline.setTimeLeft(timeLeft);
         timeline.setUser(user);
+
+        // Set timelineOrder
+        Integer maxOrder = serviceTimelineRepository.findMaxTimelineOrderByUser(user);
+        int newOrder = (maxOrder != null) ? maxOrder + 1 : 0;
+        timeline.setTimelineOrder(newOrder);
+
         serviceTimelineRepository.save(timeline);
         return "redirect:/dashboard";
     }
@@ -113,12 +113,31 @@ public class UserController {
         return "redirect:/dashboard";
     }
 
+
     @DeleteMapping("/delete/{id}")
     @ResponseBody
     public void deleteTimeline(@PathVariable Long id) {
         ServiceTimeline timeline = serviceTimelineRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid timeline ID: " + id));
         serviceTimelineRepository.delete(timeline);
+    }
+
+    @PostMapping("/updateOrder")
+    @ResponseBody
+    public void updateOrder(@RequestBody List<Long> ids, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        List<ServiceTimeline> timelines = serviceTimelineRepository.findByUserOrderByIdAsc(user);
+        for (int i = 0; i < ids.size(); i++) {
+            Long id = ids.get(i);
+            ServiceTimeline timeline = timelines.stream()
+                .filter(t -> t.getId() == id)
+                .findFirst()
+                .orElse(null);
+            if (timeline != null) {
+                timeline.setTimelineOrder(i);
+            }
+        }
+        serviceTimelineRepository.saveAll(timelines);
     }
 
     private void saveCustomDescriptionOption(String description, User user) {

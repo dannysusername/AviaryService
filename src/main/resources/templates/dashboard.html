@@ -6,6 +6,7 @@
     <title>Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/dashboardstyle.css}" href="/css/dashboardstyle.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script th:src="@{/js/dashboard.js}"></script>
 </head>
 <body>
@@ -14,8 +15,10 @@
     
     <h2>Your Service Timeline</h2>
     <table>
+        
         <thead>
             <tr>
+                <th class = "grip-column"></th> <!-- Grip column -->
                 <th>Item</th>
                 <th>Description</th>
                 <th>Cycle</th>
@@ -26,72 +29,23 @@
                 <th class="delete-header">Delete</th>
             </tr>
         </thead>
-        <tbody>
-            <tr th:each="timeline : ${timelines}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
-                <td><input type="text" name="item" th:value="${timeline.item}" required oninput="autoSave(this)"></td>
-                <td>
-                    <div class="custom-dropdown">
-                        <div class="selected-option" onclick="toggleDropdown(this)"></div>
-                        <input type="hidden" name="description" th:value="${timeline.description}">
-                        <div class="dropdown-options">
-                            <div class="option" data-value="">--None--</div>
-                            <div class="option" data-value="inspect">Inspect</div>
-                            <div class="option" data-value="test">Test</div>
-                            <div class="option" data-value="replace">Replace</div>
-                            <div class="option" data-value="overhaul">Overhaul</div>
-                            <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
-                            <div class="add-option-container">
-                                <input type="text" class="custom-description" placeholder="New option">
-                                <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </td>
-                <td><textarea name="cycle" oninput="autoSave(this)"></textarea></td>
-                <td>
-                    <div class="input-with-dropdown">
-                        <button class="trigger-dropdown">▼</button>
-                        <div class="type-dropdown" style="display: none;">
-                            <div class="type-option">
-                                <span>Calendar</span>
-                                <button class="add-type" data-type="calendar">+</button>
-                            </div>
-                            <div class="type-option">
-                                <span>Clock</span>
-                                <button class="add-type" data-type="clock">+</button>
-                            </div>
-                        </div>
-                    </div>
-                </td>       
-                <td>
-                    <div class="input-with-dropdown">
-                        <button class="trigger-dropdown">▼</button>
-                        <div class="type-dropdown" style="display: none;">
-                            <div class="type-option">
-                                <span>Calendar</span>
-                                <button class="add-type" data-type="calendar">+</button>
-                            </div>
-                            <div class="type-option">
-                                <span>Clock</span>
-                                <button class="add-type" data-type="clock">+</button>
-                            </div>
-                        </div>
-                    </div>
-                </td>
-                <td><input type="text" name="timeLeft" th:value="${timeline.timeLeft}" oninput="autoSave(this)"></td>
-                <td class="status-cell"><span class="save-status">Saved</span></td>
-                <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
-            </tr>
-            <tr th:if="${timelines.isEmpty()}">
-                <td colspan="8">No service entries yet.</td>
-            </tr>
-            <tr class="add-row">
-                <form method="post" th:action="@{/dashboard}">
-                    <td><input type="text" name="item" required></td>
+        <tbody class = "sortable">
+            <!-- Existing timelines -->
+            <th:block th:each="timeline : ${timelines}">
+                <!-- Title row -->
+                <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
+                    <td><span class="grip-icon">⋮</span></td>
+                    <td colspan="7" class="title-cell" th:text="${timeline.item}"></td>
+                    <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
+                </tr>
+                <!-- Regular item row -->
+                <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
+                    <td class = "grip-column"><span class="grip-icon">⋮</span></td>
+                    <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)"></textarea></td>
                     <td>
                         <div class="custom-dropdown">
                             <div class="selected-option" onclick="toggleDropdown(this)"></div>
-                            <input type="hidden" name="description">
+                            <input type="hidden" name="description" th:value="${timeline.description}">
                             <div class="dropdown-options">
                                 <div class="option" data-value="">--None--</div>
                                 <div class="option" data-value="inspect">Inspect</div>
@@ -106,32 +60,117 @@
                             </div>
                         </div>
                     </td>
-                    <td><textarea name="cycle"></textarea></td>
+                    <td><textarea name="cycle" oninput="autoSave(this)" th:text="${timeline.cycle}"></textarea></td>
                     <td>
                         <div class="input-with-dropdown">
-                            <button type="button" class="trigger-dropdown">▼</button>
+                            <button class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
-                                <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
-                                <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
+                                <div class="type-option">
+                                    <span>Calendar</span>
+                                    <button class="add-type" data-type="calendar">+</button>
+                                </div>
+                                <div class="type-option">
+                                    <span>Clock</span>
+                                    <button class="add-type" data-type="clock">+</button>
+                                </div>
                             </div>
                         </div>
-                        <input type="hidden" name="lastDone" id="lastDoneHidden">
                     </td>
                     <td>
                         <div class="input-with-dropdown">
-                            <button type="button" class="trigger-dropdown">▼</button>
+                            <button class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
-                                <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
-                                <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
+                                <div class="type-option">
+                                    <span>Calendar</span>
+                                    <button class="add-type" data-type="calendar">+</button>
+                                </div>
+                                <div class="type-option">
+                                    <span>Clock</span>
+                                    <button class="add-type" data-type="clock">+</button>
+                                </div>
                             </div>
                         </div>
-                        <input type="hidden" name="dueDate" id="dueDateHidden">
-                        <!--here-->
                     </td>
-                    <td><input type="text" name="timeLeft"></td>
-                    <td class="status-cell"><span class="save-status"></span></td>
-                    <td class="delete-cell"><button type="submit" class="add-button">Add</button></td>
-                </form>
+                    <td><input type="text" name="timeLeft" th:value="${timeline.timeLeft}" oninput="autoSave(this)"></td>
+                    <td class="status-cell"><span class="save-status">Saved</span></td>
+                    <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
+                </tr>
+            </th:block>
+        </tbody>
+            <!-- Add row -->
+        <tbody>
+            <tr class="add-row">
+                <td class = "grip-column"></td> <!-- Empty grip column -->
+                <td>
+                    <div class="input-with-dropdown">
+                        <button type="button" class="trigger-dropdown">▼</button>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option">
+                                <span>Item</span>
+                                <button type="button" class="add-type" data-type="item">+</button>
+                            </div>
+                            <div class="type-option">
+                                <span>Title</span>
+                                <button type="button" class="add-type" data-type="title">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="item" id="itemHidden">
+                    <input type="hidden" name="isTitle" id="isTitleHidden" value="false">
+                </td>
+                <td>
+                    <div class="custom-dropdown">
+                        <div class="selected-option" onclick="toggleDropdown(this)"></div>
+                        <input type="hidden" name="description">
+                        <div class="dropdown-options">
+                            <div class="option" data-value="">--None--</div>
+                            <div class="option" data-value="inspect">Inspect</div>
+                            <div class="option" data-value="test">Test</div>
+                            <div class="option" data-value="replace">Replace</div>
+                            <div class="option" data-value="overhaul">Overhaul</div>
+                            <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
+                            <div class="add-option-container">
+                                <input type="text" class="custom-description" placeholder="New option">
+                                <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td><textarea name="cycle"></textarea></td>
+                <td>
+                    <div class="input-with-dropdown">
+                        <button type="button" class="trigger-dropdown">▼</button>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
+                            <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="lastDone" id="lastDoneHidden">
+                </td>
+                <td>
+                    <div class="input-with-dropdown">
+                        <button type="button" class="trigger-dropdown">▼</button>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
+                            <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="dueDate" id="dueDateHidden">
+                </td>
+                <td><input type="text" name="timeLeft"></td>
+                <td class="status-cell"><span class="save-status"></span></td>
+                <td class="delete-cell">
+                    <form method="post" th:action="@{/dashboard}">
+                        <input type="hidden" name="item" id="itemHiddenDuplicate">
+                        <input type="hidden" name="isTitle" id="isTitleHiddenDuplicate" value="false">
+                        <input type="hidden" name="description" id="descriptionHidden">
+                        <input type="hidden" name="cycle" id="cycleHidden">
+                        <input type="hidden" name="lastDone" id="lastDoneHiddenDuplicate">
+                        <input type="hidden" name="dueDate" id="dueDateHiddenDuplicate">
+                        <input type="hidden" name="timeLeft" id="timeLeftHidden">
+                        <button type="submit" class="add-button">Add</button>
+                    </form>
+                </td>
             </tr>
         </tbody>
     </table>

@@ -1,3 +1,5 @@
+/* Existing styles remain unchanged until the end */
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -10,9 +12,43 @@ th, td {
     text-align: left;
 }
 
-th:not(.status-header):not(.delete-header),
-td:not(.status-cell):not(.delete-cell) {
-    min-width: 120px;
+th:not(.status-header):not(.delete-header):not(.grip-column),
+td:not(.status-cell):not(.delete-cell):not(.grip-column) {
+    
+}
+
+th:first-child, td:first-child {
+    width: 10px;          /* Sets the width to 10px */
+    min-width: 10px;      /* Overrides any larger min-width */
+    background-color: #f0f0f0; /* Light grey background */
+    text-align: center;   /* Centers the three dots */
+    padding: 0;           /* Removes padding to keep it narrow */
+}
+
+/* Style for the grip icon */
+
+.grip-column {
+    width: 10px;
+    min-width: 10px; /* Ensures it stays at 10px */
+    background-color: #f0f0f0; /* Light grey background */
+    text-align: center;
+    padding: 0; /* Removes default padding */
+}
+
+.grip-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Fills the cell height */
+    cursor: move; /* Indicates draggability */
+    color: #666; /* Dark grey color for dots */
+}
+
+.grip-icon span {
+    font-size: 6px; /* Small dots to fit 10px width */
+    line-height: 1;
+    margin: 1px 0; /* Spacing between dots */
 }
 
 .status-header,
@@ -33,10 +69,16 @@ th {
 }
 
 td input {
-    width: 100%;
+    width: 120px;
     box-sizing: border-box;
     border: none;
     padding: 4px;
+}
+
+
+.custom-description{
+    width: 100%;
+    
 }
 
 td input:focus {
@@ -45,24 +87,57 @@ td input:focus {
 
 td textarea {
     width: 100%;
-    min-height: 25px; /* Fallback for empty content */
-    max-height: 120px; /* Hard cap on height */
+    min-height: 25px;
+    max-height: 120px;
+    min-width: 120px;
     box-sizing: border-box;
     border: 1px solid #ddd;
     padding: 4px;
-    resize: none; /* Prevents manual resizing beyond max-height */
-    overflow: hidden; /* No scrollbar, content is truncated or limited */
-    white-space: pre-wrap; /* Ensures text wraps */
-    word-wrap: break-word; /* Breaks long words */
-    height: auto; /* Allows height to adjust up to max-height */
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    height: auto;
 }
 
-/* Focus state unchanged */
 td textarea:focus {
     outline: 1px solid #007bff;
 }
 
-.extra-input {
+td textarea.item-textarea,
+.extra-textarea {
+    width: 100%;
+    min-height: 25px;
+    max-height: 120px;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    padding: 4px;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    height: auto;
+}
+
+td textarea.item-textarea:focus,
+.extra-textarea:focus {
+    outline: 1px solid #007bff;
+}
+
+.title-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    padding: 4px;
+    font-weight: bold;
+}
+
+.extra-textarea {
+    min-width: 120px;
+}
+
+.extra-input,
+.title-input {
     width: auto;
     margin-left: 4px;
     padding: 2px;
@@ -70,19 +145,23 @@ td textarea:focus {
     border-radius: 3px;
 }
 
+.title-input {
+    font-weight: bold;
+}
+
 .input-with-dropdown {
     position: relative;
     display: flex;
     align-items: center;
     width: 100%;
-    justify-content: flex-end; /* Always pushes trigger-dropdown to the right */
-    gap: 4px; /* Adds spacing between inputs and button */
+    justify-content: flex-end;
+    gap: 4px;
 }
 
 .input-with-dropdown .extra-input {
     min-width: 120px;
-    width: 45%;
-    order: -1; /* Ensures inputs stay to the left of the trigger-dropdown */
+    width: 100%;
+    order: -1;
 }
 
 .trigger-dropdown {
@@ -220,6 +299,22 @@ td textarea:focus {
     background-color: #0056b3;
 }
 
+.title-row td {
+    font-weight: bold;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.add-row.title-mode td:nth-child(n+3):nth-child(-n+8) {
+    display: none;
+}
+
+.title-input {
+    font-weight: bold;
+    font-size: 1.2em;
+    width: 100%;
+}
+
 .save-status {
     display: inline-block;
     padding: 2px 6px;
@@ -265,4 +360,14 @@ td textarea:focus {
 
 .add-button:hover {
     background-color: #218838;
+}
+
+/* New styles for drag-and-drop */
+.grip-icon {
+    cursor: move;
+}
+
+th:first-child, td:first-child {
+    min-width: 20px;
+    text-align: center;
 }
