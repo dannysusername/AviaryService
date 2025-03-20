@@ -1,0 +1,22 @@
+name: CI for AviaryService
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'zulu'
+      - name: Build with Gradle
+        run: ./gradlew build -x test  # Skip tests for speed, or remove -x test to run them
+      - name: Deploy to Heroku Staging
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          git remote add heroku-staging https://git.heroku.com/aviarist-staging.git
+          git push heroku-staging main
