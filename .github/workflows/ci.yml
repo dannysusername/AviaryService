@@ -15,10 +15,9 @@ jobs:
           java-version: '21'
           distribution: 'zulu'
       - name: Make Gradle Wrapper Executable
-        run: ./gradlew build
-        # chmod +x ./gradlew
+        run: chmod +x ./gradlew  # This makes gradlew runnable
       - name: Build with Gradle
-        run: ./gradlew build -x test
+        run: ./gradlew build -x test  # Now it can run
       - name: Deploy to Heroku Staging
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
