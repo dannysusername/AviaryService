@@ -13,4 +13,5 @@ public interface ServiceTimelineRepository extends JpaRepository<ServiceTimeline
 
     @Query("SELECT MAX(t.timelineOrder) FROM ServiceTimeline t WHERE t.user = :user")
     Integer findMaxTimelineOrderByUser(@Param("user") User user);
+    
 }
