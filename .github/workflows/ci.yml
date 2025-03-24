@@ -15,7 +15,8 @@ jobs:
           java-version: '21'
           distribution: 'zulu'
       - name: Make Gradle Wrapper Executable
-        run: chmod +x ./gradlew
+        run: ./gradlew build
+        # chmod +x ./gradlew
       - name: Build with Gradle
         run: ./gradlew build -x test
       - name: Deploy to Heroku Staging
