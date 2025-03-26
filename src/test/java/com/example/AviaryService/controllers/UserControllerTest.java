@@ -14,8 +14,12 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,10 +43,54 @@ class UserControllerTest {
     @InjectMocks
     private UserController userController;
 
+    private List<User> fakeUsers;
+    private List<ServiceTimeline> allTimelines;
+
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+void setUp() {
+    MockitoAnnotations.openMocks(this);
+    fakeUsers = new ArrayList<>();
+    allTimelines = new ArrayList<>();
+
+    // Create 50 fake users
+    for (int i = 1; i <= 50; i++) {
+        User user = new User();
+        user.setId((long) i);
+        user.setUsername("user" + i);
+        user.setPassword("password" + i); // In a real scenario, this would be encoded
+        fakeUsers.add(user);
     }
+
+    // Mock userRepository.findByUsername
+    for (User user : fakeUsers) {
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(user);
+    }
+
+    // Create 2 timelines per user
+    for (User user : fakeUsers) {
+        for (int j = 1; j <= 2; j++) {
+            ServiceTimeline timeline = new ServiceTimeline();
+            timeline.setId((long) allTimelines.size() + 1);
+            timeline.setUser(user);
+            timeline.setItem("Timeline " + j + " for " + user.getUsername());
+            timeline.setIsTitle(false);
+            timeline.setTimelineOrder(j);
+            // Add other fields like description, createdDate, etc., as needed
+            allTimelines.add(timeline);
+        }
+    }
+
+    // Mock serviceTimelineRepository.findByUserOrderByIdAsc
+    for (User user : fakeUsers) {
+        List<ServiceTimeline> userTimelines = allTimelines.stream()
+                .filter(t -> t.getUser().equals(user))
+                .toList();
+        when(serviceTimelineRepository.findByUserOrderByIdAsc(user)).thenReturn(userTimelines);
+    }
+
+    // Mock descriptionOptionRepository.findByUser to return an empty list
+    when(descriptionOptionRepository.findByUser(any(User.class))).thenReturn(new ArrayList<>());
+}
 
     @Test
     void testAddTimelineAsTitle() {

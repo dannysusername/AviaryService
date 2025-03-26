@@ -27,8 +27,14 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
+
+        
+
         return username -> {
+            long start = System.currentTimeMillis();
             User user = userRepository.findByUsername(username);
+            long end = System.currentTimeMillis();
+            System.out.println("User lookup time: " + (end - start) + "ms");
             if (user == null) {
                 throw new org.springframework.security.core.userdetails.UsernameNotFoundException("User not found: " + username);
             }

@@ -62,6 +62,7 @@ public class UserController {
         @RequestParam(required = false) String dueDate,
         @RequestParam(required = false) String timeLeft,
         Authentication authentication) {
+            System.out.println("Adding timeline for user");
         User user = userRepository.findByUsername(authentication.getName());
         ServiceTimeline timeline = new ServiceTimeline();
         timeline.setItem(item);
@@ -78,6 +79,7 @@ public class UserController {
             timeline.setTimeLeft(timeLeft);
         }
         timeline.setUser(user);
+    
 
         // Set timelineOrder
         Integer maxOrder = serviceTimelineRepository.findMaxTimelineOrderByUser(user);
@@ -85,6 +87,8 @@ public class UserController {
         timeline.setTimelineOrder(newOrder);
 
         serviceTimelineRepository.save(timeline);
+
+        System.out.println("Timeline saved");
         return "redirect:/dashboard";
     }
 
