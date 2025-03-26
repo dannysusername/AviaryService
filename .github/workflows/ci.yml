@@ -1,12 +1,7 @@
 name: CI for AviaryService
 on:
   push:
-    branches: [ newfeature ]  # Trigger on both main and newfeature
-  pull_request:
-    branches: [ main ]  # Trigger on PRs to main
-
-# h
-
+    branches: [ main ]
 jobs:
   build:
     runs-on: ubuntu-latest
