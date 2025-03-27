@@ -1,7 +1,7 @@
 name: CI for AviaryService
 on:
   push:
-    branches: [ newfeature ]  # Trigger for newfeature
+    branches: [ newfeature, main ]  # Trigger for newfeature
   pull_request:
     branches: [ main ]  # Trigger on PRs to main
 
