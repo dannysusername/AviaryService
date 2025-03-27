@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles("test")  // Use a test profile
+@ActiveProfiles("tes")  // Use a test profile
 class AviaryServiceApplicationTests {
 
     @Test
