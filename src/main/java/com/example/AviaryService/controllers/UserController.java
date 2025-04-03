@@ -1,6 +1,7 @@
 package com.example.AviaryService.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -9,10 +10,18 @@ import org.springframework.web.bind.annotation.*;
 import com.example.AviaryService.entity.DescriptionOption;
 import com.example.AviaryService.entity.ServiceTimeline;
 import com.example.AviaryService.entity.User;
+import com.example.AviaryService.entity.DTO.TimelineUpdateDTO;
 import com.example.AviaryService.repositories.DescriptionOptionRepository;
 import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
+
+import jakarta.transaction.Transactional;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class UserController {
@@ -46,6 +55,35 @@ public class UserController {
     public String showDashboard(Model model, Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username);
+        List<ServiceTimeline> timelines = serviceTimelineRepository.findByUserOrderByIdAsc(user);
+
+        LocalDate today = LocalDate.now();
+        for(ServiceTimeline timeline : timelines) {
+            //If its not a title and due date has value
+            if(!timeline.isTitle() && timeline.getDueDate() != null){
+                //if timeleft is empty OR timeleft doesnt match the regex
+
+                try{
+                    
+                    LocalDate dueDate = LocalDate.parse(timeline.getDueDate());
+                    long daysLeft = ChronoUnit.DAYS.between(today, dueDate);
+                    String timeLeftText;
+                    if(daysLeft < 0) {
+                        timeLeftText = Math.abs(daysLeft) + " days overdue";
+                    } else {
+                        timeLeftText = daysLeft + " days left";
+                    }
+                    timeline.setTimeLeft(timeLeftText);
+                    serviceTimelineRepository.save(timeline);
+
+                } catch (Exception e){
+                    System.out.println("Error parsing dates for timelines " + timeline.getId() + ": " + e.getMessage());
+                    timeline.setTimeLeft("N/A");
+                    serviceTimelineRepository.save(timeline);
+                }        
+            }
+        }
+
         model.addAttribute("username", username);
         model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByIdAsc(user));
         model.addAttribute("descriptionOptions", descriptionOptionRepository.findByUser(user));
@@ -76,10 +114,18 @@ public class UserController {
             timeline.setCycle(cycle);
             timeline.setLastDone(lastDone);
             timeline.setDueDate(dueDate);
-            timeline.setTimeLeft(timeLeft);
+            if (dueDate != null) {
+                try {
+                    LocalDate today = LocalDate.now();
+                    LocalDate due = LocalDate.parse(dueDate);
+                    long daysLeft = ChronoUnit.DAYS.between(today, due);
+                    timeline.setTimeLeft(daysLeft < 0 ? Math.abs(daysLeft) + " days overdue" : daysLeft + " days");
+                } catch (Exception e) {
+                    timeline.setTimeLeft("N/A");
+                }
+            }
         }
         timeline.setUser(user);
-    
 
         // Set timelineOrder
         Integer maxOrder = serviceTimelineRepository.findMaxTimelineOrderByUser(user);
@@ -93,28 +139,44 @@ public class UserController {
     }
 
     @PostMapping("/update/{id}")
-    public String updateTimeline(
+    @ResponseBody
+    @Transactional
+    public ResponseEntity<Map<String, String>> updateTimeline(
             @PathVariable Long id,
-            @RequestParam(required = false) String item,
-            @RequestParam(required = false) String description,
-            @RequestParam(required = false) String cycle,
-            @RequestParam(required = false) String lastDone,
-            @RequestParam(required = false) String dueDate,
-            @RequestParam(required = false) String timeLeft,
+            @RequestBody TimelineUpdateDTO updateDTO,
             Authentication authentication) {
-        ServiceTimeline timeline = serviceTimelineRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid timeline ID: " + id));
-        if (item != null) timeline.setItem(item);
-        if (description != null) {
-            timeline.setDescription(description);
-            saveCustomDescriptionOption(description, userRepository.findByUsername(authentication.getName()));
+        try {
+            ServiceTimeline timeline = serviceTimelineRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid timeline ID: " + id));
+
+                    System.out.println("Received updateDTO: item=" + updateDTO.getItem() + ", cycle=" + updateDTO.getCycle() + 
+                    ", description=" + updateDTO.getDescription() + ", lastDone=" + updateDTO.getLastDone() + 
+                    ", dueDate=" + updateDTO.getDueDate() + ", timeLeft=" + updateDTO.getTimeLeft());
+
+            if (updateDTO.getItem() != null) timeline.setItem(updateDTO.getItem());
+            if (updateDTO.getDescription() != null) {
+                timeline.setDescription(updateDTO.getDescription());
+                saveCustomDescriptionOption(updateDTO.getDescription(), userRepository.findByUsername(authentication.getName()));
+            }
+            if (updateDTO.getCycle() != null) timeline.setCycle(updateDTO.getCycle());
+            if (updateDTO.getLastDone() != null) timeline.setLastDone(updateDTO.getLastDone());
+            if (updateDTO.getDueDate() != null) {
+                timeline.setDueDate(updateDTO.getDueDate());
+                timeline.setTimeLeft(updateDTO.getTimeLeft()); // Use timeLeft from client if provided
+            }
+            
+            ServiceTimeline savedTimeline = serviceTimelineRepository.save(timeline);
+            System.out.println("Saved timeline with item: " +savedTimeline.getItem() + ", " + savedTimeline.getCycle() + ", " + savedTimeline.getDescription() + ", " + savedTimeline.getLastDone() + ", " + savedTimeline.getDueDate() + ", " + savedTimeline.getTimeLeft());
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         }
-        if (cycle != null) timeline.setCycle(cycle);
-        if (lastDone != null) timeline.setLastDone(lastDone);
-        if (dueDate != null) timeline.setDueDate(dueDate);
-        if (timeLeft != null) timeline.setTimeLeft(timeLeft);
-        serviceTimelineRepository.save(timeline);
-        return "redirect:/dashboard";
     }
 
 

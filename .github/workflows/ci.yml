@@ -5,8 +5,6 @@ on:
   pull_request:
     branches: [ main ]  # Trigger on PRs to main
 
-#gg 
-
 jobs:
   feature-build-and-test:
     if: github.ref != 'refs/heads/main' # For all branches other than main
@@ -45,7 +43,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }} 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:

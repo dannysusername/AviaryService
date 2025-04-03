@@ -10,12 +10,17 @@
     <script th:src="@{/js/dashboard.js}"></script>
 </head>
 <body>
-    <h1>Welcome to Your Dashboard</h1>
-    <p th:text="'Hello, ' + ${username} + '!'"></p>
-    
-    <h2>Your Service Timeline</h2>
+    <div class = "header">
+        <div class = "left">
+            <h1>Welcome to Your Dashboard</h1>
+            <p th:text="'Hello, ' + ${username} + '!'"></p>
+            <h2>Your Service Timeline</h2>
+        </div>
+        <div class = "right">         
+                <span id = "real-time-clock"></span>
+        </div>
+    </div>
     <table>
-        
         <thead>
             <tr>
                 <th class = "grip-column"></th> <!-- Grip column -->
@@ -91,8 +96,8 @@
                             </div>
                         </div>
                     </td>
-                    <td><input type="text" name="timeLeft" th:value="${timeline.timeLeft}" oninput="autoSave(this)"></td>
-                    <td class="status-cell"><span class="save-status">Saved</span></td>
+                    <td><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
+                    <td class="status-cell"><span class="save-status">✓</span></td>
                     <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
                 </tr>
             </th:block>

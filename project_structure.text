@@ -7,6 +7,8 @@
   - 8.12.1
     - checksums
       - checksums.lock
+      - md5-checksums.bin
+      - sha1-checksums.bin
     - executionHistory
       - executionHistory.bin
       - executionHistory.lock
@@ -26,6 +28,48 @@
   - file-system.probe
   - vcs-1
     - gc.properties
+- aviary_test.jmx
+- bin
+  - main
+    - application-heroku.properties
+    - application.properties
+    - com
+      - example
+        - AviaryService
+          - AviaryServiceApplication.class
+          - config
+            - SecurityConfig.class
+          - controllers
+            - UserController.class
+          - entity
+            - DescriptionOption.class
+            - DTO
+              - TimelineUpdateDTO.class
+            - ServiceTimeline.class
+            - User.class
+          - repositories
+            - DescriptionOptionRepository.class
+            - ServiceTimelineRepository.class
+            - UserRepository.class
+    - static
+      - css
+        - dashboardstyle.css
+        - registerstyle.css
+      - js
+        - dashboard.js
+    - templates
+      - dashboard.html
+      - login.html
+      - register.html
+  - test
+    - application-tests.yml
+    - application.properties
+    - com
+      - example
+        - AviaryService
+          - AviaryServiceApplicationTests.class
+          - controllers
+            - UserControllerTest.class
 - build
   - classes
     - java
@@ -40,6 +84,8 @@
                 - UserController.class
               - entity
                 - DescriptionOption.class
+                - DTO
+                  - TimelineUpdateDTO.class
                 - ServiceTimeline.class
                 - User.class
               - repositories
@@ -51,6 +97,8 @@
           - example
             - AviaryService
               - AviaryServiceApplicationTests.class
+              - controllers
+                - UserControllerTest.class
   - generated
     - sources
       - annotationProcessor
@@ -61,9 +109,6 @@
         - java
           - main
           - test
-  - libs
-    - AviaryService-0.0.1-SNAPSHOT-plain.jar
-    - AviaryService-0.0.1-SNAPSHOT.jar
   - reports
     - problems
       - problems-report.html
@@ -71,6 +116,7 @@
       - test
         - classes
           - com.example.AviaryService.AviaryServiceApplicationTests.html
+          - com.example.AviaryService.controllers.UserControllerTest.html
         - css
           - base-style.css
           - style.css
@@ -78,10 +124,12 @@
         - js
           - report.js
         - packages
+          - com.example.AviaryService.controllers.html
           - com.example.AviaryService.html
   - resolvedMainClassName
   - resources
     - main
+      - application-heroku.properties
       - application.properties
       - static
         - css
@@ -94,6 +142,7 @@
         - login.html
         - register.html
     - test
+      - application-tests.yml
   - test-results
     - test
       - binary
@@ -101,29 +150,20 @@
         - output.bin.idx
         - results.bin
       - TEST-com.example.AviaryService.AviaryServiceApplicationTests.xml
+      - TEST-com.example.AviaryService.controllers.UserControllerTest.xml
   - tmp
-    - bootJar
-      - MANIFEST.MF
     - compileJava
       - compileTransaction
         - backup-dir
         - stash-dir
-          - DescriptionOption.class.uniqueId0
-          - DescriptionOptionRepository.class.uniqueId3
-          - SecurityConfig.class.uniqueId2
-          - ServiceTimeline.class.uniqueId5
-          - ServiceTimelineRepository.class.uniqueId6
-          - User.class.uniqueId7
-          - UserController.class.uniqueId4
-          - UserRepository.class.uniqueId1
+          - UserController.class.uniqueId0
       - previous-compilation-data.bin
     - compileTestJava
       - compileTransaction
         - backup-dir
         - stash-dir
+          - AviaryServiceApplicationTests.class.uniqueId0
       - previous-compilation-data.bin
-    - jar
-      - MANIFEST.MF
     - test
 - build.gradle
 - gradle
@@ -148,6 +188,8 @@
               - UserController.java
             - entity
               - DescriptionOption.java
+              - DTO
+                - TimelineUpdateDTO.java
               - ServiceTimeline.java
               - User.java
             - repositories
@@ -173,4 +215,9 @@
         - example
           - AviaryService
             - AviaryServiceApplicationTests.java
+            - controllers
+              - UserControllerTest.java
+    - resources
+      - application-tests.yml
+      - application.properties
 - system.properties
