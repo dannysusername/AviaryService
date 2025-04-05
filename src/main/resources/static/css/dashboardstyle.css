@@ -79,11 +79,9 @@ th {
     font-weight: bold;
 }
 
-td input {
-    width: 120px;
+td input {    
     box-sizing: border-box;
-    border: none;
-    padding: 4px;
+
 }
 
 .time-left {
@@ -103,7 +101,7 @@ td textarea {
     width: 100%;
     min-height: 25px;
     max-height: 120px;
-    min-width: 120px;
+    min-width: 100px;
     box-sizing: border-box;
     border: 1px solid #ddd;
     padding: 4px;
@@ -152,11 +150,10 @@ td textarea.item-textarea:focus,
 
 .extra-input,
 .title-input {
-    width: auto;
-    margin-left: 4px;
     padding: 2px;
     border: 1px solid #ddd;
     border-radius: 3px;
+
 }
 
 .title-input {
@@ -164,19 +161,27 @@ td textarea.item-textarea:focus,
 }
 
 .input-with-dropdown {
-    position: relative;
     display: flex;
-    align-items: center;
+    position: relative;    
+    align-items: center;   
     width: 100%;
-    justify-content: flex-end;
-    gap: 4px;
 }
 
 .input-with-dropdown .extra-input {
-    min-width: 120px;
+    min-width: 105px;
     width: 100%;
-    order: -1;
+    margin-right: 4px;
+    
 }
+
+.input-with-dropdown [name = "lastDone_text"]{
+    min-width: 50px;
+    width: 100%;
+    margin-left: 4px;
+    
+}
+
+
 
 .trigger-dropdown {
     cursor: pointer;
@@ -184,6 +189,7 @@ td textarea.item-textarea:focus,
     background: #f0f0f0;
     border: 1px solid #ddd;
     border-radius: 3px;
+    margin-left: auto;
 }
 
 .type-dropdown {
@@ -227,6 +233,9 @@ td textarea.item-textarea:focus,
 .custom-dropdown {
     position: relative;
     min-height: 25px;
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Adds spacing between selected-option and the trigger button */
 }
 
 .selected-option {
@@ -234,23 +243,27 @@ td textarea.item-textarea:focus,
     min-height: 25px;
     border: none;
     background: white;
-    cursor: pointer;
-    padding: 10px 20px;
+    padding: 4px 8px; /* Adjusted padding to align with trigger-dropdown */
     box-sizing: border-box;
     white-space: normal;
-    text-align: center;
+    text-align: left; /* Changed from center to align with typical input fields */
     max-width: 200px;
     word-wrap: break-word;
+    cursor: pointer; /* Keep this to indicate clickability */
 }
 
 .custom-dropdown:has(input[value=""]) .selected-option::after {
-    content: '>';
-    position: absolute;
-    right: 30px;
-    top: 10%;
-    transform: rotate(90deg) translateY(-50%);
-    font-size: 16px;
-    color: #666;
+    content: none; /* Remove the upside-down arrow */
+}
+
+.custom-dropdown .dropdown-trigger {
+    cursor: pointer;
+    padding: 2px 6px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1;
 }
 
 .selected-option:hover {

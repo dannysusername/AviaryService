@@ -19,6 +19,12 @@
         <div class = "right">         
                 <span id = "real-time-clock"></span>
         </div>
+        <div class="my-hours">
+            <h3>My Hours</h3>
+            <p>Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0"></p>
+            <input type="number" id="add-hours" placeholder="Enter hours to add">
+            <button id="add-hours-btn">Add</button>
+        </div>
     </div>
     <table>
         <thead>
@@ -49,8 +55,9 @@
                     <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)"></textarea></td>
                     <td>
                         <div class="custom-dropdown">
-                            <div class="selected-option" onclick="toggleDropdown(this)"></div>
+                            <div class="selected-option"></div>
                             <input type="hidden" name="description" th:value="${timeline.description}">
+                            <button class="dropdown-trigger" onclick="toggleDropdown(this)">▼</button>
                             <div class="dropdown-options">
                                 <div class="option" data-value="">--None--</div>
                                 <div class="option" data-value="inspect">Inspect</div>
@@ -125,8 +132,10 @@
                 </td>
                 <td>
                     <div class="custom-dropdown">
-                        <div class="selected-option" onclick="toggleDropdown(this)"></div>
+                        <div class="selected-option"></div>
                         <input type="hidden" name="description">
+                        <button class="dropdown-trigger" onclick="toggleDropdown(this)">▼</button>
+                        
                         <div class="dropdown-options">
                             <div class="option" data-value="">--None--</div>
                             <div class="option" data-value="inspect">Inspect</div>
@@ -162,7 +171,7 @@
                     </div>
                     <input type="hidden" name="dueDate" id="dueDateHidden">
                 </td>
-                <td><input type="text" name="timeLeft"></td>
+                <td><div class="time-left"></div></td>
                 <td class="status-cell"><span class="save-status"></span></td>
                 <td class="delete-cell">
                     <form method="post" th:action="@{/dashboard}">

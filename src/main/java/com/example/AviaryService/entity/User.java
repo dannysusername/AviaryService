@@ -19,6 +19,9 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<ServiceTimeline> serviceTimeline;
 
+    @Column
+    private Integer hours; // New field to store total hours
+
     public User(){
 
     }
@@ -26,6 +29,7 @@ public class User {
     public User(String username, String password){
         this.username = username;
         this.password = password;
+        this.hours = 0;
 
     }
 
@@ -59,6 +63,14 @@ public class User {
 
     public void setServiceTimeline(List<ServiceTimeline> serviceTimeline) {
         this.serviceTimeline = serviceTimeline;
+    }
+
+    public Integer getHours() {
+        return hours != null ? hours : 0;
+    }
+
+    public void setHours(Integer hours) {
+        this.hours = (hours != null) ? hours : 0;
     }
 
     
