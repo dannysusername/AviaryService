@@ -55,38 +55,10 @@ public class UserController {
     public String showDashboard(Model model, Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username);
-        List<ServiceTimeline> timelines = serviceTimelineRepository.findByUserOrderByIdAsc(user);
-
-        LocalDate today = LocalDate.now();
-        for(ServiceTimeline timeline : timelines) {
-            //If its not a title and due date has value
-            if(!timeline.isTitle() && timeline.getDueDate() != null){
-                //if timeleft is empty OR timeleft doesnt match the regex
-
-                try{
-                    
-                    LocalDate dueDate = LocalDate.parse(timeline.getDueDate());
-                    long daysLeft = ChronoUnit.DAYS.between(today, dueDate);
-                    String timeLeftText;
-                    if(daysLeft < 0) {
-                        timeLeftText = Math.abs(daysLeft) + " days overdue";
-                    } else {
-                        timeLeftText = daysLeft + " days left";
-                    }
-                    timeline.setTimeLeft(timeLeftText);
-                    serviceTimelineRepository.save(timeline);
-
-                } catch (Exception e){
-                    System.out.println("Error parsing dates for timelines " + timeline.getId() + ": " + e.getMessage());
-                    timeline.setTimeLeft("N/A");
-                    serviceTimelineRepository.save(timeline);
-                }        
-            }
-        }
-
         model.addAttribute("username", username);
         model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByIdAsc(user));
         model.addAttribute("descriptionOptions", descriptionOptionRepository.findByUser(user));
+        model.addAttribute("currentHours", user.getHours()); // Pass current hours to the view
         return "dashboard";
     }
 
@@ -116,8 +88,9 @@ public class UserController {
             timeline.setDueDate(dueDate);
             if (dueDate != null) {
                 try {
+                    String datePart = dueDate.split(" ")[0]; // Extract "2023-10-25"
                     LocalDate today = LocalDate.now();
-                    LocalDate due = LocalDate.parse(dueDate);
+                    LocalDate due = LocalDate.parse(datePart);
                     long daysLeft = ChronoUnit.DAYS.between(today, due);
                     timeline.setTimeLeft(daysLeft < 0 ? Math.abs(daysLeft) + " days overdue" : daysLeft + " days");
                 } catch (Exception e) {
@@ -137,6 +110,48 @@ public class UserController {
         System.out.println("Timeline saved");
         return "redirect:/dashboard";
     }
+
+    @PostMapping("/updateHours")
+@ResponseBody
+public ResponseEntity<Map<String, String>> updateHours(
+        @RequestParam(required = false) Integer hoursToAdd,
+        @RequestParam(required = false) Integer newTotalHours,
+        Authentication authentication) {
+    try {
+        User user = userRepository.findByUsername(authentication.getName());
+        if (user == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        if (newTotalHours != null) {
+            // Directly set the total hours (for current-hours editing)
+            user.setHours(newTotalHours);
+            System.out.println("Setting total hours to: " + newTotalHours);
+        } else if (hoursToAdd != null) {
+            // Add to existing hours (for add-hours button)
+            int currentHours = user.getHours();
+            user.setHours(currentHours + hoursToAdd);
+            System.out.println("Adding " + hoursToAdd + " to current hours: " + currentHours);
+        } else {
+            throw new IllegalArgumentException("Either hoursToAdd or newTotalHours must be provided");
+        }
+
+        userRepository.save(user);
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("newHours", String.valueOf(user.getHours()));
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("status", "error");
+        errorResponse.put("message", e.getMessage());
+        System.out.println("Error updating hours: " + e.getMessage());
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+}
+
+    // Other existing methods remain unchanged...
+
 
     @PostMapping("/update/{id}")
     @ResponseBody

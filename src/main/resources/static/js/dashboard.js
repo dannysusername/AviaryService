@@ -1,6 +1,8 @@
 console.log('dashboard.js loaded');
 
 let timeout;
+let hoursTimeout; // For debouncing hours updates
+let previousHours = document.getElementById('current-hours')?.value || 0;
 
 function updateRealTimeClock() {
     const clockElement = document.getElementById('real-time-clock');
@@ -54,16 +56,13 @@ function autoSave(input) {
         data[field] = value.trim();
     });
 
-
-    const timeLeftSpan = row.querySelector('td:nth-child(7) span');
+    const timeLeftSpan = row.querySelector('td:nth-child(7) .time-left');
     if (timeLeftSpan) {
         const lastDone = data.lastDone || '';
         const dueDate = data.dueDate || '';
-        timeLeftSpan.textContent = calculateTimeLeft(lastDone, dueDate);
+        setTimeLeftText(timeLeftSpan, calculateTimeLeft(lastDone, dueDate));
         data.timeLeft = timeLeftSpan.textContent;
     }
-
-    
 
     clearTimeout(timeout);
     status.textContent = '...';
@@ -126,8 +125,8 @@ function updateOrderOnServer() {
     });
 }
 
-function toggleDropdown(selected) {
-    const dropdown = selected.nextElementSibling.nextElementSibling;
+function toggleDropdown(element) {
+    const dropdown = element.parentElement.querySelector('.dropdown-options');
     dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
     setTimeout(() => document.addEventListener('click', closeDropdownOutside, { once: true }), 0);
 }
@@ -205,14 +204,45 @@ function updateDropdownWidths() {
     });
 }
 
+function calculateTimeLeft(lastDoneStr, dueDateStr) {
+    if (!dueDateStr) return 'N/A';
 
-function calculateTimeLeft(dueDateStr) {
-    if (!dueDateStr || !dueDateStr.match(/^\d{4}-\d{2}-\d{2}/)) return 'N/A';
-    const today = new Date();
-    const dueDate = new Date(dueDateStr);
-    const timeDiff = dueDate - today;
-    const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Convert ms to days
-    return daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`;
+    const now = new Date();
+    let output = '';
+
+    // Parse inputs
+    const lastDoneParts = lastDoneStr ? lastDoneStr.split(' ') : [];
+    const dueDateParts = dueDateStr.split(' ');
+    const lastDoneDate = lastDoneParts[0]?.match(/^\d{4}-\d{2}-\d{2}$/) ? lastDoneParts[0] : null;
+    const lastDoneTime = lastDoneParts.find(part => part.match(/^\d+$/)) || null;
+    const dueDateDate = dueDateParts[0]?.match(/^\d{4}-\d{2}-\d{2}$/) ? dueDateParts[0] : null;
+    const dueDateTime = dueDateParts.find(part => part.match(/^\d+$/)) || null;
+
+    // Calculate days if dueDate has a calendar date
+    if (dueDateDate) {
+        const dueDate = new Date(dueDateDate + 'T00:00:00');
+        const timeDiff = dueDate - now;
+        const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        output += daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`;
+    }
+
+    // Calculate hours only if both lastDone and dueDate have clock values
+    if (lastDoneTime && dueDateTime) {
+        const lastDoneHours = parseInt(lastDoneTime);
+        const dueDateHours = parseInt(dueDateTime);
+        if (!isNaN(lastDoneHours) && !isNaN(dueDateHours)) {
+            const hoursLeft = dueDateHours - lastDoneHours;
+            const hoursText = hoursLeft < 0 ? `${Math.abs(hoursLeft)} hours overdue` : `${hoursLeft} hours left`;
+            output += output ? `\n${hoursText}` : hoursText;
+        }
+    }
+
+    return output || 'N/A';
+}
+
+function setTimeLeftText(cell, text) {
+    cell.textContent = text;
+    cell.style.color = text.includes('overdue') ? 'red' : 'black';
 }
 
 // Function to update all Time Left cells in real-time
@@ -220,7 +250,7 @@ function updateAllTimeLeft() {
     document.querySelectorAll('.auto-save-row').forEach(row => {
         const lastDoneContainer = row.querySelector('td:nth-child(5) .input-with-dropdown');
         const dueDateContainer = row.querySelector('td:nth-child(6) .input-with-dropdown');
-        const timeLeftCell = row.querySelector('td:nth-child(7) span');
+        const timeLeftCell = row.querySelector('td:nth-child(7) .time-left');
 
         if (timeLeftCell) {
             const lastDoneDate = lastDoneContainer.querySelector('input[type="date"]');
@@ -236,10 +266,37 @@ function updateAllTimeLeft() {
             if (dueDateDate) dueDateStr += dueDateDate.value;
             if (dueDateText) dueDateStr += dueDateStr ? ` ${dueDateText.value}` : dueDateText.value;
 
-            timeLeftCell.textContent = calculateTimeLeft(lastDoneStr, dueDateStr);
+            setTimeLeftText(timeLeftCell, calculateTimeLeft(lastDoneStr, dueDateStr));
+
+            
         }
     });
 }
+
+function updateAddRowTimeLeft() {
+    const addRow = document.querySelector('.add-row');
+    const lastDoneContainer = addRow.querySelector('td:nth-child(5) .input-with-dropdown');
+    const dueDateContainer = addRow.querySelector('td:nth-child(6) .input-with-dropdown');
+    const timeLeftCell = addRow.querySelector('td:nth-child(7) .time-left');
+
+    if (timeLeftCell) {
+        const lastDoneDate = lastDoneContainer.querySelector('input[type="date"]');
+        const lastDoneText = lastDoneContainer.querySelector('input[type="text"].extra-input');
+        const dueDateDate = dueDateContainer.querySelector('input[type="date"]');
+        const dueDateText = dueDateContainer.querySelector('input[type="text"].extra-input');
+
+        let lastDoneStr = '';
+        if (lastDoneDate) lastDoneStr += lastDoneDate.value;
+        if (lastDoneText) lastDoneStr += lastDoneStr ? ` ${lastDoneText.value}` : lastDoneText.value;
+
+        let dueDateStr = '';
+        if (dueDateDate) dueDateStr += dueDateDate.value;
+        if (dueDateText) dueDateStr += dueDateStr ? ` ${dueDateText.value}` : dueDateText.value;
+
+        setTimeLeftText(timeLeftCell, calculateTimeLeft(lastDoneStr, dueDateStr));
+    }
+}
+
 
 function scheduleMidnightUpdate() {
     const now = new Date();
@@ -257,15 +314,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start the real-time clock
     updateRealTimeClock();
     updateAllTimeLeft(); // Initial call to set Time Left immediately
+    updateAddRowTimeLeft();
     scheduleMidnightUpdate();
     setInterval(() => {
         updateRealTimeClock();
     }, 1000);
+
+    
     console.log('add-row td:nth-child(5) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(5) .input-with-dropdown'));
     console.log('add-row td:nth-child(6) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(6) .input-with-dropdown'));
 
 
     document.querySelectorAll('.auto-save-row textarea[name="item"]').forEach(textarea => {
+        setTextareaMinHeight(textarea);
+        textarea.addEventListener('input', () => {
+            setTextareaMinHeight(textarea);
+        });
+    });
+
+    document.querySelectorAll('.auto-save-row textarea[name="cycle"]').forEach(textarea => {
         setTextareaMinHeight(textarea);
         textarea.addEventListener('input', () => {
             setTextareaMinHeight(textarea);
@@ -291,15 +358,73 @@ document.addEventListener('DOMContentLoaded', () => {
         options.forEach(option => option.onclick = () => selectOption(option));
     });
 
-    const addRowDropdown = document.querySelector('.add-row .custom-dropdown');
-    if (addRowDropdown) {
-        const hiddenInput = addRowDropdown.querySelector('input[type="hidden"]');
-        const selected = addRowDropdown.querySelector('.selected-option');
-        if (!hiddenInput.value) {
-            hiddenInput.value = '';
-            selected.textContent = '';
-        }
+    const currentHoursInput = document.getElementById('current-hours');
+    if (currentHoursInput) {
+        previousHours = currentHoursInput.value || 0; // Set initial value
+        currentHoursInput.addEventListener('input', function() {
+            clearTimeout(hoursTimeout);
+            const newTotalHours = this.value.trim();
+            // If input is empty or invalid, do nothing yet
+            if (newTotalHours === '' || isNaN(parseInt(newTotalHours))) {
+                return;
+            }
+            hoursTimeout = setTimeout(() => {
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                const params = new URLSearchParams();
+                params.append('newTotalHours', parseInt(newTotalHours)); // Send new total hours
+                axios.post('/updateHours', params, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        previousHours = newTotalHours; // Update previousHours on success
+                        console.log('Hours updated successfully:', response.data.newHours);
+                    } else {
+                        this.value = previousHours; // Revert on failure
+                        console.error('Failed to update hours:', response.data.message);
+                        alert('Failed to update hours');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating hours:', error.response ? error.response.data : error);
+                    this.value = previousHours; // Revert on error
+                    alert('Error updating hours');
+                });
+            }, 500); // 500ms debounce to reduce server requests
+        });
     }
+
+// Handle adding hours
+document.getElementById('add-hours-btn').addEventListener('click', function() {
+    const hoursToAdd = document.getElementById('add-hours').value.trim();
+    if (hoursToAdd && !isNaN(hoursToAdd)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        const params = new URLSearchParams();
+        params.append('hoursToAdd', parseInt(hoursToAdd));
+        axios.post('/updateHours', params, {
+            headers: { [csrfHeader]: csrfToken }
+        })
+        .then(response => {
+            if (response.data.status === 'success') {
+                const newHours = response.data.newHours;
+                document.getElementById('current-hours').value = newHours; // Use value, not textContent
+                previousHours = newHours; // Update previousHours
+                document.getElementById('add-hours').value = ''; // Clear the input
+                console.log('Hours added successfully:', newHours);
+            } else {
+                console.error('Failed to add hours:', response.data.message);
+                alert('Failed to add hours');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding hours:', error.response ? error.response.data : error);
+            alert('Error adding hours');
+        });
+    }
+});
+
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
         ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -309,18 +434,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parts = savedValue.split(' ');
                 let datePart = null;
                 let textPart = null;
-    
-                // Check if the first part is a date
+
                 if (parts[0] && parts[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
                     datePart = parts[0];
                     if (parts.length > 1) {
-                        textPart = parts.slice(1).join(' '); // Time follows the date
+                        textPart = parts.slice(1).join(' ');
                     }
                 } else {
-                    textPart = savedValue; // No date, so treat the whole value as time
+                    textPart = savedValue;
                 }
-    
-                // Create date input if there’s a date
+
                 if (datePart) {
                     const dateInput = document.createElement('input');
                     dateInput.type = 'date';
@@ -331,14 +454,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.insertBefore(dateInput, container.querySelector('.trigger-dropdown'));
                     container.querySelector('.add-type[data-type="calendar"]').textContent = '-';
                 }
-    
-                // Create time input if there’s a time
+
                 if (textPart) {
                     const textInput = document.createElement('input');
                     textInput.type = 'text';
                     textInput.name = `${field}_text`;
                     textInput.className = 'extra-input';
-                    textInput.placeholder = 'Enter time';
+                    textInput.placeholder = 'Enter hours';
                     textInput.value = textPart;
                     textInput.oninput = () => autoSave(textInput);
                     container.insertBefore(textInput, container.querySelector('.trigger-dropdown'));
@@ -347,6 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    updateAllTimeLeft();
 
     document.querySelectorAll('.trigger-dropdown').forEach(button => {
         button.addEventListener('click', function() {
@@ -481,11 +605,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (tdIndex === 4 || tdIndex === 5) {
                 // Handle last done and due date for both add row and existing rows
                 const fieldName = tdIndex === 4 ? 'lastDone' : 'dueDate';
-    
+            
                 if (isAddMode) {
                     if (type === 'calendar' && existingDate) return;
                     if (type === 'clock' && existingText) return;
-    
+            
                     let newInput;
                     if (type === 'calendar') {
                         newInput = document.createElement('input');
@@ -494,22 +618,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         newInput.className = 'extra-input';
                         newInput.oninput = () => {
                             if (row) autoSave(newInput);
-                            else updateAddRowHiddenInputs();
+                            else {
+                                updateAddRowHiddenInputs();
+                                updateAddRowTimeLeft(); // Add this
+                            }
                         };
                     } else if (type === 'clock') {
                         newInput = document.createElement('input');
                         newInput.type = 'text';
                         newInput.name = `${fieldName}_text`;
                         newInput.className = 'extra-input';
-                        newInput.placeholder = 'Enter hours (numbers only)';
+                        newInput.placeholder = 'Enter hours';
                         newInput.oninput = () => {
-                            // Restrict to numeric values only
                             newInput.value = newInput.value.replace(/[^0-9]/g, '');
                             if (row) autoSave(newInput);
-                            else updateAddRowHiddenInputs();
+                            else {
+                                updateAddRowHiddenInputs();
+                                updateAddRowTimeLeft(); // Add this
+                            }
                         };
                     }
-    
+            
                     if (newInput) {
                         const trigger = container.querySelector('.trigger-dropdown');
                         if (trigger) {
@@ -525,16 +654,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         existingDate.remove();
                         this.textContent = '+';
                         if (row) autoSave(this);
-                        else updateAddRowHiddenInputs();
+                        else {
+                            updateAddRowHiddenInputs();
+                            updateAddRowTimeLeft(); // Add this
+                        }
                     } else if (type === 'clock' && existingText) {
                         existingText.remove();
                         this.textContent = '+';
                         if (row) autoSave(this);
-                        else updateAddRowHiddenInputs();
+                        else {
+                            updateAddRowHiddenInputs();
+                            updateAddRowTimeLeft(); // Add this
+                        }
                     }
                 }
             }
-            
     
             this.closest('.type-dropdown').style.display = 'none';
         });
@@ -562,55 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('timeLeftHidden').value = timeLeft;
         });
     }
-
-    function calculateTimeLeft(lastDoneStr, dueDateStr) {
-        if (!dueDateStr) return 'N/A';
-    
-        const now = new Date();
-        let output = '';
-    
-        // Parse inputs
-        const lastDoneParts = lastDoneStr ? lastDoneStr.split(' ') : [];
-        const dueDateParts = dueDateStr.split(' ');
-        const lastDoneDate = lastDoneParts[0]?.match(/^\d{4}-\d{2}-\d{2}$/) ? lastDoneParts[0] : null;
-        const lastDoneTime = lastDoneParts.find(part => part.match(/^\d+$/)) || null;
-        const dueDateDate = dueDateParts[0]?.match(/^\d{4}-\d{2}-\d{2}$/) ? dueDateParts[0] : null;
-        const dueDateTime = dueDateParts.find(part => part.match(/^\d+$/)) || null;
-    
-        // Case 1: Calendar date present in Due Date
-        if (dueDateDate) {
-            const dueDate = new Date(dueDateDate + 'T00:00:00');
-            const timeDiff = dueDate - now;
-            const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-            output += daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`;
-        }
-    
-        // Case 2: Clock values present in both Last Done and Due Date
-        if (lastDoneTime && dueDateTime) {
-            const lastDoneHours = parseInt(lastDoneTime);
-            const dueDateHours = parseInt(dueDateTime);
-            if (!isNaN(lastDoneHours) && !isNaN(dueDateHours)) {
-                const hoursLeft = dueDateHours - lastDoneHours;
-                const hoursText = hoursLeft < 0 ? `${Math.abs(hoursLeft)} hours overdue` : `${hoursLeft} hours left`;
-                output += output ? `\n${hoursText}` : hoursText;
-            }
-        }
-    
-        return output || 'N/A';
-    }
     
     // Function to update all Time Left cells in real-time
-    function updateAllTimeLeft() {
-        document.querySelectorAll('.auto-save-row').forEach(row => {
-            const dueDateContainer = row.querySelector('td:nth-child(6) .input-with-dropdown');
-            const dueDateInput = dueDateContainer.querySelector('input[type="date"]');
-            const timeLeftCell = row.querySelector('td:nth-child(7) span');
-            if (dueDateInput && timeLeftCell) {
-                const dueDate = dueDateInput.value;
-                timeLeftCell.textContent = calculateTimeLeft(dueDate);
-            }
-        });
-    }
 
     function closeTypeDropdowns(event) {
         if (!event.target.closest('.input-with-dropdown')) {
@@ -619,4 +706,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+     document.getElementById('add-hours-btn').addEventListener('click', function() {
+            const hoursToAdd = document.getElementById('add-hours').value;
+            if (hoursToAdd && !isNaN(hoursToAdd)) {
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                const params = new URLSearchParams();
+                params.append('hoursToAdd', parseInt(hoursToAdd));
+                axios.post('/updateHours', params, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        document.getElementById('current-hours').textContent = response.data.newHours;
+                        document.getElementById('add-hours').value = ''; // Clear the input
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating hours:', error);
+                });
+            }
+        });
 });
