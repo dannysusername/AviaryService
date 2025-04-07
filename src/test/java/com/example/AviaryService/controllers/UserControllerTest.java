@@ -11,12 +11,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -118,7 +122,8 @@ void setUp() {
             timeline.getUser() == user
         ));
         verify(descriptionOptionRepository, never()).save(any(DescriptionOption.class)); // No description, so not called
-        assertEquals("redirect:/dashboard", result);
+        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertEquals("/dashboard", response.getHeaders().getLocation().toString());
     }
 
     @Test
@@ -156,6 +161,7 @@ void setUp() {
             option.getOption().equals("Custom Desc") &&
             option.getUser() == user
         ));
-        assertEquals("redirect:/dashboard", result);
+        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertEquals("/dashboard", response.getHeaders().getLocation().toString());
     }
 }
