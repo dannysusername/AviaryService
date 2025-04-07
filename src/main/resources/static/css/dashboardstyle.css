@@ -332,10 +332,41 @@ td textarea.item-textarea:focus,
     text-align: center;
 }
 
+.title-row .title-cell:hover {
+    background-color: #ffa725; /* Orange from your palette */
+    color: white;
+    cursor: pointer; /* Indicates clickability */
+}
+
+.row-type-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.row-type-option {
+    cursor: pointer;
+    padding: 2px 6px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.row-type-option.selected {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
 .add-row.title-mode td:nth-child(n+3):nth-child(-n+8) {
     display: none;
 }
 
+#itemInput textarea,
+#titleInput input {
+    width: 100%;
+    box-sizing: border-box;
+}
 .title-input {
     font-weight: bold;
     font-size: 1.2em;

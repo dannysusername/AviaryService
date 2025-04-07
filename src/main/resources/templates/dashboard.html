@@ -112,20 +112,17 @@
             <!-- Add row -->
         <tbody>
             <tr class="add-row">
-                <td class = "grip-column"></td> <!-- Empty grip column -->
+                <td class="grip-column"></td>
                 <td>
-                    <div class="input-with-dropdown">
-                        <button type="button" class="trigger-dropdown">▼</button>
-                        <div class="type-dropdown" style="display: none;">
-                            <div class="type-option">
-                                <span>Item</span>
-                                <button type="button" class="add-type" data-type="item">+</button>
-                            </div>
-                            <div class="type-option">
-                                <span>Title</span>
-                                <button type="button" class="add-type" data-type="title">+</button>
-                            </div>
-                        </div>
+                    <div class="row-type-selector">
+                        <span class="row-type-option" data-type="item" onclick="selectRowType('item', this)">Item</span>
+                        <span class="row-type-option" data-type="title" onclick="selectRowType('title', this)">Title</span>
+                    </div>
+                    <div id="itemInput" style="display: none;">
+                        <textarea name="item" placeholder="Enter item"></textarea>
+                    </div>
+                    <div id="titleInput" style="display: none;">
+                        <input type="text" name="title" placeholder="Enter title" class="title-input">
                     </div>
                     <input type="hidden" name="item" id="itemHidden">
                     <input type="hidden" name="isTitle" id="isTitleHidden" value="false">
@@ -133,10 +130,9 @@
                 <td>
                     <div class="custom-dropdown">
                         <div class="selected-option"></div>
-                        <input type="hidden" name="description">
-                        <button class="dropdown-trigger" onclick="toggleDropdown(this)">▼</button>
-                        
-                        <div class="dropdown-options">
+                        <input type="hidden" name="description" value="">
+                        <button class="dropdown-trigger">▼</button>
+                        <div class="dropdown-options" style="display: none;">
                             <div class="option" data-value="">--None--</div>
                             <div class="option" data-value="inspect">Inspect</div>
                             <div class="option" data-value="test">Test</div>

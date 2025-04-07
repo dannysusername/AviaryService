@@ -10,8 +10,7 @@ import java.util.List;
 public interface ServiceTimelineRepository extends JpaRepository<ServiceTimeline, Long> {
     List<ServiceTimeline> findByUserOrderByIdAsc(User user);
     List<ServiceTimeline> findByUserOrderByTimelineOrderAsc(User user);
-
-    @Query("SELECT MAX(t.timelineOrder) FROM ServiceTimeline t WHERE t.user = :user")
-    Integer findMaxTimelineOrderByUser(@Param("user") User user);
     
+    @Query("SELECT MAX(st.timelineOrder) FROM ServiceTimeline st WHERE st.user = :user")
+    Integer findMaxTimelineOrderByUser(@Param("user") User user);
 }

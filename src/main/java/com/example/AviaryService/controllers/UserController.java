@@ -1,6 +1,7 @@
 package com.example.AviaryService.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ import com.example.AviaryService.repositories.UserRepository;
 
 import jakarta.transaction.Transactional;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -56,60 +58,97 @@ public class UserController {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username);
         model.addAttribute("username", username);
-        model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByIdAsc(user));
+        model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user));
         model.addAttribute("descriptionOptions", descriptionOptionRepository.findByUser(user));
-        model.addAttribute("currentHours", user.getHours()); // Pass current hours to the view
-        return "dashboard";
+        model.addAttribute("currentHours", user.getHours());
+            return "dashboard";
     }
 
     @PostMapping("/dashboard")
-    public String addTimeline(
-        @RequestParam String item,
-        @RequestParam(required = false) String isTitle,
-        @RequestParam(required = false) String description,
-        @RequestParam(required = false) String cycle,
-        @RequestParam(required = false) String lastDone,
-        @RequestParam(required = false) String dueDate,
-        @RequestParam(required = false) String timeLeft,
+    public ResponseEntity<?> addTimeline(
+        @RequestBody Map<String, String> data,
         Authentication authentication) {
-            System.out.println("Adding timeline for user");
-        User user = userRepository.findByUsername(authentication.getName());
-        ServiceTimeline timeline = new ServiceTimeline();
-        timeline.setItem(item);
-        boolean isTitleRow = "true".equals(isTitle);
-        timeline.setIsTitle(isTitleRow);
-        if (!isTitleRow) {
-            if (description != null) {
-                timeline.setDescription(description);
-                saveCustomDescriptionOption(description, user);
+    String item = data.get("item");
+    if (item == null || item.isEmpty()) {
+        return ResponseEntity.badRequest().body("Item is required");
+    }
+
+    String isTitle = data.getOrDefault("isTitle", "false");
+    String description = data.get("description");
+    String cycle = data.get("cycle");
+    String lastDone = data.get("lastDone");
+    String dueDate = data.get("dueDate");
+    String timeLeft = data.get("timeLeft");
+    String ajax = data.getOrDefault("ajax", "false");
+
+    User user = userRepository.findByUsername(authentication.getName());
+    ServiceTimeline timeline = new ServiceTimeline();
+    timeline.setItem(item);
+    boolean isTitleRow = "true".equals(isTitle);
+    timeline.setIsTitle(isTitleRow);
+    if (!isTitleRow) {
+        if (description != null) {
+            String[] defaults = {"inspect", "test", "replace", "overhaul"};
+            if (java.util.Arrays.asList(defaults).contains(description.toLowerCase())) {
+                description = description.substring(0, 1).toUpperCase() + description.substring(1).toLowerCase();
             }
-            timeline.setCycle(cycle);
-            timeline.setLastDone(lastDone);
-            timeline.setDueDate(dueDate);
-            if (dueDate != null) {
-                try {
-                    String datePart = dueDate.split(" ")[0]; // Extract "2023-10-25"
-                    LocalDate today = LocalDate.now();
-                    LocalDate due = LocalDate.parse(datePart);
-                    long daysLeft = ChronoUnit.DAYS.between(today, due);
-                    timeline.setTimeLeft(daysLeft < 0 ? Math.abs(daysLeft) + " days overdue" : daysLeft + " days");
-                } catch (Exception e) {
-                    timeline.setTimeLeft("N/A");
+            timeline.setDescription(description);
+            saveCustomDescriptionOption(description, user);
+        }
+        timeline.setCycle(cycle);
+        timeline.setLastDone(lastDone);
+        timeline.setDueDate(dueDate);
+        if (dueDate != null) {
+            try {
+                String[] parts = dueDate.split(" ");
+                String datePart = parts[0];
+                String hoursPart = parts.length > 1 ? parts[1] : null;
+                StringBuilder timeLeftStr = new StringBuilder();
+
+                // Calculate days
+                LocalDate today = LocalDate.now();
+                LocalDate due = LocalDate.parse(datePart);
+                long daysLeft = ChronoUnit.DAYS.between(today, due);
+                timeLeftStr.append(daysLeft < 0 ? Math.abs(daysLeft) + " days overdue" : daysLeft + " days left");
+
+                // Calculate hours if present
+                if (hoursPart != null && hoursPart.matches("\\d+")) {
+                    int dueHours = Integer.parseInt(hoursPart);
+                    int currentHours = user.getHours();
+                    int hoursLeft = dueHours - currentHours;
+                    timeLeftStr.append("\n")
+                            .append(hoursLeft < 0 ? Math.abs(hoursLeft) + " hours overdue" : hoursLeft + " hours left");
                 }
+
+                timeline.setTimeLeft(timeLeftStr.toString());
+            } catch (Exception e) {
+                timeline.setTimeLeft("N/A");
             }
         }
-        timeline.setUser(user);
-
-        // Set timelineOrder
-        Integer maxOrder = serviceTimelineRepository.findMaxTimelineOrderByUser(user);
-        int newOrder = (maxOrder != null) ? maxOrder + 1 : 0;
-        timeline.setTimelineOrder(newOrder);
-
-        serviceTimelineRepository.save(timeline);
-
-        System.out.println("Timeline saved");
-        return "redirect:/dashboard";
     }
+    timeline.setUser(user);
+
+    Integer maxOrder = serviceTimelineRepository.findMaxTimelineOrderByUser(user);
+    int newOrder = (maxOrder != null) ? maxOrder + 1 : 0;
+    timeline.setTimelineOrder(newOrder);
+
+    serviceTimelineRepository.save(timeline);
+
+    if ("true".equals(ajax)) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", timeline.getId());
+        response.put("item", timeline.getItem());
+        response.put("description", timeline.getDescription());
+        response.put("cycle", timeline.getCycle());
+        response.put("lastDone", timeline.getLastDone());
+        response.put("dueDate", timeline.getDueDate());
+        response.put("timeLeft", timeline.getTimeLeft());
+        response.put("isTitle", timeline.isTitle());
+        return ResponseEntity.ok(response);
+    } else {
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create("/dashboard")).build();
+    }
+}
 
     @PostMapping("/updateHours")
 @ResponseBody
@@ -170,8 +209,13 @@ public ResponseEntity<Map<String, String>> updateHours(
 
             if (updateDTO.getItem() != null) timeline.setItem(updateDTO.getItem());
             if (updateDTO.getDescription() != null) {
-                timeline.setDescription(updateDTO.getDescription());
-                saveCustomDescriptionOption(updateDTO.getDescription(), userRepository.findByUsername(authentication.getName()));
+                String description = updateDTO.getDescription();
+                String[] defaults = {"inspect", "test", "replace", "overhaul"};
+                if (java.util.Arrays.asList(defaults).contains(description.toLowerCase())) {
+                    description = description.substring(0, 1).toUpperCase() + description.substring(1).toLowerCase();
+                }
+                timeline.setDescription(description);
+                saveCustomDescriptionOption(description, userRepository.findByUsername(authentication.getName()));
             }
             if (updateDTO.getCycle() != null) timeline.setCycle(updateDTO.getCycle());
             if (updateDTO.getLastDone() != null) timeline.setLastDone(updateDTO.getLastDone());
