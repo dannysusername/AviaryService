@@ -11,12 +11,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -104,7 +108,11 @@ void setUp() {
         when(descriptionOptionRepository.findByUser(user)).thenReturn(Collections.emptyList());
 
         // Act
-        String result = userController.addTimeline("Test Item", "true", null, null, null, null, null, authentication);
+        Map<String, String> data = new HashMap<>();
+        data.put("item", "Test Item");
+        data.put("isTitle", "true");
+        // Optional: data.put("ajax", "true"); // Include if testing AJAX response
+        ResponseEntity<?> response = userController.addTimeline(data, authentication);
 
         // Assert
         verify(serviceTimelineRepository).save(argThat(timeline -> 
@@ -114,7 +122,8 @@ void setUp() {
             timeline.getUser() == user
         ));
         verify(descriptionOptionRepository, never()).save(any(DescriptionOption.class)); // No description, so not called
-        assertEquals("redirect:/dashboard", result);
+        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertEquals("/dashboard", response.getHeaders().getLocation().toString());
     }
 
     @Test
@@ -130,8 +139,16 @@ void setUp() {
         when(descriptionOptionRepository.save(any(DescriptionOption.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        String result = userController.addTimeline("Item", "false", "Custom Desc", "Weekly", "2023-01-01", "2023-01-08", "7 days", authentication);
-
+        Map<String, String> data = new HashMap<>();
+        data.put("item", "Item");
+        data.put("isTitle", "false");
+        data.put("description", "Custom Desc");
+        data.put("cycle", "Weekly");
+        data.put("lastDone", "2023-01-01");
+        data.put("dueDate", "2023-01-08");
+        data.put("timeLeft", "7 days");
+        // Optional: data.put("ajax", "true"); // Include if testing AJAX response
+        ResponseEntity<?> response = userController.addTimeline(data, authentication);
         // Assert
         verify(serviceTimelineRepository).save(argThat(timeline -> 
             !timeline.isTitle() &&
@@ -144,6 +161,7 @@ void setUp() {
             option.getOption().equals("Custom Desc") &&
             option.getUser() == user
         ));
-        assertEquals("redirect:/dashboard", result);
+        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertEquals("/dashboard", response.getHeaders().getLocation().toString());
     }
 }
