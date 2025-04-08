@@ -13,22 +13,14 @@ function updateRealTimeClock() {
 }
 
 function setTextareaMinHeight(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.minHeight = '0';
+    textarea.style.height = 'auto'; // Reset to measure content
     const scrollHeight = textarea.scrollHeight;
-    textarea.style.minHeight = `${Math.min(scrollHeight, 120)}px`;
-    textarea.style.height = 'auto';
-    if (scrollHeight > 120) {
-        const currentValue = textarea.value;
-        let truncatedValue = currentValue;
-        textarea.style.height = 'auto';
-        textarea.style.minHeight = '0';
-        while (textarea.scrollHeight > 120 && truncatedValue.length > 0) {
-            truncatedValue = truncatedValue.slice(0, -1);
-            textarea.value = truncatedValue;
-        }
-        textarea.setSelectionRange(truncatedValue.length, truncatedValue.length);
-        textarea.style.minHeight = '120px';
+    if (scrollHeight > 140) {
+        textarea.style.height = '140px'; // Cap at 120px
+        textarea.style.overflowY = 'auto'; // Show scrollbar
+    } else {
+        textarea.style.height = `${scrollHeight}px`; // Match content height
+        textarea.style.overflowY = 'hidden'; // Hide scrollbar
     }
 }
 
@@ -110,17 +102,18 @@ function updateOrderOnServer() {
     const order = Array.from(rows).map(row => row.getAttribute('data-id'));
     const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-    axios.post('/updateOrder', order, {
+    console.log("Order request sent");
+    axios.post('/updateOrder', order, {        
         headers: {
             [csrfHeader]: csrfToken,
             'Content-Type': 'application/json'
         }
     })
     .then(response => {
-        console.log('Order updated');
+        console.log('RESPONSE: Order updated');
     })
     .catch(error => {
-        console.error('Error updating order:', error);
+        console.error('RESPONSE: Error updating order:', error);
     });
 }
 
@@ -249,6 +242,8 @@ function calculateTimeLeft(dueDateStr, currentHours) {
         }
     }
 
+    console.log("calculateTimeLeft OUTPUT--->" + output);
+
     return output || 'N/A';
 }
 
@@ -375,7 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.auto-save-row textarea[name="item"]').forEach(textarea => {
-        setTextareaMinHeight(textarea);
+        setTimeout(() => {
+            setTextareaMinHeight(textarea);
+        }, 0); // 0ms delay ensures rendering is complete
         textarea.addEventListener('input', () => {
             setTextareaMinHeight(textarea);
         });
@@ -387,6 +384,13 @@ document.addEventListener('DOMContentLoaded', () => {
             setTextareaMinHeight(textarea);
         });
     });
+
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('.auto-save-row textarea[name="item"], .auto-save-row textarea[name="cycle"], .add-row textarea[name="item"], .add-row textarea[name="cycle"]').forEach(textarea => {
+            setTextareaMinHeight(textarea);
+        });
+    });
+
     // Initialize Sortable.js
     const tbody = document.querySelector('.sortable');
     Sortable.create(tbody, {
@@ -578,76 +582,68 @@ document.getElementById('add-hours-btn').addEventListener('click', function() {
             const type = button.getAttribute('data-type');
             const container = button.closest('.input-with-dropdown');
             const tr = button.closest('tr');
-            const td = button.closest('td');
             const isAddMode = button.textContent === '+';
     
             const existingDate = container.querySelector('input[type="date"]');
             const existingText = container.querySelector('input[type="text"].extra-input');
     
             if (isAddMode) {
-                if (type === 'calendar' && existingDate) return;
-                if (type === 'clock' && existingText) return;
-    
-                let newInput;
-                if (type === 'calendar') {
-                newInput = document.createElement('input');
-                newInput.type = 'date';
-                newInput.className = 'extra-input';
-                newInput.oninput = () => {
-                    if (tr.classList.contains('auto-save-row')) {
-                        autoSave(newInput);
-                    } else {
-                        updateAddRowHiddenInputs();
-                        updateAddRowTimeLeft(); // Ensures time left updates
-                    }
-                };
-            // Replace the clock input creation with this:
-            } else if (type === 'clock') {
-                newInput = document.createElement('input');
-                newInput.type = 'text';
-                newInput.className = 'extra-input';
-                newInput.placeholder = 'Enter hours';
-                newInput.oninput = () => {
-                    newInput.value = newInput.value.replace(/[^0-9]/g, '');
-                    if (tr.classList.contains('auto-save-row')) {
-                        autoSave(newInput);
-                    } else {
-                        updateAddRowHiddenInputs();
-                        updateAddRowTimeLeft(); // Ensures time left updates
-                    }
-                };
-            }
-
-            if (newInput) {
-                container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
-                button.textContent = '-';
-                if (!tr.classList.contains('auto-save-row')) {
-                    updateAddRowHiddenInputs();
-                    updateAddRowTimeLeft();
+                // Adding a new input
+                if (type === 'calendar' && !existingDate) {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'date';
+                    newInput.className = 'extra-input';
+                    newInput.oninput = () => {
+                        if (tr.classList.contains('auto-save-row')) {
+                            autoSave(newInput);
+                        } else {
+                            updateAddRowHiddenInputs();
+                            updateAddRowTimeLeft();
+                        }
+                    };
+                    container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                    button.textContent = '-';
+                } else if (type === 'clock' && !existingText) {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'text';
+                    newInput.className = 'extra-input';
+                    newInput.placeholder = 'Enter hours';
+                    newInput.oninput = () => {
+                        newInput.value = newInput.value.replace(/[^0-9]/g, '');
+                        if (tr.classList.contains('auto-save-row')) {
+                            autoSave(newInput);
+                        } else {
+                            updateAddRowHiddenInputs();
+                            updateAddRowTimeLeft();
+                        }
+                    };
+                    container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                    button.textContent = '-';
                 }
             } else {
+                // Removing an existing input
                 if (type === 'calendar' && existingDate) {
                     existingDate.remove();
                     button.textContent = '+';
                     if (tr.classList.contains('auto-save-row')) {
-                        autoSave(button);
+                        autoSave(button); // Trigger save for sortable rows
                     } else {
                         updateAddRowHiddenInputs();
-                        updateAddRowTimeLeft(); // Add this line
+                        updateAddRowTimeLeft();
                     }
                 } else if (type === 'clock' && existingText) {
                     existingText.remove();
                     button.textContent = '+';
                     if (tr.classList.contains('auto-save-row')) {
-                        autoSave(button);
+                        autoSave(button); // Trigger save for sortable rows
                     } else {
                         updateAddRowHiddenInputs();
-                        updateAddRowTimeLeft(); // Add this line
+                        updateAddRowTimeLeft();
                     }
                 }
             }
-        }
     
+            // Hide the dropdown after action
             button.closest('.type-dropdown').style.display = 'none';
         }
     });
@@ -665,6 +661,14 @@ document.getElementById('add-hours-btn').addEventListener('click', function() {
         setTextareaMinHeight(addRowCycleTextarea);
         addRowCycleTextarea.addEventListener('input', () => {
             setTextareaMinHeight(addRowCycleTextarea);
+        });
+    }
+
+    const addRowItemTextarea = document.querySelector('.add-row textarea[name="item"]');
+    if (addRowItemTextarea) {
+        setTextareaMinHeight(addRowItemTextarea);
+        addRowItemTextarea.addEventListener('input', () => {
+            setTextareaMinHeight(addRowItemTextarea);
         });
     }
 
@@ -718,7 +722,7 @@ document.getElementById('add-hours-btn').addEventListener('click', function() {
     }
 
     const addForm = document.querySelector('.add-row form');
-if (addForm) {
+    if (addForm) {
     addForm.addEventListener('submit', function(event) {
         event.preventDefault();
 
@@ -755,6 +759,8 @@ if (addForm) {
             ajax: 'true'
         };
 
+        console.log("New row REQUEST: ", data);
+
         axios.post('/dashboard', data, {
             headers: {
                 [csrfHeader]: csrfToken,
@@ -763,6 +769,8 @@ if (addForm) {
         })
         .then(response => {
             const newRowData = response.data;
+            console.log("RESPONSE ", response);
+
             const newRow = document.createElement('tr');
             newRow.setAttribute('data-id', newRowData.id);
             newRow.className = newRowData.isTitle ? 'title-row' : 'auto-save-row';
@@ -881,9 +889,27 @@ if (addForm) {
                     sortableTbody.insertBefore(newRow, nextRow);
                 } else {
                     sortableTbody.appendChild(newRow);
+                    
                 }
             } else {
                 sortableTbody.appendChild(newRow);
+            }
+
+            if (!newRow.classList.contains('title-row')) {
+                const itemTextarea = newRow.querySelector('textarea[name="item"]');
+                if (itemTextarea) {
+                    setTextareaMinHeight(itemTextarea);
+                    itemTextarea.addEventListener('input', () => {
+                        setTextareaMinHeight(itemTextarea);
+                    });
+                }
+                const cycleTextarea = newRow.querySelector('textarea[name="cycle"]');
+                if (cycleTextarea) {
+                    setTextareaMinHeight(cycleTextarea);
+                    cycleTextarea.addEventListener('input', () => {
+                        setTextareaMinHeight(cycleTextarea);
+                    });
+                }
             }
 
             // Update the order on the server
@@ -913,7 +939,7 @@ if (addForm) {
             alert('Error adding row: ' + (error.response?.data || error.message));
         });
     });
-}
+    }
     
     // Function to update all Time Left cells in real-time
 
@@ -932,6 +958,7 @@ if (addForm) {
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
             const params = new URLSearchParams();
             params.append('hoursToAdd', parseInt(hoursToAdd));
+            console.log(hoursToAdd + " hours added");
             axios.post('/updateHours', params, {
                 headers: { [csrfHeader]: csrfToken }
             })

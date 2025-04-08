@@ -60,10 +60,10 @@
                             <button class="dropdown-trigger" onclick="toggleDropdown(this)">▼</button>
                             <div class="dropdown-options">
                                 <div class="option" data-value="">--None--</div>
-                                <div class="option" data-value="inspect">Inspect</div>
-                                <div class="option" data-value="test">Test</div>
-                                <div class="option" data-value="replace">Replace</div>
-                                <div class="option" data-value="overhaul">Overhaul</div>
+                                <div class="option" data-value="Inspect">Inspect</div>
+                                <div class="option" data-value="Test">Test</div>
+                                <div class="option" data-value="Replace">Replace</div>
+                                <div class="option" data-value="Overhaul">Overhaul</div>
                                 <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
                                 <div class="add-option-container">
                                     <input type="text" class="custom-description" placeholder="New option">
@@ -134,10 +134,10 @@
                         <button class="dropdown-trigger">▼</button>
                         <div class="dropdown-options" style="display: none;">
                             <div class="option" data-value="">--None--</div>
-                            <div class="option" data-value="inspect">Inspect</div>
-                            <div class="option" data-value="test">Test</div>
-                            <div class="option" data-value="replace">Replace</div>
-                            <div class="option" data-value="overhaul">Overhaul</div>
+                            <div class="option" data-value="Inspect">Inspect</div>
+                            <div class="option" data-value="Test">Test</div>
+                            <div class="option" data-value="Replace">Replace</div>
+                            <div class="option" data-value="Overhaul">Overhaul</div>
                             <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
                             <div class="add-option-container">
                                 <input type="text" class="custom-description" placeholder="New option">

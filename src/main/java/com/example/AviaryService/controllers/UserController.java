@@ -87,17 +87,20 @@ public class UserController {
     boolean isTitleRow = "true".equals(isTitle);
     timeline.setIsTitle(isTitleRow);
     if (!isTitleRow) {
-        if (description != null) {
+        if (description != null) { /* 
             String[] defaults = {"inspect", "test", "replace", "overhaul"};
             if (java.util.Arrays.asList(defaults).contains(description.toLowerCase())) {
                 description = description.substring(0, 1).toUpperCase() + description.substring(1).toLowerCase();
-            }
+            }*/
             timeline.setDescription(description);
             saveCustomDescriptionOption(description, user);
+            
         }
         timeline.setCycle(cycle);
         timeline.setLastDone(lastDone);
         timeline.setDueDate(dueDate);
+        timeline.setTimeLeft(timeLeft);
+        /* 
         if (dueDate != null) {
             try {
                 String[] parts = dueDate.split(" ");
@@ -124,7 +127,7 @@ public class UserController {
             } catch (Exception e) {
                 timeline.setTimeLeft("N/A");
             }
-        }
+        }*/
     }
     timeline.setUser(user);
 
@@ -188,8 +191,6 @@ public ResponseEntity<Map<String, String>> updateHours(
         return ResponseEntity.badRequest().body(errorResponse);
     }
 }
-
-    // Other existing methods remain unchanged...
 
 
     @PostMapping("/update/{id}")
