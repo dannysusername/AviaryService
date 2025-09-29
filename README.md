@@ -17,17 +17,17 @@ Other: RESTful APIs for data integration
 Installation
 
 Clone the repository:
-textgit clone https://github.com/dannysusername/aviaryservice.git
+git clone https://github.com/dannysusername/aviaryservice.git
 
 Navigate to the project directory:
-textcd aviaryservice
+cd aviaryservice
 
 Install dependencies (if using Maven for Java):
-textmvn clean install
+mvn clean install
 
 Set up the database and configure application.properties with your credentials.
 Run the application:
-textmvn spring-boot:run
+mvn spring-boot:run
 
 Usage
 
