@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/AviaryService
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: spoop
+    url: h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
   jpa:
     hibernate:
       ddl-auto: update
