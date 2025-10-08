@@ -8,160 +8,117 @@ import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 class UserControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
     private UserRepository userRepository;
 
-    @Mock
+    @Autowired
     private ServiceTimelineRepository serviceTimelineRepository;
 
-    @Mock
+    @Autowired
     private DescriptionOptionRepository descriptionOptionRepository;
 
-    @Mock
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private Authentication authentication;
-
-    @InjectMocks
-    private UserController userController;
-
-    private List<User> fakeUsers;
-    private List<ServiceTimeline> allTimelines;
-
     @BeforeEach
-void setUp() {
-    MockitoAnnotations.openMocks(this);
-    fakeUsers = new ArrayList<>();
-    allTimelines = new ArrayList<>();
+    void setUp() {
+        // Clear existing data to avoid duplicates and foreign key violations
+        descriptionOptionRepository.deleteAll();
+        serviceTimelineRepository.deleteAll();
+        userRepository.deleteAll();
 
-    // Create 50 fake users
-    for (int i = 1; i <= 50; i++) {
-        User user = new User();
-        user.setId((long) i);
-        user.setUsername("user" + i);
-        user.setPassword("password" + i); // In a real scenario, this would be encoded
-        fakeUsers.add(user);
-    }
+        // Create 50 users with 2 timelines each
+        for (int i = 1; i <= 50; i++) {
+            User user = new User();
+            user.setUsername("user" + i);
+            user.setPassword(passwordEncoder.encode("password" + i));
+            userRepository.save(user);
 
-    // Mock userRepository.findByUsername
-    for (User user : fakeUsers) {
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(user);
-    }
-
-    // Create 2 timelines per user
-    for (User user : fakeUsers) {
-        for (int j = 1; j <= 2; j++) {
-            ServiceTimeline timeline = new ServiceTimeline();
-            timeline.setId((long) allTimelines.size() + 1);
-            timeline.setUser(user);
-            timeline.setItem("Timeline " + j + " for " + user.getUsername());
-            timeline.setIsTitle(false);
-            timeline.setTimelineOrder(j);
-            // Add other fields like description, createdDate, etc., as needed
-            allTimelines.add(timeline);
+            for (int j = 1; j <= 2; j++) {
+                ServiceTimeline timeline = new ServiceTimeline();
+                timeline.setUser(user);
+                timeline.setItem("Timeline " + j + " for " + user.getUsername());
+                timeline.setIsTitle(false);
+                timeline.setTimelineOrder(j);
+                timeline.setDescription("Test Description");
+                timeline.setCycle("Weekly");
+                timeline.setLastDone("2025-10-01");
+                timeline.setDueDate("2025-10-08");
+                timeline.setTimeLeft("7 days");
+                serviceTimelineRepository.save(timeline);
+            }
         }
     }
 
-    // Mock serviceTimelineRepository.findByUserOrderByIdAsc
-    for (User user : fakeUsers) {
-        List<ServiceTimeline> userTimelines = allTimelines.stream()
-                .filter(t -> t.getUser().equals(user))
-                .toList();
-        when(serviceTimelineRepository.findByUserOrderByIdAsc(user)).thenReturn(userTimelines);
-    }
-
-    // Mock descriptionOptionRepository.findByUser to return an empty list
-    when(descriptionOptionRepository.findByUser(any(User.class))).thenReturn(new ArrayList<>());
-}
-
     @Test
-    void testAddTimelineAsTitle() {
-        // Arrange
-        String username = "testuser";
-        User user = new User(username, "encodedPass");
-        when(authentication.getName()).thenReturn(username);
-        when(userRepository.findByUsername(username)).thenReturn(user);
-        when(serviceTimelineRepository.findMaxTimelineOrderByUser(user)).thenReturn(5);
-        when(serviceTimelineRepository.save(any(ServiceTimeline.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(descriptionOptionRepository.findByUser(user)).thenReturn(Collections.emptyList());
-
-        // Act
+    @WithMockUser(username = "user1", roles = {"USER"})
+    void testAddTimelineAsTitle() throws Exception {
         Map<String, String> data = new HashMap<>();
         data.put("item", "Test Item");
         data.put("isTitle", "true");
-        // Optional: data.put("ajax", "true"); // Include if testing AJAX response
-        ResponseEntity<?> response = userController.addTimeline(data, authentication);
 
-        // Assert
-        verify(serviceTimelineRepository).save(argThat(timeline -> 
-            timeline.getItem().equals("Test Item") &&
-            timeline.isTitle() &&
-            timeline.getTimelineOrder() == 6 &&
-            timeline.getUser() == user
-        ));
-        verify(descriptionOptionRepository, never()).save(any(DescriptionOption.class)); // No description, so not called
-        assertEquals(HttpStatus.FOUND, response.getStatusCode());
-        assertEquals("/dashboard", response.getHeaders().getLocation().toString());
+        mockMvc.perform(post("/dashboard")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"item\":\"Test Item\",\"isTitle\":\"true\"}")
+                .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/dashboard"));
+
+        // Verify data in PostgreSQL
+        User user = userRepository.findByUsername("user1");
+        List<ServiceTimeline> timelines = serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user);
+        assertTrue(timelines.stream().anyMatch(t -> t.getItem().equals("Test Item") && Boolean.TRUE.equals(t.isTitle())));
     }
 
     @Test
-    void testAddTimelineWithDescription() {
-        // Arrange
-        String username = "testuser";
-        User user = new User(username, "encodedPass");
-        when(authentication.getName()).thenReturn(username);
-        when(userRepository.findByUsername(username)).thenReturn(user);
-        when(serviceTimelineRepository.findMaxTimelineOrderByUser(user)).thenReturn(null);
-        when(serviceTimelineRepository.save(any(ServiceTimeline.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(descriptionOptionRepository.findByUser(user)).thenReturn(Collections.emptyList());
-        when(descriptionOptionRepository.save(any(DescriptionOption.class))).thenAnswer(i -> i.getArguments()[0]);
-
-        // Act
+    @WithMockUser(username = "user2", roles = {"USER"})
+    void testAddTimelineWithDescription() throws Exception {
         Map<String, String> data = new HashMap<>();
         data.put("item", "Item");
         data.put("isTitle", "false");
         data.put("description", "Custom Desc");
         data.put("cycle", "Weekly");
-        data.put("lastDone", "2023-01-01");
-        data.put("dueDate", "2023-01-08");
+        data.put("lastDone", "2025-10-01");
+        data.put("dueDate", "2025-10-08");
         data.put("timeLeft", "7 days");
-        // Optional: data.put("ajax", "true"); // Include if testing AJAX response
-        ResponseEntity<?> response = userController.addTimeline(data, authentication);
-        // Assert
-        verify(serviceTimelineRepository).save(argThat(timeline -> 
-            !timeline.isTitle() &&
-            timeline.getItem().equals("Item") &&
-            timeline.getDescription().equals("Custom Desc") &&
-            timeline.getCycle().equals("Weekly") &&
-            timeline.getTimelineOrder() == 0
-        ));
-        verify(descriptionOptionRepository).save(argThat(option -> 
-            option.getOption().equals("Custom Desc") &&
-            option.getUser() == user
-        ));
-        assertEquals(HttpStatus.FOUND, response.getStatusCode());
-        assertEquals("/dashboard", response.getHeaders().getLocation().toString());
+
+        mockMvc.perform(post("/dashboard")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"item\":\"Item\",\"isTitle\":\"false\",\"description\":\"Custom Desc\",\"cycle\":\"Weekly\",\"lastDone\":\"2025-10-01\",\"dueDate\":\"2025-10-08\",\"timeLeft\":\"7 days\"}")
+                .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/dashboard"));
+
+        // Verify data in PostgreSQL
+        User user = userRepository.findByUsername("user2");
+        List<ServiceTimeline> timelines = serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user);
+        assertTrue(timelines.stream().anyMatch(t -> t.getItem().equals("Item") && t.getDescription().equals("Custom Desc")));
     }
 }

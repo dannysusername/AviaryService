@@ -1,0 +1,4 @@
+\c AviaryService
+SELECT * FROM users;
+SELECT * FROM service_timeline;
+SELECT * FROM description_options;

@@ -106,10 +106,9 @@ td textarea {
     border: 1px solid #ddd;
     padding: 4px;
     resize: none;
-    overflow: hidden;
+    overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
-    height: auto;
 }
 
 td textarea:focus {
@@ -177,11 +176,8 @@ td textarea.item-textarea:focus,
 .input-with-dropdown [name = "lastDone_text"]{
     min-width: 50px;
     width: 100%;
-    margin-left: 4px;
     
 }
-
-
 
 .trigger-dropdown {
     cursor: pointer;
@@ -247,7 +243,6 @@ td textarea.item-textarea:focus,
     box-sizing: border-box;
     white-space: normal;
     text-align: left; /* Changed from center to align with typical input fields */
-    max-width: 200px;
     word-wrap: break-word;
     cursor: pointer; /* Keep this to indicate clickability */
 }
@@ -291,9 +286,11 @@ td textarea.item-textarea:focus,
 }
 
 .custom-option {
+    display: flex;
     white-space: normal;
     word-wrap: break-word;
-    max-width: 150px;
+    justify-content: space-between;
+   
 }
 
 .option:hover {
@@ -324,6 +321,11 @@ td textarea.item-textarea:focus,
 
 .add-option-btn:hover {
     background-color: #0056b3;
+}
+
+.remove-option-btn {
+    border-radius: 300px;
+    border:#a7a5a5f1
 }
 
 .title-row td {
