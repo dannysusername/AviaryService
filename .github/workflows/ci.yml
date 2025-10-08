@@ -31,7 +31,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build -x test  # Builds the project but skips tests for faster feedback
       - name: Run Unit Tests
-        run: ./gradlew test  # Runs unit tests
+        run: ./gradlew test --stacktrace --info
 
   main-build-and-deploy:
     if: github.ref == 'refs/heads/main'

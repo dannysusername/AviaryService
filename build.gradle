@@ -24,7 +24,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	runtimeOnly 'org.postgresql:postgresql'
 
-	testImplementation 'org.postgresql:postgresql'
+	// build.gradle
+    testImplementation 'com.h2database:h2:2.2.224'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.mockito:mockito-core:5.11.0'
