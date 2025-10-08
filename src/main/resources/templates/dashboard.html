@@ -64,7 +64,10 @@
                                 <div class="option" data-value="Test">Test</div>
                                 <div class="option" data-value="Replace">Replace</div>
                                 <div class="option" data-value="Overhaul">Overhaul</div>
-                                <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
+                                <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:data-option-id="${option.id}">
+                                    <span th:text="${option.option}"></span>
+                                    <button class="remove-option-btn" th:data-option-id="${option.id}">x</button>
+                                </div>
                                 <div class="add-option-container">
                                     <input type="text" class="custom-description" placeholder="New option">
                                     <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
@@ -138,7 +141,10 @@
                             <div class="option" data-value="Test">Test</div>
                             <div class="option" data-value="Replace">Replace</div>
                             <div class="option" data-value="Overhaul">Overhaul</div>
-                            <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:text="${option.option}"></div>
+                            <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:data-option-id="${option.id}">
+                                <span th:text="${option.option}"></span>
+                                <button class="remove-option-btn" th:data-option-id="${option.id}">x</button>
+                            </div>
                             <div class="add-option-container">
                                 <input type="text" class="custom-description" placeholder="New option">
                                 <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>

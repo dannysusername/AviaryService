@@ -28,8 +28,6 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
 
-        
-
         return username -> {
             long start = System.currentTimeMillis();
             User user = userRepository.findByUsername(username);

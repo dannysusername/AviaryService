@@ -146,30 +146,17 @@ function closeDropdownOutside(event) {
     }
 }
 
-function selectOption(option) {
-    const dropdown = option.closest('.custom-dropdown');
-    const selected = dropdown.querySelector('.selected-option');
-    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-    const value = option.getAttribute('data-value');
-    selected.textContent = value === '' ? '' : option.textContent;
-    hiddenInput.value = value;
-    dropdown.querySelector('.dropdown-options').style.display = 'none';
-    if (dropdown.closest('.auto-save-row')) autoSave(hiddenInput);
-}
-
 function addCustomDescription(button) {
     const container = button.parentElement;
     const input = container.querySelector('.custom-description');
     const customValue = input.value.trim();
     if (!customValue) return;
-    const dropdown = container.parentElement.parentElement;
-    const selected = dropdown.querySelector('.selected-option');
-    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-    selected.textContent = customValue;
-    hiddenInput.value = customValue;
-    if (!isDefaultOption(customValue)) updateAllDropdowns(customValue);
-    if (dropdown.closest('.auto-save-row')) autoSave(hiddenInput);
+    // Add the new option to all dropdowns without selecting it
+    if (!isDefaultOption(customValue)) {
+        updateAllDropdowns(customValue);
+    }
     input.value = '';
+    // Do not select the new option or trigger autoSave
 }
 
 function updateAllDropdowns(newOption) {
@@ -178,7 +165,17 @@ function updateAllDropdowns(newOption) {
             const optionDiv = document.createElement('div');
             optionDiv.className = 'option custom-option';
             optionDiv.setAttribute('data-value', newOption);
-            optionDiv.textContent = newOption;
+            // Create span for the option text
+            const span = document.createElement('span');
+            span.textContent = newOption;
+            optionDiv.appendChild(span);
+            // Create remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-option-btn';
+            removeBtn.textContent = 'x';
+            // Use data-option-value since we don't have an ID yet
+            removeBtn.setAttribute('data-option-value', newOption);
+            optionDiv.appendChild(removeBtn);
             optionDiv.onclick = () => selectOption(optionDiv);
             dropdown.insertBefore(optionDiv, dropdown.querySelector('.add-option-container'));
         }
@@ -369,6 +366,71 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.addEventListener('click', function(event) {
+        if (event.target.className === 'remove-option-btn') {
+            event.preventDefault();
+            event.stopPropagation();
+            const optionId = event.target.getAttribute('data-option-id');
+            const optionValue = event.target.getAttribute('data-option-value');
+            const optionDiv = event.target.closest('.option');
+            const deletedValue = optionDiv.getAttribute('data-value');
+    
+            if (confirm('Are you sure you want to delete this option?')) {
+                if (optionId) {
+                    // Existing option with an ID (from server)
+                    const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                    axios.delete(`/deleteOption/${optionId}`, {
+                        headers: { [csrfHeader]: csrfToken }
+                    })
+                    .then(response => {
+                        if (response.data === "Option deleted") {
+                            document.querySelectorAll(`.option.custom-option[data-option-id="${optionId}"]`)
+                                .forEach(opt => opt.remove());
+                            // Reset dropdowns where this option was selected
+                            document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+                                const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+                                const selected = dropdown.querySelector('.selected-option');
+                                if (hiddenInput && selected && hiddenInput.value === deletedValue) {
+                                    selected.textContent = '';
+                                    hiddenInput.value = '';
+                                    if (dropdown.closest('.auto-save-row')) autoSave(hiddenInput);
+                                }
+                            });
+                            console.log(`Option ${deletedValue} (ID: ${optionId}) deleted successfully`);
+                        } else {
+                            throw new Error('Deletion failed on server');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting option:', error);
+                        alert('Failed to delete option: ' + (error.response?.data || error.message));
+                    });
+                } else if (optionValue) {
+                    // New option without an ID (not yet saved)
+                    document.querySelectorAll(`.option.custom-option[data-value="${optionValue}"]`)
+                        .forEach(opt => opt.remove());
+                    console.log(`New option ${optionValue} removed locally`);
+                }
+            }
+        }
+    });
+    
+    function selectOption(option) {
+        if (event.target.classList.contains('remove-option-btn')) {
+            return; // Prevent selection on remove button click
+        }
+        const dropdown = option.closest('.custom-dropdown');
+        const selected = dropdown.querySelector('.selected-option');
+        const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+        const value = option.getAttribute('data-value');
+        const optionText = option.querySelector('span') ? option.querySelector('span').textContent : option.textContent;
+        selected.textContent = value === '' ? '' : optionText;
+        hiddenInput.value = value;
+        dropdown.querySelector('.dropdown-options').style.display = 'none';
+        if (dropdown.closest('.auto-save-row')) autoSave(hiddenInput);
+    }
+
     document.querySelectorAll('.auto-save-row textarea[name="item"]').forEach(textarea => {
         setTimeout(() => {
             setTextareaMinHeight(textarea);
@@ -457,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const options = dropdown.querySelectorAll('.option');
         const value = hiddenInput.value || '';
         const matchingOption = Array.from(options).find(opt => opt.getAttribute('data-value') === value);
-        selected.textContent = value === '' ? '' : (matchingOption ? matchingOption.textContent : value);
+        selected.textContent = value === '' ? '' : (matchingOption ? (matchingOption.querySelector('span') ? matchingOption.querySelector('span').textContent : matchingOption.textContent) : value);
         options.forEach(option => option.onclick = () => selectOption(option));
     });
 

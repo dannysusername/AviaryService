@@ -1,5 +1,6 @@
 package com.example.AviaryService.controllers;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +17,11 @@ import com.example.AviaryService.repositories.DescriptionOptionRepository;
 import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.transaction.Transactional;
 
 import java.net.URI;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,8 @@ public class UserController {
     @Autowired private ServiceTimelineRepository serviceTimelineRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private DescriptionOptionRepository descriptionOptionRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     @GetMapping("/register")
     public String showRegisterForm() {
@@ -78,7 +81,7 @@ public class UserController {
     String cycle = data.get("cycle");
     String lastDone = data.get("lastDone");
     String dueDate = data.get("dueDate");
-    String timeLeft = data.get("timeLeft");
+    String timeLeft = data.get("timeLeft"); // POSSIBLY REMOVE THIS !!!
     String ajax = data.getOrDefault("ajax", "false");
 
     User user = userRepository.findByUsername(authentication.getName());
@@ -99,7 +102,10 @@ public class UserController {
         timeline.setCycle(cycle);
         timeline.setLastDone(lastDone);
         timeline.setDueDate(dueDate);
-        timeline.setTimeLeft(timeLeft);
+        timeline.setTimeLeft(timeLeft);  // POSSIBLY REMOVE THIS !!!
+        // Automatically calculate timeLeft based on dueDate and user's hours
+
+
         /* 
         if (dueDate != null) {
             try {
@@ -192,6 +198,8 @@ public ResponseEntity<Map<String, String>> updateHours(
     }
 }
 
+    // Other existing methods remain unchanged...
+
 
     @PostMapping("/update/{id}")
     @ResponseBody
@@ -246,6 +254,34 @@ public ResponseEntity<Map<String, String>> updateHours(
         ServiceTimeline timeline = serviceTimelineRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid timeline ID: " + id));
         serviceTimelineRepository.delete(timeline);
+    }
+
+    @DeleteMapping("/deleteOption/{id}")
+    @ResponseBody
+    @Transactional
+    public ResponseEntity<String> deleteOption(@PathVariable Long id, Authentication authentication) {
+        try {
+            log.info("Attempting to delete option with ID: {}", id);
+            User user = userRepository.findByUsername(authentication.getName());
+            if (user == null) {
+                log.error("User not found for username: {}", authentication.getName());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+            }
+            log.info("Authenticated user: {}", user.getUsername());
+            DescriptionOption option = descriptionOptionRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Option not found"));
+            log.info("Found option: {} for user: {}", option.getOption(), option.getUser().getUsername());
+            if (!option.getUser().equals(user)) {
+                log.warn("User {} does not own option {}", user.getUsername(), option.getOption());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not own this option");
+            }
+            descriptionOptionRepository.delete(option);
+            log.info("Option {} deleted successfully", option.getOption());
+            return ResponseEntity.ok("Option deleted");
+        } catch (Exception e) {
+            log.error("Error deleting option with ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting option: " + e.getMessage());
+        }
     }
 
     @PostMapping("/updateOrder")
