@@ -97,6 +97,12 @@ function autoSaveUserInfo(input) {
         .then(response => {
             console.log('User info saved successfully');
             // Optionally add a status indicator next to the input if needed
+
+            // NEW: Update the adjacent print-only span with the new value
+            const printSpan = input.nextElementSibling;
+            if (printSpan && printSpan.classList.contains('print-only')) {
+                printSpan.textContent = input.value;
+            }
         })
         .catch(error => {
             console.error('Error saving user info:', error.response ? error.response.data : error);
@@ -104,6 +110,14 @@ function autoSaveUserInfo(input) {
         });
     }, 500); // Debounce for 500ms
 }
+
+// In printDashboard, add this loop for redundancy (before window.print())
+document.querySelectorAll('.aircraft-info input.user-info-input').forEach(input => {
+    const printSpan = input.nextElementSibling;
+    if (printSpan && printSpan.classList.contains('print-only')) {
+        printSpan.textContent = input.value;
+    }
+});
 
 function deleteRow(icon) {
     const row = icon.closest('tr');
@@ -1151,6 +1165,65 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add sheet and download
         XLSX.utils.book_append_sheet(wb, ws, "Service Timeline");
         XLSX.writeFile(wb, `Aircraft_Service_Timeline_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    // NEW: Print button listener
+    const printBtn = document.getElementById('print-dashboard');
+    if (printBtn) {
+        printBtn.addEventListener('click', printDashboard);
+    }
+
+    // NEW: Function to handle printing
+    function printDashboard() {
+        // Update all time left values (assuming you have updateAllTimeLeft() from existing code)
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();  // If applicable, though add-row is hidden
+
+        // Set static print date/time in clock
+        const clockElement = document.getElementById('real-time-clock');
+        const now = new Date();
+        const dateString = now.toLocaleDateString(); // e.g., "10/12/2025"
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // e.g., "09:23 AM"
+        clockElement.textContent = `${dateString} ${timeString}`;
+
+        // Update My Hours print-only span
+        const currentHours = document.getElementById('current-hours').value || '0';
+        document.getElementById('print-current-hours').textContent = `Current Hours: ${currentHours}`;
+
+        // Update print-only spans in table rows with current values
+        document.querySelectorAll('.sortable tr:not(.title-row)').forEach(row => {
+            // Item
+            const itemTextarea = row.querySelector('textarea[name="item"]');
+            const itemPrint = row.querySelector('td:nth-child(2) .print-only');
+            if (itemTextarea && itemPrint) itemPrint.textContent = itemTextarea.value;
+
+            // Description (from hidden input)
+            const descInput = row.querySelector('input[name="description"]');
+            const descPrint = row.querySelector('td:nth-child(3) .print-only');
+            if (descInput && descPrint) descPrint.textContent = descInput.value;
+
+            // Cycle
+            const cycleTextarea = row.querySelector('textarea[name="cycle"]');
+            const cyclePrint = row.querySelector('td:nth-child(4) .print-only');
+            if (cycleTextarea && cyclePrint) cyclePrint.textContent = cycleTextarea.value;
+
+            // Last Done (construct from inputs)
+            const lastDoneContainer = row.querySelector('td:nth-child(5) .input-with-dropdown');
+            const lastDoneDate = lastDoneContainer?.querySelector('input[type="date"]')?.value || '';
+            const lastDoneText = lastDoneContainer?.querySelector('input[type="text"].extra-input')?.value || '';
+            const lastDonePrint = row.querySelector('td:nth-child(5) .print-only');
+            if (lastDonePrint) lastDonePrint.textContent = `${lastDoneDate} ${lastDoneText}`.trim();
+
+            // Due Date (similar)
+            const dueDateContainer = row.querySelector('td:nth-child(6) .input-with-dropdown');
+            const dueDateDate = dueDateContainer?.querySelector('input[type="date"]')?.value || '';
+            const dueDateText = dueDateContainer?.querySelector('input[type="text"].extra-input')?.value || '';
+            const dueDatePrint = row.querySelector('td:nth-child(6) .print-only');
+            if (dueDatePrint) dueDatePrint.textContent = `${dueDateDate} ${dueDateText}`.trim();
+        });
+
+        // Trigger browser print dialog
+        window.print();
     }
 
 
