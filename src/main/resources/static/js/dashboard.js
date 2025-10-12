@@ -1,6 +1,7 @@
 console.log('dashboard.js loaded');
 
 let timeout;
+let userInfoTimeout;
 let hoursTimeout; // For debouncing hours updates
 let previousHours = document.getElementById('current-hours')?.value || 0;
 
@@ -80,6 +81,30 @@ function autoSave(input) {
     }, 500);
 }
 
+function autoSaveUserInfo(input) {
+    clearTimeout(userInfoTimeout);
+
+    const data = {};
+    data[input.name] = input.value; // Only send the changed field
+
+    userInfoTimeout = setTimeout(() => {
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+        axios.post('/updateUserInfo', data, {
+            headers: { [csrfHeader]: csrfToken }
+        })
+        .then(response => {
+            console.log('User info saved successfully');
+            // Optionally add a status indicator next to the input if needed
+        })
+        .catch(error => {
+            console.error('Error saving user info:', error.response ? error.response.data : error);
+            // Optionally show an error indicator
+        });
+    }, 500); // Debounce for 500ms
+}
+
 function deleteRow(icon) {
     const row = icon.closest('tr');
     if (!row) return;
@@ -98,7 +123,7 @@ function deleteRow(icon) {
 }
 
 function updateOrderOnServer() {
-    const rows = document.querySelectorAll('table tbody tr:not(.add-row)');
+    const rows = document.querySelectorAll('.sortable tr:not(.add-row)');
     const order = Array.from(rows).map(row => row.getAttribute('data-id'));
     const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
@@ -137,12 +162,6 @@ function closeDropdownOutside(event) {
         document.querySelectorAll('.dropdown-options').forEach(dropdown => {
             dropdown.style.display = 'none';
         });
-    }
-}
-
-function closeDropdownOutside(event) {
-    if (!event.target.closest('.custom-dropdown')) {
-        document.querySelectorAll('.dropdown-options').forEach(dropdown => dropdown.style.display = 'none');
     }
 }
 
@@ -350,6 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('add-row td:nth-child(5) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(5) .input-with-dropdown'));
     console.log('add-row td:nth-child(6) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(6) .input-with-dropdown'));
 
+    document.querySelectorAll('.user-info-input').forEach(input => {
+        input.addEventListener('input', () => autoSaveUserInfo(input));
+    });
 
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('trigger-dropdown')) {
@@ -561,35 +583,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-// Handle adding hours
-document.getElementById('add-hours-btn').addEventListener('click', function() {
-    const hoursToAdd = document.getElementById('add-hours').value.trim();
-    if (hoursToAdd && !isNaN(hoursToAdd)) {
-        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-        const params = new URLSearchParams();
-        params.append('hoursToAdd', parseInt(hoursToAdd));
-        axios.post('/updateHours', params, {
-            headers: { [csrfHeader]: csrfToken }
-        })
-        .then(response => {
-            if (response.data.status === 'success') {
-                const newHours = response.data.newHours;
-                document.getElementById('current-hours').value = newHours; // Use value, not textContent
-                previousHours = newHours; // Update previousHours
-                document.getElementById('add-hours').value = ''; // Clear the input
-                console.log('Hours added successfully:', newHours);
-            } else {
-                console.error('Failed to add hours:', response.data.message);
-                alert('Failed to add hours');
-            }
-        })
-        .catch(error => {
-            console.error('Error adding hours:', error.response ? error.response.data : error);
-            alert('Error adding hours');
-        });
-    }
-});
+    // Handle adding hours
+    document.getElementById('add-hours-btn').addEventListener('click', function() {
+        const hoursToAdd = document.getElementById('add-hours').value.trim();
+        if (hoursToAdd && !isNaN(hoursToAdd)) {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            const params = new URLSearchParams();
+            params.append('hoursToAdd', parseInt(hoursToAdd));
+            axios.post('/updateHours', params, {
+                headers: { [csrfHeader]: csrfToken }
+            })
+            .then(response => {
+                if (response.data.status === 'success') {
+                    const newHours = response.data.newHours;
+                    document.getElementById('current-hours').value = newHours; // Use value, not textContent
+                    previousHours = newHours; // Update previousHours
+                    document.getElementById('add-hours').value = ''; // Clear the input
+                    console.log('Hours added successfully:', newHours);
+                } else {
+                    console.error('Failed to add hours:', response.data.message);
+                    alert('Failed to add hours');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding hours:', error.response ? error.response.data : error);
+                alert('Error adding hours');
+            });
+        }
+    });
 
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
@@ -1045,4 +1067,91 @@ document.getElementById('add-hours-btn').addEventListener('click', function() {
             });
         }
     });
+
+    // New: Export button listener
+    const exportBtn = document.getElementById('export-excel');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportToExcel);
+    }
+
+    // Helper to generate Excel formula for Time Left (mimics calculateTimeLeft)
+    function getTimeLeftFormula(row) { // row is 1-based Excel row
+        return `=IF(E${row}="","N/A",IF(ISERROR(DATEVALUE(LEFT(E${row},10))),LET(hourVal,VALUE(E${row}),IF(hourVal>B$1,(hourVal-B$1)&" hours left",ABS(hourVal-B$1)&" hours overdue")),LET(dateVal,DATEVALUE(LEFT(E${row},10)),spacePos,FIND(" ",E${row}&" "),hourStr,IF(spacePos=11,"",MID(E${row},spacePos+1,99)),hourVal,IF(hourStr="",NA(),VALUE(hourStr)),daysTxt,IF(dateVal>TODAY(),(dateVal-TODAY())&" days left",IF(dateVal<TODAY(),ABS(dateVal-TODAY())&" days overdue","Due today")),hoursTxt,IF(ISNA(hourVal),"",IF(hourVal>B$1,(hourVal-B$1)&" hours left",ABS(hourVal-B$1)&" hours overdue")),IF(hoursTxt="",daysTxt,daysTxt&CHAR(10)&hoursTxt))))`;
+    }
+
+    // Main export function
+    function exportToExcel() {
+        const currentHoursInput = document.getElementById('current-hours');
+        const currentHours = currentHoursInput ? parseInt(currentHoursInput.value) || 0 : 0;
+
+        // Build array of arrays (aoa) for the sheet
+        let aoa = [
+            ["Current Hours", currentHours], // Row 1: Reference for hour calcs (user can update B1 in Excel)
+            ["Item", "Description", "Cycle", "Last Done", "Due Date", "Time Left"] // Row 2: Headers
+        ];
+
+        let dataRowIndices = []; // Track 0-based indices in aoa for data rows (to set formulas later)
+
+        // Loop over table rows (skip add-row)
+        document.querySelectorAll('.sortable tr:not(.add-row)').forEach(row => {
+            if (row.classList.contains('title-row')) {
+                // Title row: Flatten to Item column
+                const title = row.querySelector('.title-cell').textContent.trim();
+                aoa.push([title, "", "", "", "", ""]);
+            } else {
+                // Data row: Extract values (similar to autoSave)
+                const item = row.querySelector('textarea[name="item"]')?.value || '';
+                const desc = row.querySelector('input[name="description"]')?.value || '';
+                const cycle = row.querySelector('textarea[name="cycle"]')?.value || '';
+                let lastDone = '';
+                let dueDate = '';
+
+                ['lastDone', 'dueDate'].forEach((field, index) => {
+                    const tdIndex = index + 5; // td 5=lastDone, 6=dueDate (1-based, grip=1)
+                    const container = row.querySelector(`td:nth-child(${tdIndex}) .input-with-dropdown`);
+                    const dateInput = container?.querySelector('input[type="date"]');
+                    const textInput = container?.querySelector('input[type="text"].extra-input');
+                    let value = '';
+                    if (dateInput) value += dateInput.value;
+                    if (textInput) value += value ? ` ${textInput.value}` : textInput.value;
+                    if (field === 'lastDone') lastDone = value.trim();
+                    else dueDate = value.trim();
+                });
+
+                // Compute initial Time Left for display (using your function)
+                const initialTimeLeft = calculateTimeLeft(dueDate, currentHours);
+
+                aoa.push([item, desc, cycle, lastDone, dueDate, initialTimeLeft]);
+                dataRowIndices.push(aoa.length - 1); // Track for formula
+            }
+        });
+
+        // Create worksheet from aoa
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+        // Set formulas on Time Left column (F, col 5) for data rows
+        dataRowIndices.forEach(rowIdx => {
+            const excelRow = rowIdx + 1; // 1-based for formula
+            const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: 5 }); // F column
+            ws[cellRef].f = getTimeLeftFormula(excelRow);
+        });
+
+        // Optional: Set column widths for better readability
+        const colWidths = [
+            { wch: 20 }, // Item
+            { wch: 15 }, // Description
+            { wch: 10 }, // Cycle
+            { wch: 15 }, // Last Done
+            { wch: 20 }, // Due Date
+            { wch: 25 }  // Time Left (multi-line)
+        ];
+        ws['!cols'] = colWidths;
+
+        // Add sheet and download
+        XLSX.utils.book_append_sheet(wb, ws, "Service Timeline");
+        XLSX.writeFile(wb, `Aircraft_Service_Timeline_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+
 });
