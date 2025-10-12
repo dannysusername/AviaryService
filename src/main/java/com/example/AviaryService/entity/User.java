@@ -22,6 +22,18 @@ public class User {
     @Column
     private Integer hours; // New field to store total hours
 
+    @Column
+    private String makeModel;
+
+    @Column
+    private String tailNumber;
+
+    @Column
+    private String ownerName;
+
+    @Column
+    private String makeModelSN;
+
     public User(){
 
     }
@@ -30,6 +42,10 @@ public class User {
         this.username = username;
         this.password = password;
         this.hours = 0;
+        this.makeModel = ""; 
+        this.tailNumber = "";
+        this.ownerName = "";
+        this.makeModelSN = "";
 
     }
 
@@ -48,6 +64,10 @@ public class User {
     public List<ServiceTimeline> getServiceTimeline() {
         return serviceTimeline;
     }
+    
+    public Integer getHours() {
+        return hours != null ? hours : 0;
+    }
 
     public void setId(long id) {
         Id = id;
@@ -65,12 +85,39 @@ public class User {
         this.serviceTimeline = serviceTimeline;
     }
 
-    public Integer getHours() {
-        return hours != null ? hours : 0;
-    }
-
     public void setHours(Integer hours) {
         this.hours = (hours != null) ? hours : 0;
+    }
+
+    public String getMakeModel() { 
+        return makeModel; 
+    }
+    public void setMakeModel(String makeModel) { 
+        this.makeModel = makeModel; 
+    }
+
+    public String getTailNumber() { 
+        return tailNumber; 
+    }
+
+    public void setTailNumber(String tailNumber) { 
+        this.tailNumber = tailNumber; 
+    }
+
+    public String getOwnerName() { 
+        return ownerName; 
+    }
+    
+    public void setOwnerName(String ownerName) { 
+        this.ownerName = ownerName; 
+    }
+
+    public String getMakeModelSN() { 
+        return makeModelSN; 
+    }
+    
+    public void setMakeModelSN(String makeModelSN) { 
+        this.makeModelSN = makeModelSN; 
     }
 
     

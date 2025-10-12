@@ -8,36 +8,59 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script th:src="@{/js/dashboard.js}"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class = "header">
         <div class = "left">
-            <h1>Welcome to Your Dashboard</h1>
-            <p th:text="'Hello, ' + ${username} + '!'"></p>
-            <h2>Your Service Timeline</h2>
+            <h1 class = "print-remove">Welcome to Your Dashboard</h1>
+            <p class = "print-remove" th:text="'Hello, ' + ${username} + '!'"></p>
+            <h2>Aircraft Service Timeline</h2>
         </div>
         <div class = "right">         
                 <span id = "real-time-clock"></span>
         </div>
         <div class="my-hours">
             <h3>My Hours</h3>
-            <p>Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0"></p>
-            <input type="number" id="add-hours" placeholder="Enter hours to add">
-            <button id="add-hours-btn">Add</button>
+            <p class="print-remove">Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" ></p>
+            <span class="print-only" id="print-current-hours" th:text="'Current Hours: ' + ${currentHours}"></span>
+            <input type="number" id="add-hours" placeholder="Enter hours to add" class="no-print">
+            <button id="add-hours-btn" class="no-print">Add</button>
         </div>
     </div>
+    <!-- New aircraft info table -->
+<table class="aircraft-info">
+    <tbody>
+        <tr>
+            <td>Make/Model</td>
+            <td><input type="text" name="makeModel" class="user-info-input no-print" th:value="${makeModel}" placeholder="Make/Model "><span class="print-only" th:text="${makeModel}"></span></td>
+            <td>Tail Number</td>
+            <td><input type="text" name="tailNumber" class="user-info-input no-print" th:value="${tailNumber}" placeholder="Tail Number"><span class="print-only" th:text="${tailNumber}"></span></td>
+        </tr>
+        <tr>
+            <td>Owner</td>
+            <td><input type="text" name="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Owner "><span class="print-only" th:text="${ownerName}"></span></td>
+        </tr>
+        <tr>
+            <td>Make/model S/N:</td>
+            <td><input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Existing first table follows here -->
     <table>
         <thead>
             <tr>
-                <th class = "grip-column"></th> <!-- Grip column -->
-                <th>Item</th>
-                <th>Description</th>
-                <th>Cycle</th>
-                <th>Last Done</th>
-                <th>Due Date</th>
-                <th>Time Left</th>
-                <th class="status-header">Status</th>
-                <th class="delete-header">Delete</th>
+                <th class = "grip-column no-print"></th> <!-- Grip column hidden in print -->
+                <th class = "print">Item</th>
+                <th class = "print">Description</th>
+                <th class = "print">Cycle</th>
+                <th class = "print">Last Done</th>
+                <th class = "print">Due Date</th>
+                <th class = "print">Time Left</th>
+                <th class = "status-header">Status</th>
+                <th class = "status-header">Delete</th>
             </tr>
         </thead>
         <tbody class = "sortable">
@@ -45,20 +68,21 @@
             <th:block th:each="timeline : ${timelines}">
                 <!-- Title row -->
                 <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
-                    <td><span class="grip-icon">⋮</span></td>
+                    <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
                     <td colspan="7" class="title-cell" th:text="${timeline.item}"></td>
-                    <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
+                    <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
                 </tr>
                 <!-- Regular item row -->
                 <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
-                    <td class = "grip-column"><span class="grip-icon">⋮</span></td>
-                    <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)"></textarea></td>
+                    <td class = "grip-column"><span class="grip-icon no-print">⋮</span></td>
+                    <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea>
+                        <span class="print-only" th:text="${timeline.item}"></span></td>
                     <td>
                         <div class="custom-dropdown">
-                            <div class="selected-option"></div>
+                            <div class="selected-option no-print"></div>
                             <input type="hidden" name="description" th:value="${timeline.description}">
-                            <button class="dropdown-trigger" onclick="toggleDropdown(this)">▼</button>
-                            <div class="dropdown-options">
+                            <button class="dropdown-trigger no-print">▼</button>
+                            <div class="dropdown-options no-print">
                                 <div class="option" data-value="">--None--</div>
                                 <div class="option" data-value="Inspect">Inspect</div>
                                 <div class="option" data-value="Test">Test</div>
@@ -74,10 +98,11 @@
                                 </div>
                             </div>
                         </div>
+                        <span class="print-only" th:text="${timeline.description}"></span>
                     </td>
-                    <td><textarea name="cycle" oninput="autoSave(this)" th:text="${timeline.cycle}"></textarea></td>
+                    <td><textarea name="cycle" oninput="autoSave(this)" th:text="${timeline.cycle}" class="no-print"></textarea><span class="print-only" th:text="${timeline.cycle}"></span></td>
                     <td>
-                        <div class="input-with-dropdown">
+                        <div class="input-with-dropdown no-print">
                             <button class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
                                 <div class="type-option">
@@ -90,9 +115,10 @@
                                 </div>
                             </div>
                         </div>
+                        <span class="print-only" th:text="${timeline.lastDone}"></span>
                     </td>
                     <td>
-                        <div class="input-with-dropdown">
+                        <div class="input-with-dropdown no-print">
                             <button class="trigger-dropdown">▼</button>
                             <div class="type-dropdown" style="display: none;">
                                 <div class="type-option">
@@ -105,16 +131,17 @@
                                 </div>
                             </div>
                         </div>
+                        <span class="print-only" th:text="${timeline.dueDate}"></span>
                     </td>
                     <td><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
-                    <td class="status-cell"><span class="save-status">✓</span></td>
-                    <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
+                    <td class="status-cell"><span class="save-status no-print">✓</span></td>
+                    <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
                 </tr>
             </th:block>
         </tbody>
             <!-- Add row -->
         <tbody>
-            <tr class="add-row">
+            <tr class="add-row no-print">
                 <td class="grip-column"></td>
                 <td>
                     <div class="row-type-selector">
@@ -191,7 +218,10 @@
         </tbody>
     </table>
 
-    <form method="post" th:action="@{/logout}">
+    <button id="export-excel" class="no-print">Export to Excel</button>
+    <button id="print-dashboard" class="no-print">Print Dashboard</button>
+
+    <form method="post" th:action="@{/logout}" class="no-print">
         <button type="submit">Logout</button>
     </form>
 </body>

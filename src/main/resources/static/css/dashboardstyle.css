@@ -409,6 +409,19 @@ td textarea.item-textarea:focus,
     background-color: #f9f9f9;
 }
 
+#export-excel {
+    margin: 20px 0;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#export-excel:hover {
+    background-color: #0056b3;
+}
+
 .add-button {
     width: 100%;
     padding: 4px;
@@ -430,4 +443,83 @@ td textarea.item-textarea:focus,
 th:first-child, td:first-child {
     min-width: 20px;
     text-align: center;
+}
+
+.print-only {
+    display: none;  /* Hidden by default, shown in print */
+}
+
+/* NEW: Print-specific styles */
+@media print {
+    body * {
+        visibility: hidden;  /* Hide everything by default */
+    }
+    
+    /* Show only the printable sections: header, aircraft-info, main table */
+    .header, .header .left h2, .aircraft-info td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell, #real-time-clock{
+        visibility: visible;
+    }
+    
+    .no-print, .status-cell, .delete-cell, .status-header, .delete-header, .print-remove, .grip-cell{
+        display: none !important;  /* Hide all no-print elements */
+    }
+    
+    .print-only {
+        display: inline !important;  /* Show print-only values */
+        visibility: visible;
+    }
+    
+    /* Layout and styling for print */
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+        color: black;
+    }
+    
+    .header {
+        position: relative;  /* Keep in flow */
+        width: 100%;
+        text-align: center;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: auto;
+    }
+    
+    th, td {
+        border: 1px solid black !important;  /* Visible borders */
+        padding: 8px;
+    }
+    
+    th.grip-column, td.grip-column, .title-grip-icon-cell {
+        display: none;  /* Hide grip column entirely in print */
+    }
+    
+    .time-left {
+        white-space: pre-line;
+        font-weight: bold;
+    }
+    
+    /* Aircraft info: Show labels and print-only values */
+    .aircraft-info td {
+        text-align: left;
+    }
+    
+    /* My Hours: Show h3 and print-only span */
+    .my-hours h3, #print-current-hours {
+        visibility: visible;
+    }
+    
+    /* Prevent page breaks inside rows or titles */
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    
+    .title-row td {
+        font-weight: bold;
+        font-size: 14pt;
+    }
 }

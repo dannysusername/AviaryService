@@ -56,6 +56,36 @@ public class UserController {
         return "login";
     }
 
+    @PostMapping("/updateUserInfo")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> updateUserInfo(
+            @RequestBody Map<String, String> data,
+            Authentication authentication) {
+        try {
+            User user = userRepository.findByUsername(authentication.getName());
+            if (user == null) {
+                throw new IllegalArgumentException("User not found");
+            }
+
+            // Update fields if provided in the request
+            if (data.containsKey("makeModel")) user.setMakeModel(data.get("makeModel"));
+            if (data.containsKey("tailNumber")) user.setTailNumber(data.get("tailNumber"));
+            if (data.containsKey("ownerName")) user.setOwnerName(data.get("ownerName"));
+            if (data.containsKey("makeModelSN")) user.setMakeModelSN(data.get("makeModelSN"));
+
+            userRepository.save(user);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     @GetMapping("/dashboard")
     public String showDashboard(Model model, Authentication authentication) {
         String username = authentication.getName();
@@ -64,6 +94,12 @@ public class UserController {
         model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user));
         model.addAttribute("descriptionOptions", descriptionOptionRepository.findByUser(user));
         model.addAttribute("currentHours", user.getHours());
+
+        model.addAttribute("makeModel", user.getMakeModel());
+        model.addAttribute("tailNumber", user.getTailNumber());
+        model.addAttribute("ownerName", user.getOwnerName());
+        model.addAttribute("makeModelSN", user.getMakeModelSN());
+
             return "dashboard";
     }
 
