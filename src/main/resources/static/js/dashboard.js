@@ -336,19 +336,19 @@ function scheduleMidnightUpdate() {
     }, timeToMidnight);
 }
 
-function selectRowType(type, element) {
-    const addRow = document.querySelector('.add-row');
-    const itemInputDiv = document.getElementById('itemInput');
-    const titleInputDiv = document.getElementById('titleInput');
-    const itemInput = itemInputDiv.querySelector('textarea');
-    const titleInput = titleInputDiv.querySelector('input');
+function selectRowType(type, rowTypeElement) {
+    const addRow = document.querySelector('.add-row'); //Get the add row
+    const itemInputDiv = document.getElementById('itemInput'); //Get the "Enter Item" div
+    const titleInputDiv = document.getElementById('titleInput'); //Get the "Enter Title" div
+    const itemInput = itemInputDiv.querySelector('textarea'); //Get the item textarea
+    const titleInput = titleInputDiv.querySelector('input'); //Get the title input
     const itemHidden = document.getElementById('itemHidden');
     const isTitleHidden = document.getElementById('isTitleHidden');
 
-    // Remove 'selected' class from all options
+    // Removes 'selected' class from all options
     document.querySelectorAll('.row-type-option').forEach(opt => opt.classList.remove('selected'));
     // Add 'selected' class to clicked option
-    element.classList.add('selected');
+    rowTypeElement.classList.add('selected');
 
     if (type === 'item') {
         itemInputDiv.style.display = 'block';
@@ -796,24 +796,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateItemHiddenInputs() {
-        const itemContainer = document.querySelector('.add-row td:nth-child(2) .input-with-dropdown');
-        const itemInput = itemContainer.querySelector('input[type="text"].extra-input');
-        const titleInput = itemContainer.querySelector('input[type="text"].title-input');
-        
-        if (itemInput) {
-            document.getElementById('itemHidden').value = itemInput.value;
-            document.getElementById('isTitleHidden').value = 'false';
-        } else if (titleInput) {
-            document.getElementById('itemHidden').value = titleInput.value;
-            document.getElementById('isTitleHidden').value = 'true';
-        } else {
-            document.getElementById('itemHidden').value = '';
-            document.getElementById('isTitleHidden').value = 'false';
-        }
-        console.log('itemHidden set to:', document.getElementById('itemHidden').value);
-    }
-
     const itemOption = document.querySelector('.row-type-option[data-type="item"]');
     if (itemOption) {
         selectRowType('item', itemOption);
@@ -824,8 +806,6 @@ document.addEventListener('DOMContentLoaded', () => {
     addForm.addEventListener('submit', function(event) {
         event.preventDefault();
 
-        // Update hidden inputs (existing code)
-        const itemHidden = document.getElementById('itemHidden');
         const isTitleHidden = document.getElementById('isTitleHidden');
         const itemInput = document.getElementById('itemInput').querySelector('textarea');
         const titleInput = document.getElementById('titleInput').querySelector('input');
@@ -866,70 +846,68 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })
         .then(response => {
-            const newRowData = response.data;
-            console.log("RESPONSE ", response);
-
-            const newRow = document.createElement('tr');
-            newRow.setAttribute('data-id', newRowData.id);
-            newRow.className = newRowData.isTitle ? 'title-row' : 'auto-save-row';
-
-            // Construct the new row HTML (existing code remains largely unchanged)
-            const addRowDropdown = document.querySelector('.add-row .dropdown-options');
-            const customOptions = addRowDropdown ? Array.from(addRowDropdown.querySelectorAll('.custom-option')) : [];
-            const customOptionsHTML = customOptions.map(opt => opt.outerHTML).join('');
-
-            if (newRowData.isTitle) {
-                newRow.innerHTML = `
-                    <td><span class="grip-icon">⋮</span></td>
-                    <td colspan="7" class="title-cell">${newRowData.item}</td>
-                    <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
-                `;
-            } else {
-                newRow.innerHTML = `
-                    <td><span class="grip-icon">⋮</span></td>
-                    <td><textarea name="item" oninput="autoSave(this)">${newRowData.item}</textarea></td>
-                    <td>
-                        <div class="custom-dropdown">
-                            <div class="selected-option">${newRowData.description || ''}</div>
-                            <input type="hidden" name="description" value="${newRowData.description || ''}">
-                            <button class="dropdown-trigger">▼</button>
-                            <div class="dropdown-options">
-                                <div class="option" data-value="">--None--</div>
-                                <div class="option" data-value="Inspect">Inspect</div>
-                                <div class="option" data-value="Test">Test</div>
-                                <div class="option" data-value="Replace">Replace</div>
-                                <div class="option" data-value="Overhaul">Overhaul</div>
-                                ${customOptionsHTML}
-                                <div class="add-option-container">
-                                    <input type="text" class="custom-description" placeholder="New option">
-                                    <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
-                                </div>
-                            </div>
+    const newRowData = response.data;
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-id', newRowData.id); // Use server-provided ID
+    if (newRowData.isTitle) {
+        newRow.className = 'title-row';
+        newRow.innerHTML = `
+            <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
+            <td colspan="7" class="title-cell">${newRowData.item}</td>
+            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+        `;
+    } else {
+        newRow.className = 'auto-save-row';
+        newRow.setAttribute('data-lastDone', newRowData.lastDone);
+        newRow.setAttribute('data-dueDate', newRowData.dueDate);
+        newRow.setAttribute('data-cycle', newRowData.cycle);
+        newRow.innerHTML = `
+            <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
+            <td><textarea name="item" class="no-print" oninput="autoSave(this)">${newRowData.item}</textarea><span class="print-only">${newRowData.item}</span></td>
+            <td>
+                <div class="custom-dropdown">
+                    <div class="selected-option no-print">${newRowData.description}</div>
+                    <input type="hidden" name="description" value="${newRowData.description}">
+                    <button class="dropdown-trigger no-print">▼</button>
+                    <div class="dropdown-options no-print">
+                        <div class="option" data-value="">--None--</div>
+                        <div class="option" data-value="Inspect">Inspect</div>
+                        <div class="option" data-value="Test">Test</div>
+                        <div class="option" data-value="Replace">Replace</div>
+                        <div class="option" data-value="Overhaul">Overhaul</div>
+                        <div class="add-option-container">
+                            <input type="text" class="custom-description" placeholder="New option">
+                            <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
                         </div>
-                    </td>
-                    <td><textarea name="cycle" oninput="autoSave(this)">${newRowData.cycle || ''}</textarea></td>
-                    <td>
-                        <div class="input-with-dropdown">
-                            <button class="trigger-dropdown">▼</button>
-                            <div class="type-dropdown" style="display: none;">
-                                <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
-                                <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="input-with-dropdown">
-                            <button class="trigger-dropdown">▼</button>
-                            <div class="type-dropdown" style="display: none;">
-                                <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
-                                <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td><div class="time-left">${newRowData.timeLeft || 'N/A'}</div></td>
-                    <td class="status-cell"><span class="save-status">✓</span></td>
-                    <td class="delete-cell"><span class="delete-icon" onclick="deleteRow(this)">🗑️</span></td>
-                `;
+                    </div>
+                </div>
+                <span class="print-only">${newRowData.description}</span>
+            </td>
+            <td><textarea name="cycle" class="no-print" oninput="autoSave(this)">${newRowData.cycle}</textarea><span class="print-only">${newRowData.cycle}</span></td>
+            <td>
+                <div class="input-with-dropdown no-print">
+                    <button class="trigger-dropdown">▼</button>
+                    <div class="type-dropdown" style="display: none;">
+                        <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
+                        <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
+                    </div>
+                </div>
+                <span class="print-only">${newRowData.lastDone}</span>
+            </td>
+            <td>
+                <div class="input-with-dropdown no-print">
+                    <button class="trigger-dropdown">▼</button>
+                    <div class="type-dropdown" style="display: none;">
+                        <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
+                        <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
+                    </div>
+                </div>
+                <span class="print-only">${newRowData.dueDate}</span>
+            </td>
+            <td><div class="time-left">${newRowData.timeLeft}</div></td>
+            <td class="status-cell"><span class="save-status no-print">✓</span></td>
+            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+        `;
                 // Handle lastDone and dueDate inputs (existing code)
                 ['lastDone', 'dueDate'].forEach((field, index) => {
                     const value = newRowData[field];
@@ -1010,7 +988,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Update the order on the server
+            // Update the order on the server TAKE A LOOK HERE
+
             updateOrderOnServer();
 
             // Reset add row (existing code)

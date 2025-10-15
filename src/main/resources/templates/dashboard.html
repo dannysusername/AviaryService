@@ -3,6 +3,7 @@
 <head>
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <meta name="viewport" content="width=device-width">
     <title>Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/dashboardstyle.css}" href="/css/dashboardstyle.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -29,24 +30,24 @@
         </div>
     </div>
     <!-- New aircraft info table -->
-<table class="aircraft-info">
-    <tbody>
-        <tr>
-            <td>Make/Model</td>
-            <td><input type="text" name="makeModel" class="user-info-input no-print" th:value="${makeModel}" placeholder="Make/Model "><span class="print-only" th:text="${makeModel}"></span></td>
-            <td>Tail Number</td>
-            <td><input type="text" name="tailNumber" class="user-info-input no-print" th:value="${tailNumber}" placeholder="Tail Number"><span class="print-only" th:text="${tailNumber}"></span></td>
-        </tr>
-        <tr>
-            <td>Owner</td>
-            <td><input type="text" name="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Owner "><span class="print-only" th:text="${ownerName}"></span></td>
-        </tr>
-        <tr>
-            <td>Make/model S/N:</td>
-            <td><input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
-        </tr>
-    </tbody>
-</table>
+    <table class="aircraft-info">
+        <tbody>
+            <tr>
+                <td class = "make-model-tag">Make/Model</td>
+                <td><input type="text" name="makeModel" class="user-info-input no-print" th:value="${makeModel}" placeholder="Make/Model "><span class="print-only" th:text="${makeModel}"></span></td>
+                <td class = "tail-number-tag">Tail Number</td>
+                <td><input type="text" name="tailNumber" class="user-info-input no-print" th:value="${tailNumber}" placeholder="Tail Number"><span class="print-only" th:text="${tailNumber}"></span></td>
+            </tr>
+            <tr>
+                <td class = "owner-tag">Owner</td>
+                <td><input type="text" name="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Owner "><span class="print-only" th:text="${ownerName}"></span></td>
+            </tr>
+            <tr>
+                <td class = "make-model-s\n-tag">Make/model S/N:</td>
+                <td><input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
+            </tr>
+        </tbody>
+    </table>
 
 <!-- Existing first table follows here -->
     <table>
@@ -74,7 +75,7 @@
                 </tr>
                 <!-- Regular item row -->
                 <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
-                    <td class = "grip-column"><span class="grip-icon no-print">⋮</span></td>
+                    <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
                     <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea>
                         <span class="print-only" th:text="${timeline.item}"></span></td>
                     <td>
@@ -144,14 +145,14 @@
             <tr class="add-row no-print">
                 <td class="grip-column"></td>
                 <td>
-                    <div class="row-type-selector">
+                    <div class="row-type-selector"> <!--Choose Item/Title-->
                         <span class="row-type-option" data-type="item" onclick="selectRowType('item', this)">Item</span>
                         <span class="row-type-option" data-type="title" onclick="selectRowType('title', this)">Title</span>
                     </div>
-                    <div id="itemInput" style="display: none;">
+                    <div id="itemInput" style="display: none;"> <!--"Enter Item"-->
                         <textarea name="item" placeholder="Enter item"></textarea>
                     </div>
-                    <div id="titleInput" style="display: none;">
+                    <div id="titleInput" style="display: none;"> <!--"Enter Title"-->
                         <input type="text" name="title" placeholder="Enter title" class="title-input">
                     </div>
                     <input type="hidden" name="item" id="itemHidden">
@@ -202,7 +203,7 @@
                 </td>
                 <td><div class="time-left"></div></td>
                 <td class="status-cell"><span class="save-status"></span></td>
-                <td class="delete-cell">
+                <td class="add-cell">
                     <form method="post" th:action="@{/dashboard}">
                         <input type="hidden" name="item" id="itemHiddenDuplicate">
                         <input type="hidden" name="isTitle" id="isTitleHiddenDuplicate" value="false">
@@ -218,9 +219,10 @@
         </tbody>
     </table>
 
-    <button id="export-excel" class="no-print">Export to Excel</button>
-    <button id="print-dashboard" class="no-print">Print Dashboard</button>
-
+    <div class = "buttons">
+        <button id="export-excel" class="no-print">Export to Excel</button>
+        <button id="print-dashboard" class="no-print">Print Dashboard</button>
+    </div>
     <form method="post" th:action="@{/logout}" class="no-print">
         <button type="submit">Logout</button>
     </form>
