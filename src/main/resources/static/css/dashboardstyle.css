@@ -282,7 +282,7 @@ td textarea.item-textarea:focus,
     display: flex;
     white-space: normal;
     word-wrap: break-word;
-    justify-content: space-between;
+    max-width: 150px;
 }
 
 .option:hover {
@@ -313,11 +313,6 @@ td textarea.item-textarea:focus,
 
 .add-option-btn:hover {
     background-color: #0056b3;
-}
-
-.remove-option-btn {
-    border-radius: 300px;
-    border: #a7a5a5f1;
 }
 
 .title-row td {

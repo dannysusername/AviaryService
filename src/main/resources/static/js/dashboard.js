@@ -179,6 +179,23 @@ function closeDropdownOutside(event) {
     }
 }
 
+function closeDropdownOutside(event) {
+    if (!event.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.dropdown-options').forEach(dropdown => dropdown.style.display = 'none');
+    }
+}
+
+function selectOption(option) {
+    const dropdown = option.closest('.custom-dropdown');
+    const selected = dropdown.querySelector('.selected-option');
+    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    const value = option.getAttribute('data-value');
+    selected.textContent = value === '' ? '' : option.textContent;
+    hiddenInput.value = value;
+    dropdown.querySelector('.dropdown-options').style.display = 'none';
+    if (dropdown.closest('.auto-save-row')) autoSave(hiddenInput);
+}
+
 function addCustomDescription(button) {
     const container = button.parentElement;
     const input = container.querySelector('.custom-description');
