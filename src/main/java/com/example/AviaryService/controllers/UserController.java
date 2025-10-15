@@ -42,7 +42,7 @@ public class UserController {
 
     @PostMapping("/register")
     public String registerUser(@RequestParam String username, @RequestParam String password, Model model) {
-        if (userRepository.findByUsername(username) != null) {
+        if (userRepository.findByUsername(username) != null) { //If username exists
             model.addAttribute("error", "Username already exists");
             return "register";
         }
