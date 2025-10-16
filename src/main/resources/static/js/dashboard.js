@@ -29,23 +29,23 @@ function autoSave(input) {
     const row = input.closest('.auto-save-row');
     if (!row) return;
 
-    const id = row.getAttribute('data-id');
-    const status = row.querySelector('.save-status');
+    const id = row.getAttribute('data-id'); //grab 'data-id' of row
+    const status = row.querySelector('.save-status'); // grab element in the auto-save-row called 'save-status'
     
     const data = {
-        item: row.querySelector('textarea[name="item"]').value,
-        description: row.querySelector('input[name="description"]').value,
-        cycle: row.querySelector('textarea[name="cycle"]').value
+        item: row.querySelector('textarea[name="item"]').value, //get rows item name 
+        description: row.querySelector('input[name="description"]').value, //get rows description option
+        cycle: row.querySelector('textarea[name="cycle"]').value //get rows cycle text
     };
 
-    ['lastDone', 'dueDate'].forEach((field, index) => {
-        const container = row.querySelector(`td:nth-child(${index === 0 ? 5 : 6}) .input-with-dropdown`);
-        const dateInput = container.querySelector('input[type="date"]');
-        const textInput = container.querySelector('input[type="text"].extra-input');
+    ['lastDone', 'dueDate'].forEach((field, index) => { //loops through lastDone and dueDate fields
+        const container = row.querySelector(`td:nth-child(${index === 0 ? 5 : 6}) .input-with-dropdown`); //grab .input-with-dropdown in td child n
+        const dateInput = container.querySelector('input[type="date"]'); //get the 'date' input 
+        const textInput = container.querySelector('input[type="text"].extra-input'); //get the 'text' input 
         let value = '';
-        if (dateInput) value += dateInput.value;
-        if (textInput) value += value ? ` ${textInput.value}` : textInput.value;
-        data[field] = value.trim();
+        if (dateInput) value += dateInput.value; //if date input then append to value
+        if (textInput) value += value ? ` ${textInput.value}` : textInput.value; //if text input append to value 
+        data[field] = value.trim(); // set data[field] to the value trimmed
     });
 
     const timeLeftSpan = row.querySelector('td:nth-child(7) .time-left');
@@ -141,6 +141,8 @@ function updateOrderOnServer() {
     const order = Array.from(rows).map(row => row.getAttribute('data-id'));
     const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+    //Gets the row order by getting the 'data-id' of each row and sending that to the /updateOrders endpoint
+    //Ex. If order is 3, 1, 2 then that is the order sent
     console.log("Order request sent");
     axios.post('/updateOrder', order, {        
         headers: {
@@ -404,20 +406,13 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => autoSaveUserInfo(input));
     });
 
+
+    /*
     document.addEventListener('click', function(event) {
-        if (event.target.classList.contains('trigger-dropdown')) {
-            const dropdown = event.target.nextElementSibling; // The .type-dropdown menu
-            const isOpen = dropdown.style.display === 'block';
-            // Close all other dropdowns
-            document.querySelectorAll('.type-dropdown').forEach(d => d.style.display = 'none');
-            // Toggle the clicked dropdown
-            if (!isOpen) {
-                dropdown.style.display = 'block';
-                // Add a one-time listener to close the dropdown when clicking outside
-                setTimeout(() => document.addEventListener('click', closeTypeDropdowns, { once: true }), 0);
-            }
-        }
+        
     });
+
+    */
 
     document.addEventListener('click', function(event) {
         if (event.target.className === 'remove-option-btn') {
@@ -466,6 +461,86 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`New option ${optionValue} removed locally`);
                 }
             }
+        } else if (event.target.classList.contains('trigger-dropdown')) {
+            const dropdown = event.target.nextElementSibling; // The .type-dropdown menu
+            const isOpen = dropdown.style.display === 'block';
+            // Close all other dropdowns
+            document.querySelectorAll('.type-dropdown').forEach(d => d.style.display = 'none');
+            // Toggle the clicked dropdown
+            if (!isOpen) {
+                dropdown.style.display = 'block';
+                // Add a one-time listener to close the dropdown when clicking outside
+                setTimeout(() => document.addEventListener('click', closeTypeDropdowns, { once: true }), 0);
+            }
+
+        } else if (event.target.classList.contains('add-type')) {
+            const button = event.target;
+            const type = button.getAttribute('data-type');
+            const container = button.closest('.input-with-dropdown');
+            const tr = button.closest('tr');
+            const isAddMode = button.textContent === '+';
+    
+            const existingDate = container.querySelector('input[type="date"]');
+            const existingText = container.querySelector('input[type="text"].extra-input');
+    
+            if (isAddMode) {
+                // Adding a new input
+                if (type === 'calendar' && !existingDate) {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'date';
+                    newInput.className = 'extra-input';
+                    newInput.oninput = () => {
+                        if (tr.classList.contains('auto-save-row')) {
+                            autoSave(newInput);
+                        } else {
+                            updateAddRowHiddenInputs();
+                            updateAddRowTimeLeft();
+                        }
+                    };
+                    container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                    button.textContent = '-';
+                } else if (type === 'clock' && !existingText) {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'text';
+                    newInput.className = 'extra-input';
+                    newInput.placeholder = 'Enter hours';
+                    newInput.oninput = () => {
+                        newInput.value = newInput.value.replace(/[^0-9]/g, '');
+                        if (tr.classList.contains('auto-save-row')) {
+                            autoSave(newInput);
+                        } else {
+                            updateAddRowHiddenInputs();
+                            updateAddRowTimeLeft();
+                        }
+                    };
+                    container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
+                    button.textContent = '-';
+                }
+            } else {
+                // Removing an existing input
+                if (type === 'calendar' && existingDate) {
+                    existingDate.remove();
+                    button.textContent = '+';
+                    if (tr.classList.contains('auto-save-row')) {
+                        autoSave(button); // Trigger save for sortable rows
+                    } else {
+                        updateAddRowHiddenInputs();
+                        updateAddRowTimeLeft();
+                    }
+                } else if (type === 'clock' && existingText) {
+                    existingText.remove();
+                    button.textContent = '+';
+                    if (tr.classList.contains('auto-save-row')) {
+                        autoSave(button); // Trigger save for sortable rows
+                    } else {
+                        updateAddRowHiddenInputs();
+                        updateAddRowTimeLeft();
+                    }
+                }
+            }
+    
+            // Hide the dropdown after action
+            button.closest('.type-dropdown').style.display = 'none';
         }
     });
     
@@ -509,10 +584,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Sortable.js
     const tbody = document.querySelector('.sortable');
     Sortable.create(tbody, {
-        handle: '.grip-icon',
-        animation: 150,
+        handle: '.grip-icon', //Restricts dragging to grip-icon 
+        animation: 150, // 150ms animation for smooth dragging
         onEnd: function (evt) {
-            updateOrderOnServer();
+            updateOrderOnServer(); //After calls this function
         }
     });
 
@@ -691,77 +766,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateAllTimeLeft();
 
+
+    /*
     document.addEventListener('click', function(event) {
-        if (event.target.classList.contains('add-type')) {
-            const button = event.target;
-            const type = button.getAttribute('data-type');
-            const container = button.closest('.input-with-dropdown');
-            const tr = button.closest('tr');
-            const isAddMode = button.textContent === '+';
-    
-            const existingDate = container.querySelector('input[type="date"]');
-            const existingText = container.querySelector('input[type="text"].extra-input');
-    
-            if (isAddMode) {
-                // Adding a new input
-                if (type === 'calendar' && !existingDate) {
-                    const newInput = document.createElement('input');
-                    newInput.type = 'date';
-                    newInput.className = 'extra-input';
-                    newInput.oninput = () => {
-                        if (tr.classList.contains('auto-save-row')) {
-                            autoSave(newInput);
-                        } else {
-                            updateAddRowHiddenInputs();
-                            updateAddRowTimeLeft();
-                        }
-                    };
-                    container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
-                    button.textContent = '-';
-                } else if (type === 'clock' && !existingText) {
-                    const newInput = document.createElement('input');
-                    newInput.type = 'text';
-                    newInput.className = 'extra-input';
-                    newInput.placeholder = 'Enter hours';
-                    newInput.oninput = () => {
-                        newInput.value = newInput.value.replace(/[^0-9]/g, '');
-                        if (tr.classList.contains('auto-save-row')) {
-                            autoSave(newInput);
-                        } else {
-                            updateAddRowHiddenInputs();
-                            updateAddRowTimeLeft();
-                        }
-                    };
-                    container.insertBefore(newInput, container.querySelector('.trigger-dropdown'));
-                    button.textContent = '-';
-                }
-            } else {
-                // Removing an existing input
-                if (type === 'calendar' && existingDate) {
-                    existingDate.remove();
-                    button.textContent = '+';
-                    if (tr.classList.contains('auto-save-row')) {
-                        autoSave(button); // Trigger save for sortable rows
-                    } else {
-                        updateAddRowHiddenInputs();
-                        updateAddRowTimeLeft();
-                    }
-                } else if (type === 'clock' && existingText) {
-                    existingText.remove();
-                    button.textContent = '+';
-                    if (tr.classList.contains('auto-save-row')) {
-                        autoSave(button); // Trigger save for sortable rows
-                    } else {
-                        updateAddRowHiddenInputs();
-                        updateAddRowTimeLeft();
-                    }
-                }
-            }
-    
-            // Hide the dropdown after action
-            button.closest('.type-dropdown').style.display = 'none';
-        }
+        
     });
+    */
     
     function closeTypeDropdowns(event) {
         if (!event.target.closest('.input-with-dropdown')) {

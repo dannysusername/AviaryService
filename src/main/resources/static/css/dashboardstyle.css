@@ -113,48 +113,26 @@ td textarea:focus {
     outline: 1px solid #007bff;
 }
 
-td textarea.item-textarea,
-.extra-textarea {
-    width: 100%;
-    min-height: 25px;
-    max-height: 120px;
-    box-sizing: border-box;
-    border: 1px solid #ddd;
-    padding: 4px;
-    resize: none;
-    overflow: hidden;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    height: auto;
-}
-
-td textarea.item-textarea:focus,
-.extra-textarea:focus {
-    outline: 1px solid #007bff;
-}
-
-.title-input {
-    width: 100%;
-    box-sizing: border-box;
-    border: none;
-    padding: 4px;
-    font-weight: bold;
-}
-
 .extra-textarea {
     min-width: 120px;
 }
 
-.extra-input,
-.title-input {
-    padding: 2px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
+.extra-input {
+    width: 100%;
+    min-width: 70px;
 }
 
 .title-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
     font-weight: bold;
+    font-size: 1.2em;
 }
+
+
 
 .input-with-dropdown {
     display: flex;
@@ -163,7 +141,7 @@ td textarea.item-textarea:focus,
     width: 100%;
 }
 
-.input-with-dropdown .extra-input {
+.input-with-dropdown {
     min-width: 100px;
     width: 100%;
 }
@@ -349,18 +327,6 @@ td textarea.item-textarea:focus,
 
 .add-row.title-mode td:nth-child(n+3):nth-child(-n+8) {
     display: none;
-}
-
-#itemInput textarea,
-#titleInput input {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.title-input {
-    font-weight: bold;
-    font-size: 1.2em;
-    width: 100%;
 }
 
 .save-status {
