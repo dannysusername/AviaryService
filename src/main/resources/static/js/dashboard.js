@@ -541,6 +541,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
             // Hide the dropdown after action
             button.closest('.type-dropdown').style.display = 'none';
+        } else if (event.target.classList.contains('edit-hours-btn')) {
+            document.getElementById('add-hours').value = '';
+            const editSection = document.querySelector('.edit-hours-section');
+            editSection.style.display = editSection.style.display === 'block' ? 'none' : 'block';
         }
     });
     
@@ -655,8 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentHoursInput) {
         previousHours = currentHoursInput.value || 0;
         currentHoursInput.addEventListener('input', function() {
-            updateAllTimeLeft(); // Update all existing rows
-            updateAddRowTimeLeft(); // Update add row
+            updateAllTimeLeft();
+            updateAddRowTimeLeft();
             clearTimeout(hoursTimeout);
             const newTotalHours = this.value.trim();
             if (newTotalHours === '' || isNaN(parseInt(newTotalHours))) {
@@ -673,9 +677,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(response => {
                     if (response.data.status === 'success') {
                         previousHours = newTotalHours;
+                        document.getElementById('current-hours-display').textContent = `Current Hours: ${newTotalHours}`;
                         console.log('Hours updated successfully:', response.data.newHours);
                     } else {
                         this.value = previousHours;
+                        document.getElementById('current-hours-display').textContent = `Current Hours: ${previousHours}`;
                         console.error('Failed to update hours:', response.data.message);
                         alert('Failed to update hours');
                     }
@@ -683,42 +689,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(error => {
                     console.error('Error updating hours:', error.response ? error.response.data : error);
                     this.value = previousHours;
+                    document.getElementById('current-hours-display').textContent = `Current Hours: ${previousHours}`;
                     alert('Error updating hours');
                 });
             }, 500);
         });
     }
-
-    // Handle adding hours
-    document.getElementById('add-hours-btn').addEventListener('click', function() {
-        const hoursToAdd = document.getElementById('add-hours').value.trim();
-        if (hoursToAdd && !isNaN(hoursToAdd)) {
-            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-            const params = new URLSearchParams();
-            params.append('hoursToAdd', parseInt(hoursToAdd));
-            axios.post('/updateHours', params, {
-                headers: { [csrfHeader]: csrfToken }
-            })
-            .then(response => {
-                if (response.data.status === 'success') {
-                    const newHours = response.data.newHours;
-                    document.getElementById('current-hours').value = newHours; // Use value, not textContent
-                    previousHours = newHours; // Update previousHours
-                    document.getElementById('add-hours').value = ''; // Clear the input
-                    console.log('Hours added successfully:', newHours);
-                } else {
-                    console.error('Failed to add hours:', response.data.message);
-                    alert('Failed to add hours');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding hours:', error.response ? error.response.data : error);
-                alert('Error adding hours');
-            });
-        }
-    });
-
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
         ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -765,13 +741,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     updateAllTimeLeft();
-
-
-    /*
-    document.addEventListener('click', function(event) {
-        
-    });
-    */
     
     function closeTypeDropdowns(event) {
         if (!event.target.closest('.input-with-dropdown')) {
@@ -1070,8 +1039,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.data.status === 'success') {
                     const newHours = response.data.newHours;
                     document.getElementById('current-hours').value = newHours; // Update the input value
+                    document.getElementById('current-hours-display').textContent = `Current Hours: ${newHours}`;
                     previousHours = newHours; // Update previousHours
-                    document.getElementById('add-hours').value = ''; // Clear the input
+                    //document.getElementById('add-hours').value = ''; // Clear the input
                     console.log('Hours added successfully:', newHours);
                     // Add these lines to update "time left" immediately
                     updateAllTimeLeft();      // Update all existing rows
