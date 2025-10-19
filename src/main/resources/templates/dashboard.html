@@ -13,6 +13,13 @@
 </head>
 <body>
     <div class = "header">
+        <div class="my-hours">
+            <h3>My Hours</h3>
+            <p class="print-remove">Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" ></p>
+            <span class="print-only" id="print-current-hours" th:text="'Current Hours: ' + ${currentHours}"></span>
+            <input type="number" id="add-hours" placeholder="Enter hours to add" class="no-print">
+            <button id="add-hours-btn" class="no-print">Add</button>
+        </div>
         <div class = "left">
             <h1 class = "print-remove">Welcome to Your Dashboard</h1>
             <p class = "print-remove" th:text="'Hello, ' + ${username} + '!'"></p>
@@ -21,6 +28,7 @@
         <div class = "right">         
                 <span id = "real-time-clock"></span>
         </div>
+<<<<<<< HEAD
         
         <!-- Editable hours section 
         <div class="my-hours">
@@ -43,6 +51,9 @@
             </div>
         </div>
 
+=======
+    </div>
+>>>>>>> 8e8a38e (Not sure to be honest)
     <!-- New aircraft info table -->
     <table class="aircraft-info">
         <tbody>
