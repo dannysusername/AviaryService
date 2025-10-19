@@ -195,7 +195,7 @@ public class UserController {
     }
 }
 
-    @PostMapping("/updateHours")
+@PostMapping("/updateHours")
 @ResponseBody
 public ResponseEntity<Map<String, String>> updateHours(
         @RequestParam(required = false) Integer hoursToAdd,

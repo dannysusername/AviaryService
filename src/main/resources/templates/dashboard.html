@@ -21,14 +21,28 @@
         <div class = "right">         
                 <span id = "real-time-clock"></span>
         </div>
+        
+        <!-- Editable hours section 
         <div class="my-hours">
             <h3>My Hours</h3>
             <p class="print-remove">Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" ></p>
             <span class="print-only" id="print-current-hours" th:text="'Current Hours: ' + ${currentHours}"></span>
             <input type="number" id="add-hours" placeholder="Enter hours to add" class="no-print">
             <button id="add-hours-btn" class="no-print">Add</button>
+        </div>-->
+
+        <div class="my-hours">
+            <h3>My Hours</h3>
+            <span class="current-hours-display" id="current-hours-display" th:text="'Current Hours: ' + ${currentHours}"></span>
+            <button class="edit-hours-btn no-print">✎</button>
+            <div class="edit-hours-section no-print" style="display: none;">
+                <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" placeholder="Edit current hours">
+                <span>Add Hours:</span>
+                <input type="number" id="add-hours" placeholder="Enter hours to add">
+                <button id="add-hours-btn">Add</button>
+            </div>
         </div>
-    </div>
+
     <!-- New aircraft info table -->
     <table class="aircraft-info">
         <tbody>
