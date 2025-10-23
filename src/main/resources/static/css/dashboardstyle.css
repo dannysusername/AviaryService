@@ -8,16 +8,44 @@
     margin: 0px;
     padding: 0px;
 }
+
+body {
+    background-color: rgba(75, 74, 255, 0.929);
+}
+
 table {
-    width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
+    
+}
+
+table:not(.aircraft-info) {
+    width: 100%;
+    
+}
+
+.aircraft-info {
+    margin: 0px 10px;
+    margin-bottom: 20px;
+    background-color: rgba(73, 170, 245, 0.929);
+    border-radius: 10px; /* Slightly curved edges */
+
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    border: 1px solid rgba(227, 75, 109, 0.839); /* Separate header with border */
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: rgba(75, 74, 255, 0.929); /* Match body */
+}
+
+.left, .right {
+    background-color: rgba(227, 75, 109, 0.839);
+    padding: 10px;
+    border-radius: 5px;
 }
 
 #real-time-clock {
@@ -75,7 +103,7 @@ th:first-child, td:first-child, .make-model-tag, .tail-number-tag, .owner-tag, .
 }
 
 th {
-    background-color: #f2f2f2;
+    background-color: rgba(73, 170, 245, 0.929);
     font-weight: bold;
 }
 
@@ -92,7 +120,7 @@ td input {
 }
 
 td input:focus {
-    outline: 1px solid #007bff;
+    outline: 1px solid rgba(227, 75, 109, 0.839);
 }
 
 td textarea {
@@ -110,7 +138,7 @@ td textarea {
 }
 
 td textarea:focus {
-    outline: 1px solid #007bff;
+    outline: 1px solid rgba(227, 75, 109, 0.839);
 }
 
 .extra-textarea {
@@ -184,7 +212,7 @@ td textarea:focus {
 
 .add-type {
     cursor: pointer;
-    color: #007bff;
+    color: rgba(227, 75, 109, 0.839);
     background: none;
     border: none;
     padding: 0 4px;
@@ -194,7 +222,7 @@ td textarea:focus {
 }
 
 .add-type:hover {
-    color: #0056b3;
+    color: rgba(227, 75, 109, 0.839);
 }
 
 .custom-dropdown {
@@ -233,7 +261,7 @@ td textarea:focus {
 }
 
 .selected-option:hover {
-    background: #f0f0f0;
+    background: rgba(73, 170, 245, 0.929);
 }
 
 .dropdown-options {
@@ -264,7 +292,7 @@ td textarea:focus {
 }
 
 .option:hover {
-    background: #f0f0f0;
+    background: rgba(73, 170, 245, 0.929);
 }
 
 .add-option-container {
@@ -283,25 +311,25 @@ td textarea:focus {
 
 .add-option-btn {
     padding: 2px 6px;
-    background-color: #007bff;
+    background-color: rgba(227, 75, 109, 0.839);
     color: white;
     border: none;
     cursor: pointer;
 }
 
 .add-option-btn:hover {
-    background-color: #0056b3;
+    background-color: rgba(227, 75, 109, 0.839);
 }
 
 .title-row td {
     font-weight: bold;
     font-size: 1.2em;
     text-align: center;
+    background-color: rgba(73, 170, 245, 0.929);
 }
 
 .title-row .title-cell:hover {
-    background-color: #ffa725;
-    color: white;
+    background-color: rgba(227, 75, 109, 0.839);
     cursor: pointer;
 }
 
@@ -320,9 +348,9 @@ td textarea:focus {
 }
 
 .row-type-option.selected {
-    background: #007bff;
+    background: rgba(227, 75, 109, 0.839);
     color: white;
-    border-color: #007bff;
+    border-color: rgba(227, 75, 109, 0.839);
 }
 
 .add-row.title-mode td:nth-child(n+3):nth-child(-n+8) {
@@ -336,12 +364,12 @@ td textarea:focus {
 }
 
 .save-status.saving {
-    color: orange;
+    color: rgba(227, 75, 109, 0.839);
     font-style: italic;
 }
 
 .save-status.saved {
-    color: green;
+    color: rgba(73, 170, 245, 0.929);
 }
 
 .save-status.error {
@@ -350,22 +378,22 @@ td textarea:focus {
 
 .delete-icon {
     cursor: pointer;
-    color: #ff4444;
+    color: rgba(227, 75, 109, 0.839);
     font-size: 18px;
 }
 
 .delete-icon:hover {
-    color: #cc0000;
+    color: rgba(227, 75, 109, 0.839);
 }
 
 .add-row td {
-    background-color: #f9f9f9;
+    background-color: rgba(73, 170, 245, 0.929);
 }
 
 #export-excel, #print-dashboard {
     margin: 20px 0;
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color: rgba(227, 75, 109, 0.839);
     color: white;
     border: none;
     border-radius: 4px;
@@ -373,20 +401,20 @@ td textarea:focus {
 }
 
 #export-excel:hover {
-    background-color: #0056b3;
+    background-color: rgba(227, 75, 109, 0.839);
 }
 
 .add-button {
     width: 100%;
     padding: 4px;
-    background-color: #28a745;
+    background-color: rgba(227, 75, 109, 0.839);
     color: white;
     border: none;
     cursor: pointer;
 }
 
 .add-button:hover {
-    background-color: #218838;
+    background-color: rgba(227, 75, 109, 0.839);
 }
 
 /* New styles for drag-and-drop */
@@ -404,11 +432,6 @@ th:first-child, td:first-child, .tail-number-tag {
 }
 
 /* Responsive styles for aircraft-info table */
-.aircraft-info {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
 
 .aircraft-info input {
     width: 100%;
@@ -473,14 +496,14 @@ th:first-child, td:first-child, .tail-number-tag {
         display: block;
         border: 1px solid #ddd;
         border-radius: 8px;
-        background-color: #fff;
+        background-color: rgba(73, 170, 245, 0.929);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         padding: 10px;
     }
 
     /* Title row as a card */
     .sortable tr.title-row {
-        background-color: #f2f2f2;
+        background-color: rgba(73, 170, 245, 0.929);
         font-weight: bold;
         font-size: 1.1em;
         text-align: center;
@@ -562,7 +585,7 @@ th:first-child, td:first-child, .tail-number-tag {
         margin: 10px;
         border: 1px solid #ddd;
         border-radius: 8px;
-        background-color: #f9f9f9;
+        background-color: rgba(73, 170, 245, 0.929);
     }
 
     .add-row td {
@@ -758,4 +781,16 @@ th:first-child, td:first-child, .tail-number-tag {
         font-weight: bold;
         font-size: 14pt;
     }
+}
+
+/* Additional styles for my-hours to be on its own row */
+.my-hours {
+    display: block;
+    width: 100%;
+    background-color: rgba(73, 170, 245, 0.929); /* Lighter blue */
+    padding: 10px;
+    margin: 20px 0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for separation */
+    border: 1px solid rgba(227, 75, 109, 0.839); /* Coral border */
+    border-radius: 10px; /* Slightly curved edges */
 }
