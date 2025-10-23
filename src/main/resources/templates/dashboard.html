@@ -13,6 +13,13 @@
 </head>
 <body>
     <div class = "header">
+        <div class="my-hours">
+            <h3>My Hours</h3>
+            <p class="print-remove">Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" ></p>
+            <span class="print-only" id="print-current-hours" th:text="'Current Hours: ' + ${currentHours}"></span>
+            <input type="number" id="add-hours" placeholder="Enter hours to add" class="no-print">
+            <button id="add-hours-btn" class="no-print">Add</button>
+        </div>
         <div class = "left">
             <h1 class = "print-remove">Welcome to Your Dashboard</h1>
             <p class = "print-remove" th:text="'Hello, ' + ${username} + '!'"></p>
@@ -21,15 +28,6 @@
         <div class = "right">         
                 <span id = "real-time-clock"></span>
         </div>
-        
-        <!-- Editable hours section 
-        <div class="my-hours">
-            <h3>My Hours</h3>
-            <p class="print-remove">Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" ></p>
-            <span class="print-only" id="print-current-hours" th:text="'Current Hours: ' + ${currentHours}"></span>
-            <input type="number" id="add-hours" placeholder="Enter hours to add" class="no-print">
-            <button id="add-hours-btn" class="no-print">Add</button>
-        </div>-->
 
         <div class="my-hours">
             <h3>My Hours</h3>
@@ -42,6 +40,7 @@
                 <button id="add-hours-btn">Add</button>
             </div>
         </div>
+    </div>
 
     <!-- New aircraft info table -->
     <table class="aircraft-info">
@@ -74,7 +73,7 @@
                 <th class = "print">Last Done</th>
                 <th class = "print">Due Date</th>
                 <th class = "print">Time Left</th>
-                <th class = "status-header">Status</th>
+                <!--<th class = "status-header">Status</th>-->
                 <th class = "delete-header">Delete</th>
             </tr>
         </thead>
@@ -87,7 +86,7 @@
                 <!-- Title row -->
                 <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
                     <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
-                    <td colspan="7" class="title-cell" th:text="${timeline.item}"></td>
+                    <td colspan="6" class="title-cell" th:text="${timeline.item}"></td>
                     <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
                 </tr>
                 <!-- Regular item row -->
@@ -152,7 +151,7 @@
                         <span class="print-only" th:text="${timeline.dueDate}"></span>
                     </td>
                     <td><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
-                    <td class="status-cell"><span class="save-status no-print">✓</span></td>
+                    <!--<td class="status-cell"><span class="save-status no-print">✓</span></td>-->
                     <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
                 </tr>
             </th:block>
@@ -219,7 +218,7 @@
                     <input type="hidden" name="dueDate" id="dueDateHidden">
                 </td>
                 <td><div class="time-left"></div></td>
-                <td class="status-cell"><span class="save-status"></span></td>
+                <!--<td class="status-cell"><span class="save-status"></span></td>-->
                 <td class="add-cell">
                     <form method="post" th:action="@{/dashboard}">
                         <input type="hidden" name="item" id="itemHiddenDuplicate">

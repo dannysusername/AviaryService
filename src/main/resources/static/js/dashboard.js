@@ -30,7 +30,7 @@ function autoSave(input) {
     if (!row) return;
 
     const id = row.getAttribute('data-id'); //grab 'data-id' of row
-    const status = row.querySelector('.save-status'); // grab element in the auto-save-row called 'save-status'
+    //const status = row.querySelector('.save-status');  grab element in the auto-save-row called 'save-status'
     
     const data = {
         item: row.querySelector('textarea[name="item"]').value, //get rows item name 
@@ -58,8 +58,8 @@ function autoSave(input) {
     }
 
     clearTimeout(timeout);
-    status.textContent = '...';
-    status.className = 'save-status saving';
+    //status.textContent = '...';
+    //status.className = 'save-status saving';
 
     timeout = setTimeout(() => {
         const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
@@ -70,12 +70,12 @@ function autoSave(input) {
             headers: { [csrfHeader]: csrfToken }
         })
         .then(response => {
-            status.textContent = '✓';
-            status.className = 'save-status saved';
+            
+            console.log ('Row id: ' + id + ' saved ✓');
         })
         .catch(error => {
-            status.textContent = '✖';
-            status.className = 'save-status error';
+            //status.textContent = '✖';
+            //status.className = 'save-status error';
             console.error('Error saving:', error.response ? error.response.data : error);
         });
     }, 500);
@@ -901,7 +901,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="print-only">${newRowData.dueDate}</span>
             </td>
             <td><div class="time-left">${newRowData.timeLeft}</div></td>
-            <td class="status-cell"><span class="save-status no-print">✓</span></td>
             <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
         `;
                 // Handle lastDone and dueDate inputs (existing code)
