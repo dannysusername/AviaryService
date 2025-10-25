@@ -1,16 +1,36 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <link rel="stylesheet" th:href="@{/css/loginstyle.css}" href="/Users/danieli/Documents/Projects/aviaryservice/src/main/resources/static/css/loginstyle.css">
+    
     <title>Login</title>
 </head>
 <body>
-    <h1>Login</h1>
-    <div th:if="${param.error}" style="color: red;">Incorrect username or password</div>
-    <form method="post" th:action="@{/login}">
-        <label>Username: <input type="text" name="username" required></label><br>
-        <label>Password: <input type="password" name="password" required></label><br>
-        <button type="submit">Login</button>
+    <h1 class = "login-title">Login</h1>
+    <form class = "login-form" method="post" th:action="@{/login}">
+        <div class = "username-password">
+            <label class = "username-label"> </label>
+            <input class = "username-input-box" placeholder = "Enter your name" name="username" required>
+            <label class = "password-label"> </label>
+            <input class="password-input-box" placeholder = "Enter your password" name="password" required>
+            <div class = "additional-buttons">
+                <div class = "checkbox-and-text">  
+                    <button type = "checkbox"></button> 
+                    <p>Remember me </p>
+                </div>
+                <a>Forgot password?</a>
+            </div>
+            <div th:if="${param.error}" style="color: red;">Incorrect username or password</div>
+        </div>
+        <button class = "login-button" type="submit"></button>
+        <button class = "google-signin-btn" type="submit">
+            <div class = "google-logo-and-text">
+                <div class ="signin-google-text"></div>
+                <div class ="google-logo"></div>
+            </div>
+        </button>
+        <p>Need an account? <a href="/register">Register here</a></p>
     </form>
-    <p>Need an account? <a href="/register">Register here</a></p>
+    
 </body>
 </html>
