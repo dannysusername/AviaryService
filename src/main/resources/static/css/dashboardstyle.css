@@ -33,30 +33,38 @@ body {
     font-weight: 500;
 }
 
+.tables-and-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
 }
 
+thead th {
+    background-color: #409878;;
+}
 
 th, td {
-    border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
 }
-
-th:not(.status-header):not(.delete-header):not(.grip-column),
-td:not(.status-cell):not(.delete-cell):not(.grip-column) {
     
-}
 
 th:first-child, td:first-child {
     width: 10px;          /* Sets the width to 10px */
     min-width: 10px;      /* Overrides any larger min-width */
-    background-color: #f0f0f0; /* Light grey background */
     text-align: center;   /* Centers the three dots */
     padding: 0;           /* Removes padding to keep it narrow */
+}
+
+th:first-child {
+    background-color: #409878; /* Light grey background */
 }
 
 /* Style for the grip icon */
