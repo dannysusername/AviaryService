@@ -43,12 +43,14 @@
     </div>
 
     <!-- New aircraft info table -->
-    <div class = "tables-and-buttons">
-        <table class="aircraft-info">
+    <div class = "main">
+        <table class="aircraft-info-table">
             <tbody>
                 <tr>
                     <td class = "make-model-tag">Make/Model</td>
                     <td><input type="text" name="makeModel" class="user-info-input no-print" th:value="${makeModel}" placeholder="Make/Model "><span class="print-only" th:text="${makeModel}"></span></td>
+                </tr>
+                <tr>
                     <td class = "tail-number-tag">Tail Number</td>
                     <td><input type="text" name="tailNumber" class="user-info-input no-print" th:value="${tailNumber}" placeholder="Tail Number"><span class="print-only" th:text="${tailNumber}"></span></td>
                 </tr>
@@ -61,6 +63,17 @@
                     <td><input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
                 </tr>
             </tbody>
+        </table>
+
+        <table class = "hours-table">
+            <tr>
+                <td class = "Hobbs-hours-tag">Hobbs hours</td>
+                <td><input type="text" name="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Hobbs hours "><span class="print-only" th:text=></span></td>
+            </tr>
+            <tr>
+                <td class = "Tach-hours-tag">Tach hours</td>
+                <td><input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Tach hours"><span class="print-only" th:text=></span></td>
+            </tr>
         </table>
 
     <!-- Existing first table follows here -->

@@ -1,3 +1,7 @@
+/* Existing styles with additions for responsive design */
+
+/* General table styles */
+
 
 * {
     box-sizing: border-box;
@@ -7,22 +11,29 @@
 
 body {
     background-color: #FFF5E4;
-    display: flex;
-    flex-direction: column;
 
 }
+
+table {
+    border-collapse: collapse;
+    margin: 20px 0;
+    
+}
+
+/*HEADER - "REAL TIME CLOCK AND ADD HOURS FUNCTION*/
 
 .header {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    border: 1px solid rgba(227, 75, 109, 0.839); /* Separate header with border */
     padding: 10px;
     margin-bottom: 20px;
-    background-color: #409878; /* Match body */
+    background-color: #FFF5E4;
 }
 
 .left, .right {
-    background-color: rgba(227, 75, 109, 0.839);
+    background-color: #409A78;
     padding: 10px;
     border-radius: 5px;
 }
@@ -33,48 +44,50 @@ body {
     font-weight: 500;
 }
 
-.tables-and-buttons {
+/*==========================*/
+
+.main {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-
+    gap: 10px;
 }
 
-table {
+table:not(.aircraft-info-table):not(.hours-table) {
     width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
+    
 }
 
-thead th {
-    background-color: #409878;;
+.aircraft-info-table, .hours-table {
+    margin: 0px 10px;
+    margin-bottom: 20px;
+    background-color: rgba(73, 170, 245, 0.929);
+    border-radius: 10px; /* Slightly curved edges */
+
+}
+
+thead {
+    border-bottom: 1px solid black;
 }
 
 th, td {
     padding: 8px;
     text-align: left;
 }
-    
 
 th:first-child, td:first-child {
-    width: 10px;          /* Sets the width to 10px */
-    min-width: 10px;      /* Overrides any larger min-width */
-    text-align: center;   /* Centers the three dots */
-    padding: 0;           /* Removes padding to keep it narrow */
+    background-color: #409A78;
+    text-align: center;
+    padding: 0;
+    min-width: 20px;
 }
 
-th:first-child {
-    background-color: #409878; /* Light grey background */
-}
-
-/* Style for the grip icon */
-
+/* Grip column */
 .grip-column {
     width: 10px;
-    min-width: 10px; /* Ensures it stays at 10px */
-    background-color: #f0f0f0; /* Light grey background */
+    min-width: 10px;
+    background-color: #f0f0f0;
     text-align: center;
-    padding: 0; /* Removes default padding */
+    padding: 0;
 }
 
 .grip-icon {
@@ -82,21 +95,20 @@ th:first-child {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%; /* Fills the cell height */
-    cursor: move; /* Indicates draggability */
-    color: #666; /* Dark grey color for dots */
+    height: 100%;
+    cursor: move;
+    color: #666;
 }
 
 .grip-icon span {
-    font-size: 6px; /* Small dots to fit 10px width */
+    font-size: 6px;
     line-height: 1;
-    margin: 1px 0; /* Spacing between dots */
+    margin: 1px 0;
 }
 
 .status-header,
 .status-cell {
     text-align: center;
-    
 }
 
 .delete-header,
@@ -106,26 +118,24 @@ th:first-child {
 }
 
 th {
-    background-color: #f2f2f2;
+    background-color: #409A78;
     font-weight: bold;
 }
 
-td input {    
+td input {
     box-sizing: border-box;
-
 }
 
 .time-left {
     white-space: pre-line;
 }
 
-.custom-description{
+.custom-description {
     width: 100%;
-    
 }
 
 td input:focus {
-    outline: 1px solid #007bff;
+    outline: 1px solid rgba(227, 75, 109, 0.839);
 }
 
 td textarea {
@@ -143,71 +153,44 @@ td textarea {
 }
 
 td textarea:focus {
-    outline: 1px solid #007bff;
-}
-
-td textarea.item-textarea,
-.extra-textarea {
-    width: 100%;
-    min-height: 25px;
-    max-height: 120px;
-    box-sizing: border-box;
-    border: 1px solid #ddd;
-    padding: 4px;
-    resize: none;
-    overflow: hidden;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    height: auto;
-}
-
-td textarea.item-textarea:focus,
-.extra-textarea:focus {
-    outline: 1px solid #007bff;
-}
-
-.title-input {
-    width: 100%;
-    box-sizing: border-box;
-    border: none;
-    padding: 4px;
-    font-weight: bold;
+    outline: 1px solid rgba(227, 75, 109, 0.839);
 }
 
 .extra-textarea {
     min-width: 120px;
 }
 
-.extra-input,
+.extra-input {
+    width: 100%;
+    min-width: 70px;
+}
+
 .title-input {
+    width: 100%;
+    box-sizing: border-box;
     padding: 2px;
     border: 1px solid #ddd;
     border-radius: 3px;
-
-}
-
-.title-input {
     font-weight: bold;
+    font-size: 1.2em;
 }
+
+
 
 .input-with-dropdown {
     display: flex;
-    position: relative;    
-    align-items: center;   
+    position: relative;
+    align-items: center;
     width: 100%;
 }
 
-.input-with-dropdown .extra-input {
-    min-width: 105px;
+.input-with-dropdown {
+    min-width: 100px;
     width: 100%;
-    margin-right: 4px;
-    
 }
 
-.input-with-dropdown [name = "lastDone_text"]{
-    min-width: 50px;
-    width: 100%;
-    
+.input-with-dropdown [name="lastDone_date"] {
+    min-width: 110px;
 }
 
 .trigger-dropdown {
@@ -244,7 +227,7 @@ td textarea.item-textarea:focus,
 
 .add-type {
     cursor: pointer;
-    color: #007bff;
+    color: rgba(227, 75, 109, 0.839);
     background: none;
     border: none;
     padding: 0 4px;
@@ -254,7 +237,7 @@ td textarea.item-textarea:focus,
 }
 
 .add-type:hover {
-    color: #0056b3;
+    color: rgba(227, 75, 109, 0.839);
 }
 
 .custom-dropdown {
@@ -262,7 +245,7 @@ td textarea.item-textarea:focus,
     min-height: 25px;
     display: flex;
     align-items: center;
-    gap: 4px; /* Adds spacing between selected-option and the trigger button */
+    gap: 4px;
 }
 
 .selected-option {
@@ -270,16 +253,16 @@ td textarea.item-textarea:focus,
     min-height: 25px;
     border: none;
     background: white;
-    padding: 4px 8px; /* Adjusted padding to align with trigger-dropdown */
+    padding: 4px 8px;
     box-sizing: border-box;
     white-space: normal;
-    text-align: left; /* Changed from center to align with typical input fields */
+    text-align: left;
     word-wrap: break-word;
-    cursor: pointer; /* Keep this to indicate clickability */
+    cursor: pointer;
 }
 
 .custom-dropdown:has(input[value=""]) .selected-option::after {
-    content: none; /* Remove the upside-down arrow */
+    content: none;
 }
 
 .custom-dropdown .dropdown-trigger {
@@ -293,7 +276,7 @@ td textarea.item-textarea:focus,
 }
 
 .selected-option:hover {
-    background: #f0f0f0;
+    background: rgba(73, 170, 245, 0.929);
 }
 
 .dropdown-options {
@@ -320,12 +303,11 @@ td textarea.item-textarea:focus,
     display: flex;
     white-space: normal;
     word-wrap: break-word;
-    justify-content: space-between;
-   
+    max-width: 150px;
 }
 
 .option:hover {
-    background: #f0f0f0;
+    background: rgba(73, 170, 245, 0.929);
 }
 
 .add-option-container {
@@ -344,31 +326,26 @@ td textarea.item-textarea:focus,
 
 .add-option-btn {
     padding: 2px 6px;
-    background-color: #007bff;
+    background-color: rgba(227, 75, 109, 0.839);
     color: white;
     border: none;
     cursor: pointer;
 }
 
 .add-option-btn:hover {
-    background-color: #0056b3;
-}
-
-.remove-option-btn {
-    border-radius: 300px;
-    border:#a7a5a5f1
+    background-color: rgba(227, 75, 109, 0.839);
 }
 
 .title-row td {
     font-weight: bold;
     font-size: 1.2em;
     text-align: center;
+    background-color: #409A78;
 }
 
 .title-row .title-cell:hover {
-    background-color: #ffa725; /* Orange from your palette */
-    color: white;
-    cursor: pointer; /* Indicates clickability */
+    background-color: #409A78;
+    cursor: pointer;
 }
 
 .row-type-selector {
@@ -386,40 +363,28 @@ td textarea.item-textarea:focus,
 }
 
 .row-type-option.selected {
-    background: #007bff;
+    background: rgba(227, 75, 109, 0.839);
     color: white;
-    border-color: #007bff;
+    border-color: rgba(227, 75, 109, 0.839);
 }
 
 .add-row.title-mode td:nth-child(n+3):nth-child(-n+8) {
     display: none;
 }
 
-#itemInput textarea,
-#titleInput input {
-    width: 100%;
-    box-sizing: border-box;
-}
-.title-input {
-    font-weight: bold;
-    font-size: 1.2em;
-    width: 100%;
-}
-
 .save-status {
     display: inline-block;
     padding: 2px 6px;
     text-align: center;
-    
 }
 
 .save-status.saving {
-    color: orange;
+    color: rgba(227, 75, 109, 0.839);
     font-style: italic;
 }
 
 .save-status.saved {
-    color: green;
+    color: rgba(73, 170, 245, 0.929);
 }
 
 .save-status.error {
@@ -428,29 +393,43 @@ td textarea.item-textarea:focus,
 
 .delete-icon {
     cursor: pointer;
-    color: #ff4444;
+    color: rgba(227, 75, 109, 0.839);
     font-size: 18px;
 }
 
 .delete-icon:hover {
-    color: #cc0000;
+    color: rgba(227, 75, 109, 0.839);
 }
 
 .add-row td {
-    background-color: #f9f9f9;
+    background-color: rgba(73, 170, 245, 0.929);
+}
+
+#export-excel, #print-dashboard {
+    margin: 20px 0;
+    padding: 10px 20px;
+    background-color: rgba(227, 75, 109, 0.839);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#export-excel:hover {
+    background-color: rgba(227, 75, 109, 0.839);
 }
 
 .add-button {
     width: 100%;
     padding: 4px;
-    background-color: #28a745;
+    background-color: rgba(227, 75, 109, 0.839);
     color: white;
     border: none;
     cursor: pointer;
 }
 
 .add-button:hover {
-    background-color: #218838;
+    background-color: rgba(227, 75, 109, 0.839);
 }
 
 /* New styles for drag-and-drop */
@@ -458,7 +437,376 @@ td textarea.item-textarea:focus,
     cursor: move;
 }
 
-th:first-child, td:first-child {
-    min-width: 20px;
-    text-align: center;
+
+
+.print-only {
+    display: none; /* Hidden by default, shown in print */
+}
+
+/* Responsive styles for aircraft-info table */
+
+.aircraft-info-table input, .hours-table-table input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px;
+}
+
+/* Responsive styles for mobile (below 600px) */
+@media screen and (max-width: 600px) {
+    /* Aircraft-info table: Stack cells vertically */
+    .aircraft-info-table {
+        display: block;
+    }
+
+    .aircraft-info-table tbody,
+    .aircraft-info-table tr {
+        display: block;
+    }
+
+    .aircraft-info-table td {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        border: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .aircraft-info-table td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        flex: 1;
+        text-align: left;
+    }
+
+    .aircraft-info-table td input,
+    .aircraft-info-table td .print-only {
+        flex: 2;
+        text-align: right;
+    }
+
+    /* Assign data-labels to aircraft-info cells for mobile display */
+    .aircraft-info-table td:nth-child(1) { data-label: "Make/Model"; }
+    .aircraft-info-table td:nth-child(2) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(3) { data-label: "Tail Number"; }
+    .aircraft-info-table td:nth-child(4) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(5) { data-label: "Owner"; }
+    .aircraft-info-table td:nth-child(6) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(7) { data-label: "Make/Model S/N"; }
+    .aircraft-info-table td:nth-child(8) { data-label: ""; } /* Input cell */
+
+    /* Sortable table: Transform into cards */
+    .sortable {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 0 10px;
+    }
+
+    body > div.main > table:nth-child(4) > thead {
+        display: none;
+    }
+
+    .sortable tr:not(.add-row) {
+        display: block;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: rgba(73, 170, 245, 0.929);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 10px;
+    }
+
+    /* Title row as a card */
+    .sortable tr.title-row {
+        background-color: rgba(73, 170, 245, 0.929);
+        font-weight: bold;
+        font-size: 1.1em;
+        text-align: center;
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .sortable tr.title-row td {
+        display: block;
+        border: none;
+    }
+
+    .sortable tr.title-row .title-cell {
+        margin: 0;
+    }
+
+    /* Item row as a card */
+    .sortable tr:not(.title-row):not(.add-row) {
+        display: block;
+    }
+
+    .sortable tr:not(.title-row):not(.add-row) td:not(.grip-cell) {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 8px;
+        border: none;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sortable tr:not(.title-row):not(.add-row) td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        flex: 1;
+        text-align: left;
+    }
+
+    .sortable tr:not(.title-row):not(.add-row) td > * {
+        text-align: right;
+    }
+
+    /* Assign data-labels to sortable table cells */
+    .sortable tr:not(.title-row):not(.add-row) td:nth-child(2) { data-label: "Item"; }
+    .sortable tr:not(.title-row):not(.add-row) td:nth-child(3) { data-label: "Description"; }
+    .sortable tr:not(.title-row):not(.add-row) td:nth-child(4) { data-label: "Cycle"; }
+    .sortable tr:not(.title-row):not(.add-row) td:nth-child(5) { data-label: "Last Done"; }
+    .sortable tr:not(.title-row):not(.add-row) td:nth-child(6) { data-label: "Due Date"; }
+    .sortable tr:not(.title-row):not(.add-row) td:nth-child(7) { data-label: "Time Left"; }
+
+
+    /* Ensure inputs and textareas take full width */
+    .sortable td textarea,
+    .sortable td .selected-option,
+    .sortable td .input-with-dropdown {
+        width: 100%;
+    }
+
+    .grip-column {
+        display: none;
+    }
+
+    /* Adjust dropdowns for mobile */
+    .custom-dropdown,
+    .input-with-dropdown {
+        width: 100%;
+    }
+
+    .dropdown-options,
+    .type-dropdown {
+        width: 100%;
+        max-height: 150px;
+    }
+
+    /* Add row adjustments */
+    .add-row {
+        display: block;
+        padding: 10px;
+        margin: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: rgba(73, 170, 245, 0.929);
+    }
+
+    .add-row td {
+        display: block;
+        border: none;
+        padding: 6px 8px;
+    }
+
+    .add-row td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .add-row td.grip-column {
+        display: none;
+    }
+
+    .add-row td:nth-child(2) { data-label: "Item/Title"; }
+    .add-row td:nth-child(3) { data-label: "Description"; }
+    .add-row td:nth-child(4) { data-label: "Cycle"; }
+    .add-row td:nth-child(5) { data-label: "Last Done"; }
+    .add-row td:nth-child(6) { data-label: "Due Date"; }
+    .add-row td:nth-child(7) { data-label: "Time Left"; }
+
+    /* Buttons and layout */
+    #export-excel, #print-dashboard, .add-button {
+        width: 100%;
+        margin: 10px 0;
+        padding: 12px;
+        font-size: 1em;
+    }
+
+    /* Header adjustments */
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #real-time-clock {
+        font-size: 1.5em;
+        margin: 10px 0;
+    }
+
+    .my-hours {
+        width: 100%;
+        margin: 10px 0;
+    }
+
+    body > table:nth-child(3) > thead > tr {
+        display: none;
+    }
+
+
+}
+
+/* iPad and tablet styles (601px to 1024px) */
+@media screen and (min-width: 601px) and (max-width: 1024px) {
+    /* Keep table layout but optimize */
+    table {
+        font-size: 0.9em; /* Slightly smaller text */
+    }
+
+    th, td {
+        padding: 6px; /* Reduced padding */
+    }
+
+    body > table:nth-child(3) > thead > tr {
+        display: table-row;
+    }
+
+    /* Reduce column widths where possible */
+    .grip-column {
+        min-width: 15px;
+    }
+
+    .status-header,
+    .delete-header,
+    .status-cell,
+    .delete-cell {
+        min-width: 20px;
+    }
+
+    td textarea,
+    td .selected-option,
+    td .input-with-dropdown {
+        min-width: 70px;
+    }
+
+    /* Increase tap target sizes for buttons */
+    .trigger-dropdown,
+    .add-type,
+    .add-option-btn,
+    .remove-option-btn,
+    .delete-icon {
+        padding: 4px 8px;
+        font-size: 14px;
+    }
+
+    .add-button,
+    #export-excel,
+    #print-dashboard {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+
+    /* Aircraft-info adjustments */
+    .aircraft-info-table td {
+        padding: 6px;
+        font-size: 0.9em;
+    }
+
+    .aircraft-info-table input {
+        font-size: 0.9em;
+    }
+
+    /* Header adjustments */
+    .header {
+        flex-wrap: wrap;
+    }
+
+    #real-time-clock {
+        font-size: 2em;
+    }
+}
+
+/* Print-specific styles (unchanged) */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .header, .header .left h2, .aircraft-info-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell, #real-time-clock {
+        visibility: visible;
+    }
+
+    .no-print, .status-cell, .delete-cell, .status-header, .delete-header, .print-remove, .grip-cell {
+        display: none !important;
+    }
+
+    .print-only {
+        display: inline !important;
+        visibility: visible;
+    }
+
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+        color: black;
+    }
+
+    .header {
+        position: relative;
+        width: 100%;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: auto;
+    }
+
+    th, td {
+        border: 1px solid black !important;
+        padding: 8px;
+    }
+
+    th.grip-column, td.grip-column, .title-grip-icon-cell {
+        display: none;
+    }
+
+    .time-left {
+        white-space: pre-line;
+        font-weight: bold;
+    }
+
+    .aircraft-info-table td {
+        text-align: left;
+    }
+
+    .my-hours h3, #print-current-hours {
+        visibility: visible;
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    .title-row td {
+        font-weight: bold;
+        font-size: 14pt;
+    }
+}
+
+/* Additional styles for my-hours to be on its own row */
+.my-hours {
+    display: block;
+    width: 100%;
+    background-color: rgba(73, 170, 245, 0.929); /* Lighter blue */
+    padding: 10px;
+    margin: 20px 0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for separation */
+    border: 1px solid rgba(227, 75, 109, 0.839); /* Coral border */
+    border-radius: 10px; /* Slightly curved edges */
 }
