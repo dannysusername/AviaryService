@@ -10,7 +10,8 @@
 }
 
 body {
-    background-color: rgba(75, 74, 255, 0.929);
+    background-color: #FFF5E4;
+
 }
 
 table {
@@ -19,18 +20,7 @@ table {
     
 }
 
-table:not(.aircraft-info) {
-    width: 100%;
-    
-}
-
-.aircraft-info {
-    margin: 0px 10px;
-    margin-bottom: 20px;
-    background-color: rgba(73, 170, 245, 0.929);
-    border-radius: 10px; /* Slightly curved edges */
-
-}
+/*HEADER - "REAL TIME CLOCK AND ADD HOURS FUNCTION*/
 
 .header {
     display: flex;
@@ -39,11 +29,11 @@ table:not(.aircraft-info) {
     border: 1px solid rgba(227, 75, 109, 0.839); /* Separate header with border */
     padding: 10px;
     margin-bottom: 20px;
-    background-color: rgba(75, 74, 255, 0.929); /* Match body */
+    background-color: #FFF5E4;
 }
 
 .left, .right {
-    background-color: rgba(227, 75, 109, 0.839);
+    background-color: #409A78;
     padding: 10px;
     border-radius: 5px;
 }
@@ -54,16 +44,41 @@ table:not(.aircraft-info) {
     font-weight: 500;
 }
 
+/*==========================*/
+
+.main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+table:not(.aircraft-info-table):not(.hours-table) {
+    width: 100%;
+    
+}
+
+.aircraft-info-table, .hours-table {
+    margin: 0px 10px;
+    margin-bottom: 20px;
+    background-color: rgba(73, 170, 245, 0.929);
+    border-radius: 10px; /* Slightly curved edges */
+
+}
+
+thead {
+    border-bottom: 1px solid black;
+}
+
 th, td {
-    border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
 }
 
-th:first-child, td:first-child, .make-model-tag, .tail-number-tag, .owner-tag, .make-model-s\n-tag {
-    background-color: #f0f0f0;
+th:first-child, td:first-child {
+    background-color: #409A78;
     text-align: center;
     padding: 0;
+    min-width: 20px;
 }
 
 /* Grip column */
@@ -103,7 +118,7 @@ th:first-child, td:first-child, .make-model-tag, .tail-number-tag, .owner-tag, .
 }
 
 th {
-    background-color: rgba(73, 170, 245, 0.929);
+    background-color: #409A78;
     font-weight: bold;
 }
 
@@ -325,11 +340,11 @@ td textarea:focus {
     font-weight: bold;
     font-size: 1.2em;
     text-align: center;
-    background-color: rgba(73, 170, 245, 0.929);
+    background-color: #409A78;
 }
 
 .title-row .title-cell:hover {
-    background-color: rgba(227, 75, 109, 0.839);
+    background-color: #409A78;
     cursor: pointer;
 }
 
@@ -422,10 +437,7 @@ td textarea:focus {
     cursor: move;
 }
 
-th:first-child, td:first-child, .tail-number-tag {
-    min-width: 20px;
-    text-align: center;
-}
+
 
 .print-only {
     display: none; /* Hidden by default, shown in print */
@@ -433,7 +445,7 @@ th:first-child, td:first-child, .tail-number-tag {
 
 /* Responsive styles for aircraft-info table */
 
-.aircraft-info input {
+.aircraft-info-table input, .hours-table-table input {
     width: 100%;
     box-sizing: border-box;
     padding: 4px;
@@ -442,16 +454,16 @@ th:first-child, td:first-child, .tail-number-tag {
 /* Responsive styles for mobile (below 600px) */
 @media screen and (max-width: 600px) {
     /* Aircraft-info table: Stack cells vertically */
-    .aircraft-info {
+    .aircraft-info-table {
         display: block;
     }
 
-    .aircraft-info tbody,
-    .aircraft-info tr {
+    .aircraft-info-table tbody,
+    .aircraft-info-table tr {
         display: block;
     }
 
-    .aircraft-info td {
+    .aircraft-info-table td {
         display: flex;
         flex-direction: row-reverse;
         justify-content: space-between;
@@ -461,28 +473,28 @@ th:first-child, td:first-child, .tail-number-tag {
         border-bottom: 1px solid #ddd;
     }
 
-    .aircraft-info td::before {
+    .aircraft-info-table td::before {
         content: attr(data-label);
         font-weight: bold;
         flex: 1;
         text-align: left;
     }
 
-    .aircraft-info td input,
-    .aircraft-info td .print-only {
+    .aircraft-info-table td input,
+    .aircraft-info-table td .print-only {
         flex: 2;
         text-align: right;
     }
 
     /* Assign data-labels to aircraft-info cells for mobile display */
-    .aircraft-info td:nth-child(1) { data-label: "Make/Model"; }
-    .aircraft-info td:nth-child(2) { data-label: ""; } /* Input cell */
-    .aircraft-info td:nth-child(3) { data-label: "Tail Number"; }
-    .aircraft-info td:nth-child(4) { data-label: ""; } /* Input cell */
-    .aircraft-info td:nth-child(5) { data-label: "Owner"; }
-    .aircraft-info td:nth-child(6) { data-label: ""; } /* Input cell */
-    .aircraft-info td:nth-child(7) { data-label: "Make/Model S/N"; }
-    .aircraft-info td:nth-child(8) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(1) { data-label: "Make/Model"; }
+    .aircraft-info-table td:nth-child(2) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(3) { data-label: "Tail Number"; }
+    .aircraft-info-table td:nth-child(4) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(5) { data-label: "Owner"; }
+    .aircraft-info-table td:nth-child(6) { data-label: ""; } /* Input cell */
+    .aircraft-info-table td:nth-child(7) { data-label: "Make/Model S/N"; }
+    .aircraft-info-table td:nth-child(8) { data-label: ""; } /* Input cell */
 
     /* Sortable table: Transform into cards */
     .sortable {
@@ -490,6 +502,10 @@ th:first-child, td:first-child, .tail-number-tag {
         flex-direction: column;
         gap: 10px;
         margin: 0 10px;
+    }
+
+    body > div.main > table:nth-child(4) > thead {
+        display: none;
     }
 
     .sortable tr:not(.add-row) {
@@ -694,12 +710,12 @@ th:first-child, td:first-child, .tail-number-tag {
     }
 
     /* Aircraft-info adjustments */
-    .aircraft-info td {
+    .aircraft-info-table td {
         padding: 6px;
         font-size: 0.9em;
     }
 
-    .aircraft-info input {
+    .aircraft-info-table input {
         font-size: 0.9em;
     }
 
@@ -719,7 +735,7 @@ th:first-child, td:first-child, .tail-number-tag {
         visibility: hidden;
     }
 
-    .header, .header .left h2, .aircraft-info td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell, #real-time-clock {
+    .header, .header .left h2, .aircraft-info-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell, #real-time-clock {
         visibility: visible;
     }
 
@@ -764,7 +780,7 @@ th:first-child, td:first-child, .tail-number-tag {
         font-weight: bold;
     }
 
-    .aircraft-info td {
+    .aircraft-info-table td {
         text-align: left;
     }
 
