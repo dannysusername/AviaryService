@@ -74,11 +74,19 @@ th, td {
     text-align: left;
 }
 
-th:first-child, td:first-child {
+th:first-child, td:first-child{
     background-color: #409A78;
     text-align: center;
     padding: 0;
     min-width: 20px;
+}
+
+.auto-save-row td, .aircraft-info-table td:nth-child(2), .hours-table td:nth-child(2){
+    background-color: #87CFB4;
+}
+
+.add-row td {
+    background-color: #409A78;
 }
 
 /* Grip column */
@@ -401,9 +409,7 @@ td textarea:focus {
     color: rgba(227, 75, 109, 0.839);
 }
 
-.add-row td {
-    background-color: rgba(73, 170, 245, 0.929);
-}
+
 
 #export-excel, #print-dashboard {
     margin: 20px 0;
@@ -495,6 +501,10 @@ td textarea:focus {
     .aircraft-info-table td:nth-child(6) { data-label: ""; } /* Input cell */
     .aircraft-info-table td:nth-child(7) { data-label: "Make/Model S/N"; }
     .aircraft-info-table td:nth-child(8) { data-label: ""; } /* Input cell */
+
+    body > div.main > table:nth-child(3) > thead {
+        display: none;
+    }
 
     /* Sortable table: Transform into cards */
     .sortable {
