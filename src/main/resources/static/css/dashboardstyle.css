@@ -522,7 +522,7 @@ td textarea:focus {
         display: block;
         border: 1px solid #ddd;
         border-radius: 8px;
-        background-color: rgba(73, 170, 245, 0.929);
+        background-color: #87cfb4;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         padding: 10px;
     }
@@ -813,10 +813,9 @@ td textarea:focus {
 .my-hours {
     display: block;
     width: 100%;
-    background-color: rgba(73, 170, 245, 0.929); /* Lighter blue */
+    background-color: #409A78;
     padding: 10px;
     margin: 20px 0;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for separation */
-    border: 1px solid rgba(227, 75, 109, 0.839); /* Coral border */
     border-radius: 10px; /* Slightly curved edges */
 }
