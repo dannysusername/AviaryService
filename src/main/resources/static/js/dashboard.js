@@ -5,13 +5,6 @@ let userInfoTimeout;
 let hoursTimeout; // For debouncing hours updates
 let previousHours = document.getElementById('current-hours')?.value || 0;
 
-function updateRealTimeClock() {
-    const clockElement = document.getElementById('real-time-clock');
-    const now = new Date();
-    const dateString = now.toLocaleDateString(); // e.g., "3/30/2025"
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // e.g., "09:23 AM"
-    clockElement.textContent = `${dateString} ${timeString}`;
-}
 
 function setTextareaMinHeight(textarea) {
     textarea.style.height = 'auto'; // Reset to measure content
@@ -389,15 +382,10 @@ function selectRowType(type, rowTypeElement) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Start the real-time clock
-    updateRealTimeClock();
     updateAllTimeLeft(); // Initial call to set Time Left immediately
     updateAddRowTimeLeft();
     scheduleMidnightUpdate();
-    setInterval(() => {
-        updateRealTimeClock();
-    }, 1000);
-
+    
     console.log('Dropdown triggers found:', document.querySelectorAll('.dropdown-trigger').length);
     console.log('add-row td:nth-child(5) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(5) .input-with-dropdown'));
     console.log('add-row td:nth-child(6) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(6) .input-with-dropdown'));
@@ -1153,13 +1141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update all time left values (assuming you have updateAllTimeLeft() from existing code)
         updateAllTimeLeft();
         updateAddRowTimeLeft();  // If applicable, though add-row is hidden
-
-        // Set static print date/time in clock
-        const clockElement = document.getElementById('real-time-clock');
-        const now = new Date();
-        const dateString = now.toLocaleDateString(); // e.g., "10/12/2025"
-        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // e.g., "09:23 AM"
-        clockElement.textContent = `${dateString} ${timeString}`;
 
         // Update My Hours print-only span
         const currentHours = document.getElementById('current-hours').value || '0';

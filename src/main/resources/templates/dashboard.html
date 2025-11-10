@@ -12,23 +12,18 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class = "header">
-        <div class="my-hours">
-            <h3>My Hours</h3>
-            <p class="print-remove">Current Hours: <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" ></p>
-            <span class="print-only" id="print-current-hours" th:text="'Current Hours: ' + ${currentHours}"></span>
-            <input type="number" id="add-hours" placeholder="Enter hours to add" class="no-print">
-            <button id="add-hours-btn" class="no-print">Add</button>
+    <header class="fixed-header">
+        <div class="header-left">
+            <h1 class="print-remove">Aircraft Service Dashboard</h1>
         </div>
-        <div class = "left">
-            <h1 class = "print-remove">Welcome to Your Dashboard</h1>
-            <p class = "print-remove" th:text="'Hello, ' + ${username} + '!'"></p>
-            <h2>Aircraft Service Timeline</h2>
+        <div class="header-right">
+            <form method="post" th:action="@{/logout}" class="no-print">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
         </div>
-        <div class = "right">         
-                <span id = "real-time-clock"></span>
-        </div>
+    </header>
 
+    <div class = "header">
         <div class="my-hours">
             <h3>My Hours</h3>
             <span class="current-hours-display" id="current-hours-display" th:text="'Current Hours: ' + ${currentHours}"></span>

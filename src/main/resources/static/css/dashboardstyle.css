@@ -10,6 +10,7 @@
 }
 
 body {
+    padding-top: 70px;
     background-color: #FFF5E4;
 
 }
@@ -18,6 +19,42 @@ table {
     border-collapse: collapse;
     margin: 20px 0;
     
+}
+
+.fixed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;               /* adjust if you want taller */
+    background: #409A78;        /* same green as your theme */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 2000;              /* above everything else */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.fixed-header .header-left h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.fixed-header .header-right .logout-btn {
+    background: rgba(227, 75, 109, 0.839);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.fixed-header .header-right .logout-btn:hover {
+    background: rgba(227, 75, 109, 1);
 }
 
 /*HEADER - "REAL TIME CLOCK AND ADD HOURS FUNCTION*/
@@ -32,17 +69,6 @@ table {
     background-color: #FFF5E4;
 }
 
-.left, .right {
-    background-color: #409A78;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-#real-time-clock {
-    margin-right: 20px;
-    font-size: 3em;
-    font-weight: 500;
-}
 
 /*==========================*/
 
@@ -652,11 +678,6 @@ td textarea:focus {
         align-items: flex-start;
     }
 
-    #real-time-clock {
-        font-size: 1.5em;
-        margin: 10px 0;
-    }
-
     .my-hours {
         width: 100%;
         margin: 10px 0;
@@ -734,9 +755,6 @@ td textarea:focus {
         flex-wrap: wrap;
     }
 
-    #real-time-clock {
-        font-size: 2em;
-    }
 }
 
 /* Print-specific styles (unchanged) */
@@ -745,7 +763,15 @@ td textarea:focus {
         visibility: hidden;
     }
 
-    .header, .header .left h2, .aircraft-info-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell, #real-time-clock {
+    .fixed-header { 
+        display: none; 
+    }
+
+    main {
+        padding-top: 0px;
+    }
+
+    .header, .header, .aircraft-info-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell {
         visibility: visible;
     }
 
