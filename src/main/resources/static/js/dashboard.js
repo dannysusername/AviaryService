@@ -88,7 +88,8 @@ function autoSaveUserInfo(input) {
             headers: { [csrfHeader]: csrfToken }
         })
         .then(response => {
-            console.log('User info saved successfully');
+            console.log('User info saved successfully: ');
+            console.log(data);
             // Optionally add a status indicator next to the input if needed
 
             // NEW: Update the adjacent print-only span with the new value
@@ -394,13 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => autoSaveUserInfo(input));
     });
 
-
-    /*
-    document.addEventListener('click', function(event) {
-        
-    });
-
-    */
 
     document.addEventListener('click', function(event) {
         if (event.target.className === 'remove-option-btn') {
@@ -1144,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update My Hours print-only span
         const currentHours = document.getElementById('current-hours').value || '0';
-        document.getElementById('print-current-hours').textContent = `Current Hours: ${currentHours}`;
+        document.getElementById('current-hours-display').textContent = `Current Hours: ${currentHours}`;
 
         // Update print-only spans in table rows with current values
         document.querySelectorAll('.sortable tr:not(.title-row)').forEach(row => {

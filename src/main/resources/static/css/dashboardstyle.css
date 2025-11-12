@@ -63,10 +63,20 @@ table {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap; /* Allow wrapping on smaller screens */
-    border: 1px solid rgba(227, 75, 109, 0.839); /* Separate header with border */
     padding: 10px;
     margin-bottom: 20px;
     background-color: #FFF5E4;
+}
+
+
+.my-hours {
+    display: block;
+    width: 100%;
+    background-color: #409A78;
+    padding: 10px;
+    margin: 20px 0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for separation */
+    border-radius: 10px; /* Slightly curved edges */
 }
 
 
@@ -86,8 +96,6 @@ table:not(.aircraft-info-table):not(.hours-table) {
 .aircraft-info-table, .hours-table {
     margin: 0px 10px;
     margin-bottom: 20px;
-    background-color: rgba(73, 170, 245, 0.929);
-    border-radius: 10px; /* Slightly curved edges */
 
 }
 
@@ -103,8 +111,18 @@ th, td {
 th:first-child, td:first-child{
     background-color: #409A78;
     text-align: center;
-    padding: 0;
+    padding: 8px;
     min-width: 20px;
+}
+
+.aircraft-info-table tr, .hours-table tr {
+    display: flex;
+    flex-direction: row;
+}
+
+.aircraft-info-table tr td, .hours-table tr td{
+    flex: 0 0 50%;
+
 }
 
 .auto-save-row td, .aircraft-info-table td:nth-child(2), .hours-table td:nth-child(2){
@@ -230,8 +248,6 @@ td textarea:focus {
 .trigger-dropdown {
     cursor: pointer;
     padding: 2px 6px;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
     border-radius: 3px;
     margin-left: auto;
 }
@@ -469,7 +485,9 @@ td textarea:focus {
     cursor: move;
 }
 
-
+textarea::placeholder {
+    display: none;
+}
 
 .print-only {
     display: none; /* Hidden by default, shown in print */
@@ -477,7 +495,7 @@ td textarea:focus {
 
 /* Responsive styles for aircraft-info table */
 
-.aircraft-info-table input, .hours-table-table input {
+.aircraft-info-table input, .hours-table input {
     width: 100%;
     box-sizing: border-box;
     padding: 4px;
@@ -486,16 +504,23 @@ td textarea:focus {
 /* Responsive styles for mobile (below 600px) */
 @media screen and (max-width: 600px) {
     /* Aircraft-info table: Stack cells vertically */
-    .aircraft-info-table {
+
+    textarea::placeholder {
+        display: inline;
+        color: #999;
+    }
+
+    .aircraft-info-table, .hours-table{
         display: block;
     }
 
     .aircraft-info-table tbody,
-    .aircraft-info-table tr {
+    .aircraft-info-table tr , .hours-table tbody,
+    .hours-table tr {
         display: block;
     }
 
-    .aircraft-info-table td {
+    .aircraft-info-table td, .hours-table td{
         display: flex;
         flex-direction: row-reverse;
         justify-content: space-between;
@@ -505,7 +530,7 @@ td textarea:focus {
         border-bottom: 1px solid #ddd;
     }
 
-    .aircraft-info-table td::before {
+    .aircraft-info-table td::before, .hours-table td::before {
         content: attr(data-label);
         font-weight: bold;
         flex: 1;
@@ -513,20 +538,11 @@ td textarea:focus {
     }
 
     .aircraft-info-table td input,
-    .aircraft-info-table td .print-only {
+    .aircraft-info-table td .print-only, .hours-table td input,
+    .hours-table td .print-only {
         flex: 2;
         text-align: right;
     }
-
-    /* Assign data-labels to aircraft-info cells for mobile display */
-    .aircraft-info-table td:nth-child(1) { data-label: "Make/Model"; }
-    .aircraft-info-table td:nth-child(2) { data-label: ""; } /* Input cell */
-    .aircraft-info-table td:nth-child(3) { data-label: "Tail Number"; }
-    .aircraft-info-table td:nth-child(4) { data-label: ""; } /* Input cell */
-    .aircraft-info-table td:nth-child(5) { data-label: "Owner"; }
-    .aircraft-info-table td:nth-child(6) { data-label: ""; } /* Input cell */
-    .aircraft-info-table td:nth-child(7) { data-label: "Make/Model S/N"; }
-    .aircraft-info-table td:nth-child(8) { data-label: ""; } /* Input cell */
 
     body > div.main > table:nth-child(3) > thead {
         display: none;
@@ -598,15 +614,6 @@ td textarea:focus {
         text-align: right;
     }
 
-    /* Assign data-labels to sortable table cells */
-    .sortable tr:not(.title-row):not(.add-row) td:nth-child(2) { data-label: "Item"; }
-    .sortable tr:not(.title-row):not(.add-row) td:nth-child(3) { data-label: "Description"; }
-    .sortable tr:not(.title-row):not(.add-row) td:nth-child(4) { data-label: "Cycle"; }
-    .sortable tr:not(.title-row):not(.add-row) td:nth-child(5) { data-label: "Last Done"; }
-    .sortable tr:not(.title-row):not(.add-row) td:nth-child(6) { data-label: "Due Date"; }
-    .sortable tr:not(.title-row):not(.add-row) td:nth-child(7) { data-label: "Time Left"; }
-
-
     /* Ensure inputs and textareas take full width */
     .sortable td textarea,
     .sortable td .selected-option,
@@ -637,7 +644,7 @@ td textarea:focus {
         margin: 10px;
         border: 1px solid #ddd;
         border-radius: 8px;
-        background-color: rgba(73, 170, 245, 0.929);
+       background-color: rgba(75, 227, 227, 0.839);
     }
 
     .add-row td {
@@ -656,13 +663,6 @@ td textarea:focus {
     .add-row td.grip-column {
         display: none;
     }
-
-    .add-row td:nth-child(2) { data-label: "Item/Title"; }
-    .add-row td:nth-child(3) { data-label: "Description"; }
-    .add-row td:nth-child(4) { data-label: "Cycle"; }
-    .add-row td:nth-child(5) { data-label: "Last Done"; }
-    .add-row td:nth-child(6) { data-label: "Due Date"; }
-    .add-row td:nth-child(7) { data-label: "Time Left"; }
 
     /* Buttons and layout */
     #export-excel, #print-dashboard, .add-button {
@@ -694,7 +694,7 @@ td textarea:focus {
 @media screen and (min-width: 601px) and (max-width: 1024px) {
     /* Keep table layout but optimize */
     table {
-        font-size: 0.9em; /* Slightly smaller text */
+        font-size: 1.2em; /* Slightly smaller text */
     }
 
     th, td {
@@ -741,12 +741,12 @@ td textarea:focus {
     }
 
     /* Aircraft-info adjustments */
-    .aircraft-info-table td {
+    .aircraft-info-table td, .hours-table td{
         padding: 6px;
         font-size: 0.9em;
     }
 
-    .aircraft-info-table input {
+    .aircraft-info-table input .hours-table input{
         font-size: 0.9em;
     }
 
@@ -759,9 +759,6 @@ td textarea:focus {
 
 /* Print-specific styles (unchanged) */
 @media print {
-    body * {
-        visibility: hidden;
-    }
 
     .fixed-header { 
         display: none; 
@@ -771,7 +768,7 @@ td textarea:focus {
         padding-top: 0px;
     }
 
-    .header, .header, .aircraft-info-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell {
+    .header, .header, .aircraft-info-table td, .hours-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell {
         visibility: visible;
     }
 
@@ -797,7 +794,6 @@ td textarea:focus {
     }
 
     table {
-        width: 100%;
         border-collapse: collapse;
         page-break-inside: auto;
     }
@@ -816,7 +812,7 @@ td textarea:focus {
         font-weight: bold;
     }
 
-    .aircraft-info-table td {
+    .aircraft-info-table td, .hours-table td{
         text-align: left;
     }
 
@@ -835,13 +831,3 @@ td textarea:focus {
     }
 }
 
-/* Additional styles for my-hours to be on its own row */
-.my-hours {
-    display: block;
-    width: 100%;
-    background-color: #409A78;
-    padding: 10px;
-    margin: 20px 0;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for separation */
-    border-radius: 10px; /* Slightly curved edges */
-}

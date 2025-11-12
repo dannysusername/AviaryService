@@ -10,11 +10,12 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script th:src="@{/js/dashboard.js}"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://kit.fontawesome.com/647fe92b87.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <header class="fixed-header">
         <div class="header-left">
-            <h1 class="print-remove">Aircraft Service Dashboard</h1>
+            <h1 class="print-remove">Aviary</h1>
         </div>
         <div class="header-right">
             <form method="post" th:action="@{/logout}" class="no-print">
@@ -24,6 +25,11 @@
     </header>
 
     <div class = "header">
+        <div class = "buttons">
+            <button id="export-excel" class="no-print">Export to Excel</button>
+            <button id="print-dashboard" class="no-print">Print Dashboard</button>
+        </div>
+
         <div class="my-hours">
             <h3>My Hours</h3>
             <span class="current-hours-display" id="current-hours-display" th:text="'Current Hours: ' + ${currentHours}"></span>
@@ -42,36 +48,36 @@
         <table class="aircraft-info-table">
             <tbody>
                 <tr>
-                    <td class = "make-model-tag">Make/Model</td>
-                    <td><input type="text" name="makeModel" class="user-info-input no-print" th:value="${makeModel}" placeholder="Make/Model "><span class="print-only" th:text="${makeModel}"></span></td>
+                    <td class = "make-model-tag">Make/Model:</td>
+                    <td><input type="text" name="makeModel" autocomplete="makeModel" class="user-info-input no-print" th:value="${makeModel}" placeholder="Make/Model "><span class="print-only" th:text="${makeModel}"></span></td>
                 </tr>
                 <tr>
-                    <td class = "tail-number-tag">Tail Number</td>
-                    <td><input type="text" name="tailNumber" class="user-info-input no-print" th:value="${tailNumber}" placeholder="Tail Number"><span class="print-only" th:text="${tailNumber}"></span></td>
+                    <td class = "tail-number-tag">Tail Number:</td>
+                    <td><input type="text" name="tailNumber" autocomplete="tail-number-tag" class="user-info-input no-print" th:value="${tailNumber}" placeholder="Tail Number"><span class="print-only" th:text="${tailNumber}"></span></td>
                 </tr>
                 <tr>
-                    <td class = "owner-tag">Owner</td>
-                    <td><input type="text" name="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Owner "><span class="print-only" th:text="${ownerName}"></span></td>
+                    <td class = "owner-tag">Owner:</td>
+                    <td><input type="text" name="ownerName" autocomplete="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Owner "><span class="print-only" th:text="${ownerName}"></span></td>
                 </tr>
                 <tr>
                     <td class = "make-model-s\n-tag">Make/model S/N:</td>
-                    <td><input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
+                    <td><input type="text" name="makeModelSN" autocomplete="make-model-s\n-tag" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
                 </tr>
             </tbody>
         </table>
 
         <table class = "hours-table">
             <tr>
-                <td class="Hobbs-hours-tag">Hobbs hours</td>
+                <td class="Hobbs-hours-tag">Hobbs hours:</td>
                 <td>
-                    <input type="text" name="ownerName" class="user-info-input no-print" th:value="${ownerName}" placeholder="Hobbs hours">
+                    <input type="text" name="hobbsHours" class="user-info-input no-print" th:value="${ownerName}" placeholder="Hobbs hours">
                     <span class="print-only"></span>
                 </td>
             </tr>
             <tr>
-                <td class="Tach-hours-tag">Tach hours</td>
+                <td class="Tach-hours-tag">Tach hours:</td>
                 <td>
-                    <input type="text" name="makeModelSN" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Tach hours">
+                    <input type="text" name="tachHours" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Tach hours">
                     <span class="print-only"></span>
                 </td>
             </tr>
@@ -89,7 +95,7 @@
                     <th class = "print">Due Date</th>
                     <th class = "print">Time Left</th>
                     <!--<th class = "status-header">Status</th>-->
-                    <th class = "delete-header">Delete</th>
+                    <th class = "delete-header"></th>
                 </tr>
             </thead>
             <tbody class = "sortable">
@@ -106,14 +112,17 @@
                     </tr>
                     <!-- Regular item row -->
                     <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
-                        <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
+                        
+                        
+                        <i class="fa-solid fa-grip-vertical"></i>
+                        <td class = "grip-cell"><i class="fa-solid fa-grip-vertical"></i><span class="grip-icon no-print">⋮</span></td>
                         <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea>
                             <span class="print-only" th:text="${timeline.item}"></span></td>
                         <td>
                             <div class="custom-dropdown">
                                 <div class="selected-option no-print"></div>
                                 <input type="hidden" name="description" th:value="${timeline.description}">
-                                <button class="dropdown-trigger no-print">▼</button>
+                                <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                 <div class="dropdown-options no-print">
                                     <div class="option" data-value="">--None--</div>
                                     <div class="option" data-value="Inspect">Inspect</div>
@@ -135,7 +144,7 @@
                         <td><textarea name="cycle" oninput="autoSave(this)" th:text="${timeline.cycle}" class="no-print"></textarea><span class="print-only" th:text="${timeline.cycle}"></span></td>
                         <td>
                             <div class="input-with-dropdown no-print">
-                                <button class="trigger-dropdown">▼</button>
+                                <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                 <div class="type-dropdown" style="display: none;">
                                     <div class="type-option">
                                         <span>Calendar</span>
@@ -151,7 +160,7 @@
                         </td>
                         <td>
                             <div class="input-with-dropdown no-print">
-                                <button class="trigger-dropdown">▼</button>
+                                <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                 <div class="type-dropdown" style="display: none;">
                                     <div class="type-option">
                                         <span>Calendar</span>
@@ -193,7 +202,7 @@
                         <div class="custom-dropdown">
                             <div class="selected-option"></div>
                             <input type="hidden" name="description" value="">
-                            <button class="dropdown-trigger">▼</button>
+                            <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                             <div class="dropdown-options" style="display: none;">
                                 <div class="option" data-value="">--None--</div>
                                 <div class="option" data-value="Inspect">Inspect</div>
@@ -211,10 +220,10 @@
                             </div>
                         </div>
                     </td>
-                    <td><textarea name="cycle"></textarea></td>
+                    <td><textarea placeholder = "Service cycle time. Ex. 100 hours" name="cycle"></textarea></td>
                     <td>
                         <div class="input-with-dropdown">
-                            <button type="button" class="trigger-dropdown">▼</button>
+                            <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                             <div class="type-dropdown" style="display: none;">
                                 <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
                                 <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
@@ -224,7 +233,7 @@
                     </td>
                     <td>
                         <div class="input-with-dropdown">
-                            <button type="button" class="trigger-dropdown">▼</button>
+                            <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                             <div class="type-dropdown" style="display: none;">
                                 <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
                                 <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
@@ -250,13 +259,6 @@
             </tbody>
         </table>
 
-        <div class = "buttons">
-            <button id="export-excel" class="no-print">Export to Excel</button>
-            <button id="print-dashboard" class="no-print">Print Dashboard</button>
-        </div>
-        <form method="post" th:action="@{/logout}" class="no-print">
-            <button type="submit">Logout</button>
-        </form>
     </div>
 </body>
 </html>
