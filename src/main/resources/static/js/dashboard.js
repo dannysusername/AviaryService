@@ -88,7 +88,8 @@ function autoSaveUserInfo(input) {
             headers: { [csrfHeader]: csrfToken }
         })
         .then(response => {
-            console.log('User info saved successfully');
+            console.log('User info saved successfully: ');
+            console.log(data);
             // Optionally add a status indicator next to the input if needed
 
             // NEW: Update the adjacent print-only span with the new value
@@ -144,7 +145,7 @@ function updateOrderOnServer() {
         }
     })
     .then(response => {
-        console.log('RESPONSE: Order updated');
+        console.log('Order of rows updated');
     })
     .catch(error => {
         console.error('RESPONSE: Error updating order:', error);
@@ -166,13 +167,6 @@ document.addEventListener('click', function(event) {
     }
 });
 
-function closeDropdownOutside(event) {
-    if (!event.target.closest('.custom-dropdown')) {
-        document.querySelectorAll('.dropdown-options').forEach(dropdown => {
-            dropdown.style.display = 'none';
-        });
-    }
-}
 
 function closeDropdownOutside(event) {
     if (!event.target.closest('.custom-dropdown')) {
@@ -386,21 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAddRowTimeLeft();
     scheduleMidnightUpdate();
     
-    console.log('Dropdown triggers found:', document.querySelectorAll('.dropdown-trigger').length);
-    console.log('add-row td:nth-child(5) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(5) .input-with-dropdown'));
-    console.log('add-row td:nth-child(6) .input-with-dropdown:', document.querySelector('.add-row td:nth-child(6) .input-with-dropdown'));
-
     document.querySelectorAll('.user-info-input').forEach(input => {
         input.addEventListener('input', () => autoSaveUserInfo(input));
     });
 
-
-    /*
-    document.addEventListener('click', function(event) {
-        
-    });
-
-    */
 
     document.addEventListener('click', function(event) {
         if (event.target.className === 'remove-option-btn') {
@@ -821,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ajax: 'true'
         };
 
-        console.log("New row REQUEST: ", data);
+        console.log("NEW Service timeline row, POST request -->: ", data);
 
         axios.post('/dashboard', data, {
             headers: {
@@ -1144,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update My Hours print-only span
         const currentHours = document.getElementById('current-hours').value || '0';
-        document.getElementById('print-current-hours').textContent = `Current Hours: ${currentHours}`;
+        document.getElementById('current-hours-display').textContent = `Current Hours: ${currentHours}`;
 
         // Update print-only spans in table rows with current values
         document.querySelectorAll('.sortable tr:not(.title-row)').forEach(row => {
@@ -1181,6 +1164,114 @@ document.addEventListener('DOMContentLoaded', () => {
         // Trigger browser print dialog
         window.print();
     }
+
+    const activeButton = document.querySelector('.tab-button.active');
+    if (activeButton) {
+        const initialTabId = activeButton.dataset.tab;
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.style.display = 'none';
+        });
+        document.getElementById(initialTabId).style.display = 'block';
+    }
+
+    // NEW: Tab switching
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            button.classList.add('active');
+            document.getElementById(button.dataset.tab).style.display = 'block';
+        });
+    });
+
+
+    // NEW: Add log row via AJAX
+    document.getElementById('add-log-button').addEventListener('click', () => {
+        const data = {
+            fromAirport: document.getElementById('fromAirport').value,
+            toAirport: document.getElementById('toAirport').value,
+            hobbsIn: parseFloat(document.getElementById('hobbsIn').value) || null,
+            hobbsOut: parseFloat(document.getElementById('hobbsOut').value) || null,
+            tachIn: parseFloat(document.getElementById('tachIn').value) || null,
+            tachOut: parseFloat(document.getElementById('tachOut').value) || null
+        };
+
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+       
+        console.log("NEW flight log row, POST request -->", data); 
+
+        axios.post('/addflightlog', data, {
+            headers: { 
+                [csrfHeader]: csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            const log = response.data;
+            console.log("Response: " + log);
+
+            const newRow = document.createElement('tr');
+            newRow.className = 'log-row';
+            newRow.dataset.id = log.id;
+            newRow.innerHTML = `
+                <td><span class="print-only">${log.fromAirport || ''}</span><input type="text" name="fromAirport" class="no-print" value="${log.fromAirport || ''}" readonly></td>
+                <td><span class="print-only">${log.toAirport || ''}</span><input type="text" name="toAirport" class="no-print" value="${log.toAirport || ''}" readonly></td>
+                <td><span class="print-only">${log.hobbsIn || ''}</span><input type="number" name="hobbsIn" class="no-print" value="${log.hobbsIn || ''}" readonly step="0.1"></td>
+                <td><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
+                <td><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
+                <td><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
+                <td class="delete-cell no-print"><button class="delete-log-icon">🗑️</button></td>
+            `;
+            document.getElementById('logbook-body').insertBefore(newRow, document.querySelector('.add-log-row'));
+
+            // Re-attach delete listener to new button
+            newRow.querySelector('.delete-log-icon').addEventListener('click', () => {
+                const row = newRow;
+                const id = row.dataset.id;
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                axios.delete(`/deleteflightlog/${id}`, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(() => row.remove())
+                .catch(error => console.error('Error deleting log:', error));
+            });
+
+            // Clear inputs
+            document.getElementById('fromAirport').value = '';
+            document.getElementById('toAirport').value = '';
+            document.getElementById('hobbsIn').value = '';
+            document.getElementById('hobbsOut').value = '';
+            document.getElementById('tachIn').value = '';
+            document.getElementById('tachOut').value = '';
+        })
+        .catch(error => {
+            console.error('Error adding log:', error);
+        });
+    });
+
+    // NEW: Delete log row
+    document.querySelectorAll('.delete-log-icon').forEach(button => {
+        button.addEventListener('click', () => {
+            const row = button.closest('tr');
+            const id = row.dataset.id;
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            axios.delete(`/deleteflightlog/${id}`, {
+                headers: { [csrfHeader]: csrfToken }
+            })
+            .then(() => {
+                row.remove();
+                console.log(`Log ${id} deleted`);
+            })
+            .catch(error => {
+                console.error('Error deleting log:', error);
+            });
+        });
+    });
 
 
 });

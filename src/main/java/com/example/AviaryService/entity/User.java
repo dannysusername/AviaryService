@@ -2,6 +2,7 @@ package com.example.AviaryService.entity;
 
 import jakarta.persistence.*;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "users")
@@ -17,7 +18,12 @@ public class User {
     private String password;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<ServiceTimeline> serviceTimeline;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<FlightLog> flightLogs;
 
     @Column
     private Integer hours; // New field to store total hours
@@ -120,7 +126,11 @@ public class User {
         this.makeModelSN = makeModelSN; 
     }
 
+    public List<FlightLog> getFlightLogs() {
+        return flightLogs;
+    }
     
-
-
+    public void setFlightLogs(List<FlightLog> flightLogs) {
+        this.flightLogs = flightLogs;
+    }
 }

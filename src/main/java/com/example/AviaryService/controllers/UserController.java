@@ -10,10 +10,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import com.example.AviaryService.entity.DescriptionOption;
+import com.example.AviaryService.entity.FlightLog;
 import com.example.AviaryService.entity.ServiceTimeline;
 import com.example.AviaryService.entity.User;
 import com.example.AviaryService.entity.DTO.TimelineUpdateDTO;
 import com.example.AviaryService.repositories.DescriptionOptionRepository;
+import com.example.AviaryService.repositories.FlightLogRepository;
 import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
 
@@ -32,6 +34,7 @@ public class UserController {
     @Autowired private ServiceTimelineRepository serviceTimelineRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private DescriptionOptionRepository descriptionOptionRepository;
+    @Autowired private FlightLogRepository flightLogRepository;
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
@@ -99,6 +102,7 @@ public class UserController {
         model.addAttribute("tailNumber", user.getTailNumber());
         model.addAttribute("ownerName", user.getOwnerName());
         model.addAttribute("makeModelSN", user.getMakeModelSN());
+        model.addAttribute("flightlogs", flightLogRepository.findByUser(user));
 
             return "dashboard";
     }
@@ -188,7 +192,7 @@ public class UserController {
         response.put("lastDone", timeline.getLastDone());
         response.put("dueDate", timeline.getDueDate());
         response.put("timeLeft", timeline.getTimeLeft());
-        response.put("isTitle", timeline.isTitle());
+        response.put("isTitle", timeline.getIsTitle());
         return ResponseEntity.ok(response);
     } else {
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create("/dashboard")).build();
@@ -336,6 +340,43 @@ public ResponseEntity<Map<String, String>> updateHours(
             }
         }
         serviceTimelineRepository.saveAll(timelines);
+    }
+
+    // NEW: GET flight logs (for AJAX if needed)
+    @GetMapping("/flightlogs")
+    @ResponseBody
+    public List<FlightLog> getFlightLogs(Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        return flightLogRepository.findByUser(user);
+    }
+
+    // NEW: POST to add flight log (now AJAX-friendly)
+    @PostMapping(value = "/addflightlog", consumes = "application/json")
+    @ResponseBody
+    public ResponseEntity<FlightLog> addFlightLog(@RequestBody FlightLog newLog, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        newLog.setUser(user);
+        FlightLog savedLog = flightLogRepository.save(newLog);
+        return ResponseEntity.ok(savedLog);  // Return the saved entity as JSON
+    }
+
+    // NEW: DELETE flight log
+    @DeleteMapping("/deleteflightlog/{id}")
+    @ResponseBody
+    @Transactional
+    public ResponseEntity<String> deleteFlightLog(@PathVariable Long id, Authentication authentication) {
+        try {
+            User user = userRepository.findByUsername(authentication.getName());
+            FlightLog log = flightLogRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Flight log not found"));
+            if (!log.getUser().equals(user)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not own this log");
+            }
+            flightLogRepository.delete(log);
+            return ResponseEntity.ok("Flight log deleted");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting flight log: " + e.getMessage());
+        }
     }
 
     private void saveCustomDescriptionOption(String description, User user) {
