@@ -501,6 +501,64 @@ textarea::placeholder {
     padding: 4px;
 }
 
+/* NEW: Tabs */
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    background: #87CFB4;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 0 5px;
+    border-radius: 5px;
+}
+
+.tab-button.active {
+    background: #409A78;
+    color: white;
+}
+
+.tab-content {
+    /* Existing main styles can apply */
+}
+
+/* NEW: Logbook table */
+.logbook-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.logbook-table th, .logbook-table td {
+    padding: 8px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+.logbook-table input {
+    width: 100%;
+    padding: 5px;
+}
+
+.add-log-button {
+    background: #409A78;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.delete-log-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+}
+
 /* Responsive styles for mobile (below 600px) */
 @media screen and (max-width: 600px) {
     /* Aircraft-info table: Stack cells vertically */

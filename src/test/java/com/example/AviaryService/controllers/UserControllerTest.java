@@ -94,7 +94,7 @@ class UserControllerTest {
         // Verify data in PostgreSQL
         User user = userRepository.findByUsername("user1");
         List<ServiceTimeline> timelines = serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user);
-        assertTrue(timelines.stream().anyMatch(t -> t.getItem().equals("Test Item") && Boolean.TRUE.equals(t.isTitle())));
+        assertTrue(timelines.stream().anyMatch(t -> t.getItem().equals("Test Item") && Boolean.TRUE.equals(t.getIsTitle())));
     }
 
     @Test
