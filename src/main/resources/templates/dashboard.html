@@ -30,15 +30,31 @@
             <button id="print-dashboard" class="no-print">Print Dashboard</button>
         </div>
 
+        <!--Hobbs hours and Tach hours display and edit-->
         <div class="my-hours">
             <h3>My Hours</h3>
-            <span class="current-hours-display" id="current-hours-display" th:text="'Current Hours: ' + ${currentHours}"></span>
-            <button class="edit-hours-btn no-print">✎</button>
+            <span class="current-hobbs-display" id="current-hobbs-display" th:text="'Hobbs Time: ' + ${hobbsHours}"></span>
+            <span class="current-tach-display" id="current-tach-display" th:text="'Tach Time: ' + ${tachHours}"></span>
+            <button class="edit-hours-btn no-print">Edit</button>
             <div class="edit-hours-section no-print" style="display: none;">
-                <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" placeholder="Edit current hours">
-                <span>Add Hours:</span>
-                <input type="number" id="add-hours" placeholder="Enter hours to add">
-                <button id="add-hours-btn">Add</button>
+                <div class="hours-edit-row">
+                    <label>Edit Hobbs:</label>
+                    <input type="number" id="current-hobbs" th:value="${hobbsHours}" step="0.1" min="0" placeholder="Edit current Hobbs">
+                </div>
+                <div class="hours-edit-row">
+                    <label>Edit Tach:</label>
+                    <input type="number" id="current-tach" th:value="${tachHours}" step="0.1" min="0" placeholder="Edit current Tach">
+                </div>
+                <div class="hours-add-row">
+                    <span>Add Hobbs:</span>
+                    <input type="number" id="add-hobbs-time" step="0.1" placeholder="Enter Hobbs to add">
+                    <button id="add-hobbs-btn" class="add-btn">Add Hobbs</button>
+                </div>
+                <div class="hours-add-row">
+                    <span>Add Tach:</span>
+                    <input type="number" id="add-tach-time" step="0.1" placeholder="Enter Tach to add">
+                    <button id="add-tach-btn" class="add-btn">Add Tach</button>
+                </div>
             </div>
         </div>
     </div>
@@ -71,23 +87,6 @@
                         <td><input type="text" name="makeModelSN" autocomplete="make-model-s\n-tag" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Make/Model S/N"><span class="print-only" th:text="${makeModelSN}"></span></td>
                     </tr>
                 </tbody>
-            </table>
-
-            <table class = "hours-table">
-                <tr>
-                    <td class="Hobbs-hours-tag">Hobbs hours:</td>
-                    <td>
-                        <input type="text" name="hobbsHours" class="user-info-input no-print" th:value="${ownerName}" placeholder="Hobbs hours">
-                        <span class="print-only"></span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="Tach-hours-tag">Tach hours:</td>
-                    <td>
-                        <input type="text" name="tachHours" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Tach hours">
-                        <span class="print-only"></span>
-                    </td>
-                </tr>
             </table>
 
             <!-- Existing first table follows here -->

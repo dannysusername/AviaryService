@@ -3,7 +3,8 @@ console.log('dashboard.js loaded');
 let timeout;
 let userInfoTimeout;
 let hoursTimeout; // For debouncing hours updates
-let previousHours = document.getElementById('current-hours')?.value || 0;
+let previousHobbsHours = document.getElementById('current-hobbs')?.value || 0;
+let previousTachHours = document.getElementById('current-tach')?.value || 0;
 
 
 function setTextareaMinHeight(textarea) {
@@ -513,7 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Hide the dropdown after action
             button.closest('.type-dropdown').style.display = 'none';
         } else if (event.target.classList.contains('edit-hours-btn')) {
-            document.getElementById('add-hours').value = '';
+            document.getElementById('add-tach-time').value = '';
+            document.getElementById('add-hobbs-time').value = '';
             const editSection = document.querySelector('.edit-hours-section');
             editSection.style.display = editSection.style.display === 'block' ? 'none' : 'block';
         }
@@ -626,46 +628,92 @@ document.addEventListener('DOMContentLoaded', () => {
         options.forEach(option => option.onclick = () => selectOption(option));
     });
 
-    const currentHoursInput = document.getElementById('current-hours');
-    if (currentHoursInput) {
-        previousHours = currentHoursInput.value || 0;
-        currentHoursInput.addEventListener('input', function() {
-            updateAllTimeLeft();
-            updateAddRowTimeLeft();
-            clearTimeout(hoursTimeout);
-            const newTotalHours = this.value.trim();
-            if (newTotalHours === '' || isNaN(parseInt(newTotalHours))) {
-                return;
-            }
-            hoursTimeout = setTimeout(() => {
-                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                const params = new URLSearchParams();
-                params.append('newTotalHours', parseInt(newTotalHours));
-                axios.post('/updateHours', params, {
-                    headers: { [csrfHeader]: csrfToken }
-                })
-                .then(response => {
-                    if (response.data.status === 'success') {
-                        previousHours = newTotalHours;
-                        document.getElementById('current-hours-display').textContent = `Current Hours: ${newTotalHours}`;
-                        console.log('Hours updated successfully:', response.data.newHours);
-                    } else {
-                        this.value = previousHours;
-                        document.getElementById('current-hours-display').textContent = `Current Hours: ${previousHours}`;
-                        console.error('Failed to update hours:', response.data.message);
-                        alert('Failed to update hours');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating hours:', error.response ? error.response.data : error);
-                    this.value = previousHours;
-                    document.getElementById('current-hours-display').textContent = `Current Hours: ${previousHours}`;
-                    alert('Error updating hours');
-                });
-            }, 500);
-        });
-    }
+    let previousHobbsHours = 0;
+let previousTachHours = 0;
+let hoursTimeout;
+
+const currentHobbsHoursInput = document.getElementById('current-hobbs');
+const currentTachHoursInput = document.getElementById('current-tach');
+
+if (currentHobbsHoursInput) {
+    previousHobbsHours = currentHobbsHoursInput.value || 0;
+    currentHobbsHoursInput.addEventListener('input', function() {
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();
+        clearTimeout(hoursTimeout);
+        const newHobbsHours = this.value.trim();
+        if (newHobbsHours === '' || isNaN(parseFloat(newHobbsHours))) {
+            return;
+        }
+        hoursTimeout = setTimeout(() => {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            const params = new URLSearchParams();
+            params.append('newHobbsTime', parseFloat(newHobbsHours));
+            axios.post('/updateHours', params, {
+                headers: { [csrfHeader]: csrfToken }
+            })
+            .then(response => {
+                if (response.data.status === 'success') {
+                    previousHobbsHours = newHobbsHours;
+                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbsHours}`;
+                    console.log('Hobbs hours updated successfully:', response.data.newHobbs);
+                } else {
+                    this.value = previousHobbsHours;
+                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
+                    console.error('Failed to update hobbs hours:', response.data.message);
+                    alert('Failed to update hobbs hours');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating hours:', error.response ? error.response.data : error);
+                this.value = previousHobbsHours;
+                document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
+                alert('Failed to update hobbs hours');
+            });
+        }, 500);
+    });
+}
+
+if (currentTachHoursInput) {
+    previousTachHours = currentTachHoursInput.value || 0;
+    currentTachHoursInput.addEventListener('input', function() {
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();
+        clearTimeout(hoursTimeout);
+        const newTachHours = this.value.trim();
+        if (newTachHours === '' || isNaN(parseFloat(newTachHours))) {
+            return;
+        }
+        hoursTimeout = setTimeout(() => {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            const params = new URLSearchParams();
+            params.append('newTachTime', parseFloat(newTachHours));
+            axios.post('/updateHours', params, {
+                headers: { [csrfHeader]: csrfToken }
+            })
+            .then(response => {
+                if (response.data.status === 'success') {
+                    previousTachHours = newTachHours;
+                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTachHours}`;
+                    console.log('Tach hours updated successfully:', response.data.newTach);
+                } else {
+                    this.value = previousTachHours;
+                    document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
+                    console.error('Failed to update tach hours:', response.data.message);
+                    alert('Failed to update tach hours');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating hours:', error.response ? error.response.data : error);
+                this.value = previousTachHours;
+                document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
+                alert('Failed to update Tach hours');
+            });
+        }, 500);
+    });
+}
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
         ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -994,37 +1042,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.getElementById('add-hours-btn').addEventListener('click', function() {
-        const hoursToAdd = document.getElementById('add-hours').value.trim();
-        if (hoursToAdd && !isNaN(hoursToAdd)) {
-            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-            const params = new URLSearchParams();
-            params.append('hoursToAdd', parseInt(hoursToAdd));
-            console.log(hoursToAdd + " hours added");
-            axios.post('/updateHours', params, {
-                headers: { [csrfHeader]: csrfToken }
-            })
-            .then(response => {
-                if (response.data.status === 'success') {
-                    const newHours = response.data.newHours;
-                    document.getElementById('current-hours').value = newHours; // Update the input value
-                    document.getElementById('current-hours-display').textContent = `Current Hours: ${newHours}`;
-                    previousHours = newHours; // Update previousHours
-                    //document.getElementById('add-hours').value = ''; // Clear the input
-                    console.log('Hours added successfully:', newHours);
-                    // Add these lines to update "time left" immediately
-                    updateAllTimeLeft();      // Update all existing rows
-                    updateAddRowTimeLeft();   // Update the add row
-                } else {
-                    console.error('Failed to add hours:', response.data.message);
-                    alert('Failed to add hours');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding hours:', error.response ? error.response.data : error);
-                alert('Error adding hours');
-            });
+    document.addEventListener('click', function(event) {
+        
+        if (event.target.id === 'add-hobbs-btn') {
+            const hobbsTimeToAdd = document.getElementById('add-hobbs-time').value.trim();
+            if (hobbsTimeToAdd && !isNaN(hobbsTimeToAdd)) {
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                const params = new URLSearchParams();
+                params.append('hobbsTimeToAdd', parseFloat(hobbsTimeToAdd));
+                console.log(hobbsTimeToAdd + " Hobbs time added");
+                axios.post('/updateHours', params, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        console.log(response);
+                        const newHobbs = response.data.newHobbs;
+                        document.getElementById('current-hobbs').value = newHobbs; // Update the input value
+                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
+                        previousHobbsHours = newHobbs; // Update previousHobbsHours
+                        console.log('Hobbs hours added successfully, new Hobbs hour saved: ', newHobbs);
+                        // Add these lines to update "time left" immediately
+                        updateAllTimeLeft();      // Update all existing rows
+                        updateAddRowTimeLeft();   // Update the add row
+                    } else {
+                        console.error('Failed to add hours:', response.data.message);
+                        alert('Failed to add hours');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding hours:', error.response ? error.response.data : error);
+                    alert('Error adding hours');
+                });
+            }
+
+        } else if (event.target.id === 'add-tach-btn') {
+            const tachTimeToAdd = document.getElementById('add-tach-time').value.trim();
+            if (tachTimeToAdd && !isNaN(tachTimeToAdd)) {
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                const params = new URLSearchParams();
+                params.append('tachTimeToAdd', parseFloat(tachTimeToAdd));
+                console.log(tachTimeToAdd + " tach time added");
+                axios.post('/updateHours', params, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        const newTach = response.data.newTach;
+                        document.getElementById('current-tach').value = newTach; // Update the input value
+                        document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
+                        previousTachHours = newTach; // Update previousTachHours
+                        console.log('Tach time added successfully, new Tach hours saved', newTach);
+                        // Add these lines to update "time left" immediately
+                        updateAllTimeLeft();      // Update all existing rows
+                        updateAddRowTimeLeft();   // Update the add row
+                    } else {
+                        console.error('Failed to add hours:', response.data.message);
+                        alert('Failed to add hours');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding hours:', error.response ? error.response.data : error);
+                    alert('Error adding hours');
+                });
+            }
+
         }
     });
 
