@@ -227,6 +227,9 @@ public ResponseEntity<Map<String, String>> updateHours(
             updated = true;
         }
 
+        double finalHobbs = user.getHobbsHours();
+        System.out.println("Current hobbs: " + finalHobbs);
+
         if (newTachTime != null) {
             user.setTachHours(newTachTime);
             System.out.println("Setting Tach time to: " + newTachTime);
@@ -237,6 +240,9 @@ public ResponseEntity<Map<String, String>> updateHours(
             System.out.println("Adding " + tachTimeToAdd + " to current Tach: " + currentTach);
             updated = true;
         }
+
+        double finalTach = user.getTachHours();
+        System.out.println("Current Tach: " + finalTach);
 
         if (!updated) {
             throw new IllegalArgumentException("At least one update parameter must be provided");
@@ -256,8 +262,6 @@ public ResponseEntity<Map<String, String>> updateHours(
         return ResponseEntity.badRequest().body(errorResponse);
     }
 }
-
-    // Other existing methods remain unchanged...
 
 
     @PostMapping("/update/{id}")

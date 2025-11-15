@@ -26,10 +26,10 @@ public class User {
     private List<FlightLog> flightLogs;
 
     @Column
-    private Double hobbsHours = 0.0;
+    private Double hobbsHours;
 
     @Column
-    private Double tachHours = 0.0;
+    private Double tachHours;
 
     @Column
     private String makeModel;

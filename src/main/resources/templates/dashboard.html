@@ -91,7 +91,7 @@
 
             <!-- Existing first table follows here -->
             <table>
-                <thead>
+                <thead class = "sortable-head">
                     <tr>
                         <th class = "grip-column no-print"></th> <!-- Grip column hidden in print -->
                         <th class = "print">Item</th>
@@ -293,12 +293,12 @@
                     </tr>
                     <!-- NEW: Add row for new log -->
                     <tr class="add-log-row">
-                        <td><input type="text" id="fromAirport" placeholder="From Airport"></td>
-                        <td><input type="text" id="toAirport" placeholder="To Airport"></td>
-                        <td><input type="number" id="hobbsIn" placeholder="Hobbs In" step="0.1"></td>
-                        <td><input type="number" id="hobbsOut" placeholder="Hobbs Out" step="0.1"></td>
-                        <td><input type="number" id="tachIn" placeholder="Tach In" step="0.1"></td>
-                        <td><input type="number" id="tachOut" placeholder="Tach Out" step="0.1"></td>
+                        <td><input type="text" id="fromAirport" name = "fromAirport" autocomplete = "fromAirport" placeholder="From Airport"></td>
+                        <td><input type="text" id="toAirport" name = "toAirport" autocomplete = "toAirport" placeholder="To Airport"></td>
+                        <td><input type="number" id="hobbsIn" name = "hobbsIn" autocomplete = "hobbsIn"placeholder="Hobbs In" step="0.1"></td>
+                        <td><input type="number" id="hobbsOut" name = "hobbsOut" autocomplete = "hobbsOut" placeholder="Hobbs Out" step="0.1"></td>
+                        <td><input type="number" id="tachIn" name = "tachIn" autocomplete = "tachIn" placeholder="Tach In" step="0.1"></td>
+                        <td><input type="number" id="tachOut" name = "tachOut" autocomplete = "tachOut" placeholder="Tach Out" step="0.1"></td>
                         <td class="add-cell">
                             <button id="add-log-button" class="add-log-button">Add</button>
                         </td>

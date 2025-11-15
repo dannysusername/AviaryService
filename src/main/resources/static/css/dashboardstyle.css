@@ -602,9 +602,7 @@ textarea::placeholder {
         text-align: right;
     }
 
-    body > div.main > table:nth-child(3) > thead {
-        display: none;
-    }
+    
 
     /* Sortable table: Transform into cards */
     .sortable {
@@ -614,7 +612,7 @@ textarea::placeholder {
         margin: 0 10px;
     }
 
-    body > div.main > table:nth-child(4) > thead {
+    .sortable-head {
         display: none;
     }
 
