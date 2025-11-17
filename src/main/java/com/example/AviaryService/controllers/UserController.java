@@ -122,7 +122,7 @@ public class UserController {
     String cycle = data.get("cycle");
     String lastDone = data.get("lastDone");
     String dueDate = data.get("dueDate");
-    String timeLeft = data.get("timeLeft"); // POSSIBLY REMOVE THIS !!!
+    String timeLeft = data.get("timeLeft"); 
     String ajax = data.getOrDefault("ajax", "false");
 
     User user = userRepository.findByUsername(authentication.getName());

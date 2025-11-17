@@ -1,25 +1,23 @@
 <!DOCTYPE html>
-<html xmlns:th = "http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <title>Register</title>
-    <link rel = "stylesheet" th:href="@{/css/registerstyle.css}" href="/Users/danieli/Documents/Projects/aviaryservice/src/main/resources/static/css/registerstyle.css">
+    <title>Register</title> <!-- FIXED: Removed duplicate -->
+    <link rel="stylesheet" th:href="@{/css/registerstyle.css}" href="/Users/danieli/Documents/Projects/aviaryservice/src/main/resources/static/css/registerstyle.css">
 </head>
 <body>
-    <h1 class = "register-title">Register</h1>
-    <form class = "register-form" method="post" th:action="@{/register}">
-        <div class = "username-password">
-            <label class = "username-label"></label>
-            <input class = "username-input-box" type="text" name="username" placeholder="Username" required>
-            <label class = "password-label"></label>
-            <input class = "password-input-box" type="password" name="password" placeholder="Password" required><br>
+    <h1 class="register-title">Register</h1>
+    <form class="register-form" method="post" th:action="@{/register}">
+        <div class="username-password">
+            <label class="username-label"></label>
+            <input class="username-input-box" type="text" name="username" placeholder="Username" required>
+            <label class="password-label"></label>
+            <input class="password-input-box" type="password" name="password" placeholder="Password" required> <!-- FIXED: Removed <br> -->
         </div>
         <div th:if="${error}" th:text="${error}" style="color: red;"></div>
-        <button class = "register-button" type="submit"></button>
+        <button class="register-button" type="submit"></button>
         <p>Already have an account? <a href="/login">Login here</a></p>
     </form>
-    
 </body>
 </html>

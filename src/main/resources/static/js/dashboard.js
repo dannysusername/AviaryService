@@ -868,7 +868,7 @@ if (currentTachHoursInput) {
         newRow.className = 'title-row';
         newRow.innerHTML = `
             <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
-            <td colspan="7" class="title-cell">${newRowData.item}</td>
+            <td colspan="6" class="title-cell">${newRowData.item}</td>
             <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
         `;
     } else {
@@ -883,7 +883,7 @@ if (currentTachHoursInput) {
                 <div class="custom-dropdown">
                     <div class="selected-option no-print">${newRowData.description}</div>
                     <input type="hidden" name="description" value="${newRowData.description}">
-                    <button class="dropdown-trigger no-print">▼</button>
+                    <i class="fa-solid fa-chevron-down dropdown-trigger"></i>
                     <div class="dropdown-options no-print">
                         <div class="option" data-value="">--None--</div>
                         <div class="option" data-value="Inspect">Inspect</div>
@@ -901,7 +901,7 @@ if (currentTachHoursInput) {
             <td><textarea name="cycle" class="no-print" oninput="autoSave(this)">${newRowData.cycle}</textarea><span class="print-only">${newRowData.cycle}</span></td>
             <td>
                 <div class="input-with-dropdown no-print">
-                    <button class="trigger-dropdown">▼</button>
+                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                     <div class="type-dropdown" style="display: none;">
                         <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
                         <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
@@ -911,7 +911,7 @@ if (currentTachHoursInput) {
             </td>
             <td>
                 <div class="input-with-dropdown no-print">
-                    <button class="trigger-dropdown">▼</button>
+                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                     <div class="type-dropdown" style="display: none;">
                         <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
                         <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
