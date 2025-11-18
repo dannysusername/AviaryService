@@ -867,9 +867,9 @@ if (currentTachHoursInput) {
     if (newRowData.isTitle) {
         newRow.className = 'title-row';
         newRow.innerHTML = `
-            <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
+            <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
             <td colspan="6" class="title-cell">${newRowData.item}</td>
-            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
         `;
     } else {
         newRow.className = 'auto-save-row';
@@ -877,13 +877,13 @@ if (currentTachHoursInput) {
         newRow.setAttribute('data-dueDate', newRowData.dueDate);
         newRow.setAttribute('data-cycle', newRowData.cycle);
         newRow.innerHTML = `
-            <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
+            <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
             <td><textarea name="item" class="no-print" oninput="autoSave(this)">${newRowData.item}</textarea><span class="print-only">${newRowData.item}</span></td>
             <td>
-                <div class="custom-dropdown">
+                <div class="custom-dropdown no-print">
                     <div class="selected-option no-print">${newRowData.description}</div>
                     <input type="hidden" name="description" value="${newRowData.description}">
-                    <i class="fa-solid fa-chevron-down dropdown-trigger"></i>
+                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                     <div class="dropdown-options no-print">
                         <div class="option" data-value="">--None--</div>
                         <div class="option" data-value="Inspect">Inspect</div>
@@ -920,7 +920,7 @@ if (currentTachHoursInput) {
                 <span class="print-only">${newRowData.dueDate}</span>
             </td>
             <td><div class="time-left">${newRowData.timeLeft}</div></td>
-            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
         `;
                 // Handle lastDone and dueDate inputs (existing code)
                 ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -1314,7 +1314,7 @@ if (currentTachHoursInput) {
                 <td><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
                 <td><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
                 <td><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
-                <td class="delete-cell no-print"><button class="delete-log-icon">🗑️</button></td>
+                <td class="delete-cell no-print"><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
             `;
             document.getElementById('logbook-body').insertBefore(newRow, document.querySelector('.add-log-row'));
 
@@ -1325,13 +1325,19 @@ if (currentTachHoursInput) {
                 const id = row.dataset.id;
                 const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
                 const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                axios.delete(`/deleteflightlog/${id}`, {
-                    headers: { [csrfHeader]: csrfToken }
-                })
-                .then(() => row.remove())
-                .catch(error => console.error('Error deleting log:', error));
-                });
+
+                if (confirm('Are you sure you want to delete this entry?')) {
+                    axios.delete(`/deleteflightlog/${id}`, {
+                        headers: { [csrfHeader]: csrfToken }
+                    })
+                    .then(() => row.remove())
+                    .catch(error => console.error('Error deleting log:', error));
+
+                }
+                    
             });
+                
+        });
 
             const hobbsDiff = hobbsOut - hobbsIn;
             const tachDiff = tachOut - tachIn;

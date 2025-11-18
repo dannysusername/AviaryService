@@ -687,6 +687,10 @@ textarea::placeholder {
         max-height: 150px;
     }
 
+    .extra-input {
+        height: 40px;
+    }
+
     /* Add row adjustments */
     .add-row {
         display: block;
@@ -979,4 +983,3 @@ textarea::placeholder {
     }
 
 }
-

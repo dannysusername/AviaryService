@@ -117,16 +117,15 @@
                         <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
                             <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
                             <td colspan="6" class="title-cell" th:text="${timeline.item}"></td>
-                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
                         </tr>
                         <!-- Regular item row -->
                         <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">                           
-                            <i class="fa-solid fa-grip-vertical"></i>
-                            <td class = "grip-cell"><i class="fa-solid fa-grip-vertical"></i><span class="grip-icon no-print">⋮</span></td>
+                            <td class = "grip-cell"><i class="fa-solid fa-grip-vertical"></i></td>
                             <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea>
                                 <span class="print-only" th:text="${timeline.item}"></span></td>
                             <td>
-                                <div class="custom-dropdown">
+                                <div class="custom-dropdown no-print">
                                     <div class="selected-option no-print"></div>
                                     <input type="hidden" name="description" th:value="${timeline.description}">
                                     <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
@@ -138,7 +137,7 @@
                                         <div class="option" data-value="Overhaul">Overhaul</div>
                                         <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:data-option-id="${option.id}">
                                             <span th:text="${option.option}"></span>
-                                            <button class="remove-option-btn" th:data-option-id="${option.id}">x</button>
+                                            <button class="remove-option-btn" th:data-option-id="${option.id}"><i class="fa-solid fa-xmark"></i></button>
                                         </div>
                                         <div class="add-option-container">
                                             <input type="text" class="custom-description" placeholder="New option">
@@ -183,7 +182,7 @@
                             </td>
                             <td><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
                             <!--<td class="status-cell"><span class="save-status no-print">✓</span></td>-->
-                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
                         </tr>
                     </th:block>
                 </tbody>
@@ -206,8 +205,8 @@
                             <input type="hidden" name="isTitle" id="isTitleHidden" value="false">
                         </td>
                         <td>
-                            <div class="custom-dropdown">
-                                <div class="selected-option"></div>
+                            <div class="custom-dropdown no-print">
+                                <div class="selected-option no-print"></div>
                                 <input type="hidden" name="description" value="">
                                 <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                 <div class="dropdown-options" style="display: none;">
@@ -310,7 +309,7 @@
                             <input type="number" name="tachOut" class="no-print" th:value="${log.tachOut}" readonly step="0.1">
                         </td>
                         <td class="delete-cell no-print" data-label="">
-                            <button class="delete-log-icon">🗑️</button>
+                            <button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button>
                         </td>
                     </tr>
                     <!-- NEW: Add row for new log -->

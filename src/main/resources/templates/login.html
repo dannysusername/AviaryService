@@ -3,6 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- NEW: Add for consistent responsiveness -->
     <link rel="stylesheet" th:href="@{/css/loginstyle.css}" href="/Users/danieli/Documents/Projects/aviaryservice/src/main/resources/static/css/loginstyle.css">
+    <script src="https://kit.fontawesome.com/647fe92b87.js" crossorigin="anonymous"></script>
     <title>Login</title>
 </head>
 <body> 
@@ -26,7 +27,7 @@
         <button class="google-signin-btn" type="submit"> <!-- Note: If this is for actual Google auth, use a separate action or JS; currently it's same as regular submit -->
             <div class="google-logo-and-text">
                 <div class="signin-google-text"></div>
-                <div class="google-logo"></div>
+                <div class="google-logo"><i class="fa-brands fa-google fa-2xl"></i></div>
             </div>
         </button>
         <p>Need an account? <a href="/register">Register here</a></p>
