@@ -3,7 +3,8 @@ console.log('dashboard.js loaded');
 let timeout;
 let userInfoTimeout;
 let hoursTimeout; // For debouncing hours updates
-let previousHours = document.getElementById('current-hours')?.value || 0;
+let previousHobbsHours = document.getElementById('current-hobbs')?.value || 0;
+let previousTachHours = document.getElementById('current-tach')?.value || 0;
 
 
 function setTextareaMinHeight(textarea) {
@@ -43,10 +44,10 @@ function autoSave(input) {
 
     const timeLeftSpan = row.querySelector('td:nth-child(7) .time-left');
     if (timeLeftSpan) {
-        const currentHoursInput = document.getElementById('current-hours');
-        const currentHours = currentHoursInput ? parseInt(currentHoursInput.value) || 0 : 0;
+        const currentTachHoursInput = document.getElementById('current-tach');
+        const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
         const dueDate = data.dueDate || '';
-        setTimeLeftText(timeLeftSpan, calculateTimeLeft(dueDate, currentHours));
+        setTimeLeftText(timeLeftSpan, calculateTimeLeft(dueDate, currentTachHours));
         data.timeLeft = timeLeftSpan.textContent;
     }
 
@@ -249,7 +250,7 @@ function updateDropdownWidths() {
     });
 }
 
-function calculateTimeLeft(dueDateStr, currentHours) {
+function calculateTimeLeft(dueDateStr, currentTachHours) {
     if (!dueDateStr) return 'N/A';
 
     const now = new Date();
@@ -271,8 +272,8 @@ function calculateTimeLeft(dueDateStr, currentHours) {
     // Calculate hours if dueDate has a clock value
     if (dueDateTime) {
         const dueDateHours = parseInt(dueDateTime);
-        if (!isNaN(dueDateHours) && !isNaN(currentHours)) {
-            const hoursLeft = dueDateHours - currentHours;
+        if (!isNaN(dueDateHours) && !isNaN(currentTachHours)) {
+            const hoursLeft = dueDateHours - currentTachHours;
             const hoursText = hoursLeft < 0 ? `${Math.abs(hoursLeft)} hours overdue` : `${hoursLeft} hours left`;
             output += output ? `\n${hoursText}` : hoursText;
         }
@@ -290,9 +291,9 @@ function setTimeLeftText(cell, text) {
 
 // Function to update all Time Left cells in real-time
 function updateAllTimeLeft() {
-    const currentHoursInput = document.getElementById('current-hours');
-    const currentHours = currentHoursInput ? parseInt(currentHoursInput.value) || 0 : 0;
-    console.log('Current Hours:', currentHours);
+    const currentTachHoursInput = document.getElementById('current-tach');
+    const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
+
     document.querySelectorAll('.auto-save-row').forEach(row => {
         const dueDateContainer = row.querySelector('td:nth-child(6) .input-with-dropdown');
         const timeLeftCell = row.querySelector('td:nth-child(7) .time-left');
@@ -303,7 +304,7 @@ function updateAllTimeLeft() {
             if (dueDateDate) dueDateStr += dueDateDate.value;
             if (dueDateText) dueDateStr += dueDateStr ? ` ${dueDateText.value}` : dueDateText.value;
             console.log('Due Date String:', dueDateStr);
-            const timeLeftText = calculateTimeLeft(dueDateStr, currentHours);
+            const timeLeftText = calculateTimeLeft(dueDateStr, currentTachHours);
             console.log('Calculated Time Left:', timeLeftText);
             setTimeLeftText(timeLeftCell, timeLeftText);
         }
@@ -312,8 +313,8 @@ function updateAllTimeLeft() {
 }
 
 function updateAddRowTimeLeft() {
-    const currentHoursInput = document.getElementById('current-hours');
-    const currentHours = currentHoursInput ? parseInt(currentHoursInput.value) || 0 : 0;
+    const currentTachHoursInput = document.getElementById('current-tach');
+    const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
     const addRow = document.querySelector('.add-row');
     const dueDateContainer = addRow.querySelector('td:nth-child(6) .input-with-dropdown');
     const timeLeftCell = addRow.querySelector('td:nth-child(7) .time-left');
@@ -325,7 +326,7 @@ function updateAddRowTimeLeft() {
         if (dueDateDate) dueDateStr += dueDateDate.value;
         if (dueDateText) dueDateStr += dueDateStr ? ` ${dueDateText.value}` : dueDateText.value;
 
-        setTimeLeftText(timeLeftCell, calculateTimeLeft(dueDateStr, currentHours));
+        setTimeLeftText(timeLeftCell, calculateTimeLeft(dueDateStr, currentTachHours));
     }
 }
 
@@ -513,7 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Hide the dropdown after action
             button.closest('.type-dropdown').style.display = 'none';
         } else if (event.target.classList.contains('edit-hours-btn')) {
-            document.getElementById('add-hours').value = '';
+            document.getElementById('add-tach-time').value = '';
+            document.getElementById('add-hobbs-time').value = '';
             const editSection = document.querySelector('.edit-hours-section');
             editSection.style.display = editSection.style.display === 'block' ? 'none' : 'block';
         }
@@ -626,46 +628,92 @@ document.addEventListener('DOMContentLoaded', () => {
         options.forEach(option => option.onclick = () => selectOption(option));
     });
 
-    const currentHoursInput = document.getElementById('current-hours');
-    if (currentHoursInput) {
-        previousHours = currentHoursInput.value || 0;
-        currentHoursInput.addEventListener('input', function() {
-            updateAllTimeLeft();
-            updateAddRowTimeLeft();
-            clearTimeout(hoursTimeout);
-            const newTotalHours = this.value.trim();
-            if (newTotalHours === '' || isNaN(parseInt(newTotalHours))) {
-                return;
-            }
-            hoursTimeout = setTimeout(() => {
-                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                const params = new URLSearchParams();
-                params.append('newTotalHours', parseInt(newTotalHours));
-                axios.post('/updateHours', params, {
-                    headers: { [csrfHeader]: csrfToken }
-                })
-                .then(response => {
-                    if (response.data.status === 'success') {
-                        previousHours = newTotalHours;
-                        document.getElementById('current-hours-display').textContent = `Current Hours: ${newTotalHours}`;
-                        console.log('Hours updated successfully:', response.data.newHours);
-                    } else {
-                        this.value = previousHours;
-                        document.getElementById('current-hours-display').textContent = `Current Hours: ${previousHours}`;
-                        console.error('Failed to update hours:', response.data.message);
-                        alert('Failed to update hours');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating hours:', error.response ? error.response.data : error);
-                    this.value = previousHours;
-                    document.getElementById('current-hours-display').textContent = `Current Hours: ${previousHours}`;
-                    alert('Error updating hours');
-                });
-            }, 500);
-        });
-    }
+    let previousHobbsHours = 0;
+let previousTachHours = 0;
+let hoursTimeout;
+
+const currentHobbsHoursInput = document.getElementById('current-hobbs');
+const currentTachHoursInput = document.getElementById('current-tach');
+
+if (currentHobbsHoursInput) {
+    previousHobbsHours = currentHobbsHoursInput.value || 0;
+    currentHobbsHoursInput.addEventListener('input', function() {
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();
+        clearTimeout(hoursTimeout);
+        const newHobbsHours = this.value.trim();
+        if (newHobbsHours === '' || isNaN(parseFloat(newHobbsHours))) {
+            return;
+        }
+        hoursTimeout = setTimeout(() => {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            const params = new URLSearchParams();
+            params.append('newHobbsTime', parseFloat(newHobbsHours));
+            axios.post('/updateHours', params, {
+                headers: { [csrfHeader]: csrfToken }
+            })
+            .then(response => {
+                if (response.data.status === 'success') {
+                    previousHobbsHours = newHobbsHours;
+                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbsHours}`;
+                    console.log('Hobbs hours updated successfully:', response.data.newHobbs);
+                } else {
+                    this.value = previousHobbsHours;
+                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
+                    console.error('Failed to update hobbs hours:', response.data.message);
+                    alert('Failed to update hobbs hours');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating hours:', error.response ? error.response.data : error);
+                this.value = previousHobbsHours;
+                document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
+                alert('Failed to update hobbs hours');
+            });
+        }, 500);
+    });
+}
+
+if (currentTachHoursInput) {
+    previousTachHours = currentTachHoursInput.value || 0;
+    currentTachHoursInput.addEventListener('input', function() {
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();
+        clearTimeout(hoursTimeout);
+        const newTachHours = this.value.trim();
+        if (newTachHours === '' || isNaN(parseFloat(newTachHours))) {
+            return;
+        }
+        hoursTimeout = setTimeout(() => {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            const params = new URLSearchParams();
+            params.append('newTachTime', parseFloat(newTachHours));
+            axios.post('/updateHours', params, {
+                headers: { [csrfHeader]: csrfToken }
+            })
+            .then(response => {
+                if (response.data.status === 'success') {
+                    previousTachHours = newTachHours;
+                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTachHours}`;
+                    console.log('Tach hours updated successfully:', response.data.newTach);
+                } else {
+                    this.value = previousTachHours;
+                    document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
+                    console.error('Failed to update tach hours:', response.data.message);
+                    alert('Failed to update tach hours');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating hours:', error.response ? error.response.data : error);
+                this.value = previousTachHours;
+                document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
+                alert('Failed to update Tach hours');
+            });
+        }, 500);
+    });
+}
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
         ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -819,9 +867,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newRowData.isTitle) {
         newRow.className = 'title-row';
         newRow.innerHTML = `
-            <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
-            <td colspan="7" class="title-cell">${newRowData.item}</td>
-            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+            <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
+            <td colspan="6" class="title-cell">${newRowData.item}</td>
+            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
         `;
     } else {
         newRow.className = 'auto-save-row';
@@ -829,13 +877,13 @@ document.addEventListener('DOMContentLoaded', () => {
         newRow.setAttribute('data-dueDate', newRowData.dueDate);
         newRow.setAttribute('data-cycle', newRowData.cycle);
         newRow.innerHTML = `
-            <td class="grip-cell"><span class="grip-icon no-print">⋮</span></td>
+            <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
             <td><textarea name="item" class="no-print" oninput="autoSave(this)">${newRowData.item}</textarea><span class="print-only">${newRowData.item}</span></td>
             <td>
-                <div class="custom-dropdown">
+                <div class="custom-dropdown no-print">
                     <div class="selected-option no-print">${newRowData.description}</div>
                     <input type="hidden" name="description" value="${newRowData.description}">
-                    <button class="dropdown-trigger no-print">▼</button>
+                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                     <div class="dropdown-options no-print">
                         <div class="option" data-value="">--None--</div>
                         <div class="option" data-value="Inspect">Inspect</div>
@@ -853,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td><textarea name="cycle" class="no-print" oninput="autoSave(this)">${newRowData.cycle}</textarea><span class="print-only">${newRowData.cycle}</span></td>
             <td>
                 <div class="input-with-dropdown no-print">
-                    <button class="trigger-dropdown">▼</button>
+                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                     <div class="type-dropdown" style="display: none;">
                         <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
                         <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
@@ -863,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
             <td>
                 <div class="input-with-dropdown no-print">
-                    <button class="trigger-dropdown">▼</button>
+                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                     <div class="type-dropdown" style="display: none;">
                         <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
                         <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
@@ -872,7 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="print-only">${newRowData.dueDate}</span>
             </td>
             <td><div class="time-left">${newRowData.timeLeft}</div></td>
-            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
         `;
                 // Handle lastDone and dueDate inputs (existing code)
                 ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -994,39 +1042,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.getElementById('add-hours-btn').addEventListener('click', function() {
-        const hoursToAdd = document.getElementById('add-hours').value.trim();
-        if (hoursToAdd && !isNaN(hoursToAdd)) {
-            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-            const params = new URLSearchParams();
-            params.append('hoursToAdd', parseInt(hoursToAdd));
-            console.log(hoursToAdd + " hours added");
-            axios.post('/updateHours', params, {
-                headers: { [csrfHeader]: csrfToken }
-            })
-            .then(response => {
-                if (response.data.status === 'success') {
-                    const newHours = response.data.newHours;
-                    document.getElementById('current-hours').value = newHours; // Update the input value
-                    document.getElementById('current-hours-display').textContent = `Current Hours: ${newHours}`;
-                    previousHours = newHours; // Update previousHours
-                    //document.getElementById('add-hours').value = ''; // Clear the input
-                    console.log('Hours added successfully:', newHours);
-                    // Add these lines to update "time left" immediately
-                    updateAllTimeLeft();      // Update all existing rows
-                    updateAddRowTimeLeft();   // Update the add row
-                } else {
-                    console.error('Failed to add hours:', response.data.message);
-                    alert('Failed to add hours');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding hours:', error.response ? error.response.data : error);
-                alert('Error adding hours');
-            });
+    document.addEventListener('click', function(event) {
+        
+        if (event.target.id === 'add-hobbs-btn') {
+            const hobbsTimeToAdd = document.getElementById('add-hobbs-time').value.trim();
+            addHobbsHours(hobbsTimeToAdd);
+
+        } else if (event.target.id === 'add-tach-btn') {
+            const tachTimeToAdd = document.getElementById('add-tach-time').value.trim();
+            addTachHours(tachTimeToAdd);
         }
     });
+    
+    async function addHobbsHours(hobbsTimeToAdd) {
+        if (hobbsTimeToAdd && !isNaN(hobbsTimeToAdd)) {
+            await updateHours({ hobbsTimeToAdd: parseFloat(hobbsTimeToAdd) });
+        }
+    }
+    
+    // Updated addTachHours (now uses updateHours)
+    async function addTachHours(tachTimeToAdd) {
+        if (tachTimeToAdd && !isNaN(tachTimeToAdd)) {
+            await updateHours({ tachTimeToAdd: parseFloat(tachTimeToAdd) });
+        }
+    }
+
+    async function updateHours(updateParams) {
+        if (Object.keys(updateParams).length === 0) return;
+    
+        const params = new URLSearchParams();
+        Object.entries(updateParams).forEach(([key, value]) => {
+            params.append(key, value);
+        });
+    
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+    
+        try {
+            const response = await axios.post('/updateHours', params, {
+                headers: { [csrfHeader]: csrfToken }
+            });
+    
+            if (response.data.status === 'success') {
+                const { newHobbs, newTach } = response.data;
+    
+                if (newHobbs !== undefined) {
+                    document.getElementById('current-hobbs').value = newHobbs;
+                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
+                    previousHobbsHours = newHobbs;
+                    console.log('Hobbs updated successfully:', newHobbs);
+                }
+    
+                if (newTach !== undefined) {
+                    document.getElementById('current-tach').value = newTach;
+                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
+                    previousTachHours = newTach;
+                    console.log('Tach updated successfully:', newTach);
+                }
+    
+                // Update time left displays if needed (from your existing functions)
+                updateAllTimeLeft();
+                updateAddRowTimeLeft();
+            } else {
+                console.error('Failed to update hours:', response.data.message);
+                alert('Failed to update hours');
+            }
+        } catch (error) {
+            console.error('Error updating hours:', error.response ? error.response.data : error);
+            alert('Error updating hours');
+        }
+    }
 
     // New: Export button listener
     const exportBtn = document.getElementById('export-excel');
@@ -1041,12 +1126,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main export function
     function exportToExcel() {
-        const currentHoursInput = document.getElementById('current-hours');
-        const currentHours = currentHoursInput ? parseInt(currentHoursInput.value) || 0 : 0;
+        const currentTachHoursInput = document.getElementById('current-tach');
+        const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
 
         // Build array of arrays (aoa) for the sheet
         let aoa = [
-            ["Current Hours", currentHours], // Row 1: Reference for hour calcs (user can update B1 in Excel)
+            ["Current Hours", currentTachHours], // Row 1: Reference for hour calcs (user can update B1 in Excel)
             ["Item", "Description", "Cycle", "Last Done", "Due Date", "Time Left"] // Row 2: Headers
         ];
 
@@ -1079,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 // Compute initial Time Left for display (using your function)
-                const initialTimeLeft = calculateTimeLeft(dueDate, currentHours);
+                const initialTimeLeft = calculateTimeLeft(dueDate, currentTachHours);
 
                 aoa.push([item, desc, cycle, lastDone, dueDate, initialTimeLeft]);
                 dataRowIndices.push(aoa.length - 1); // Track for formula
@@ -1126,8 +1211,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAddRowTimeLeft();  // If applicable, though add-row is hidden
 
         // Update My Hours print-only span
-        const currentHours = document.getElementById('current-hours').value || '0';
-        document.getElementById('current-hours-display').textContent = `Current Hours: ${currentHours}`;
+        const currentTachHours = document.getElementById('current-tach').value || '0';
+        
 
         // Update print-only spans in table rows with current values
         document.querySelectorAll('.sortable tr:not(.title-row)').forEach(row => {
@@ -1186,31 +1271,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // NEW: Add log row via AJAX
-    document.getElementById('add-log-button').addEventListener('click', () => {
+    document.getElementById('add-log-button').addEventListener('click', async () => {  // Note: made async for await if needed
+        console.log("====ADD LOG ROW BUTTON EXECUTED====");
+    
+        const hobbsIn = parseFloat(document.getElementById('hobbsIn').value) || 0;
+        const hobbsOut = parseFloat(document.getElementById('hobbsOut').value) || 0;
+        const tachIn = parseFloat(document.getElementById('tachIn').value) || 0;
+        const tachOut = parseFloat(document.getElementById('tachOut').value) || 0;
+    
         const data = {
             fromAirport: document.getElementById('fromAirport').value,
             toAirport: document.getElementById('toAirport').value,
-            hobbsIn: parseFloat(document.getElementById('hobbsIn').value) || null,
-            hobbsOut: parseFloat(document.getElementById('hobbsOut').value) || null,
-            tachIn: parseFloat(document.getElementById('tachIn').value) || null,
-            tachOut: parseFloat(document.getElementById('tachOut').value) || null
+            hobbsIn: hobbsIn || null,
+            hobbsOut: hobbsOut || null,
+            tachIn: tachIn || null,
+            tachOut: tachOut || null
         };
-
+    
         const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-
-       
-        console.log("NEW flight log row, POST request -->", data); 
-
-        axios.post('/addflightlog', data, {
-            headers: { 
-                [csrfHeader]: csrfToken,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => {
-            const log = response.data;
-            console.log("Response: " + log);
+    
+        console.log("!!!NEW flight log row DATA, POST request -->", data); 
+    
+        try {
+            const response = await axios.post('/addflightlog', data, {
+                headers: { 
+                    [csrfHeader]: csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+    
+            const log = response.data;  // Assuming response.data is the saved log
+            console.log("Response: ", log);
 
             const newRow = document.createElement('tr');
             newRow.className = 'log-row';
@@ -1222,22 +1314,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
                 <td><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
                 <td><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
-                <td class="delete-cell no-print"><button class="delete-log-icon">🗑️</button></td>
+                <td class="delete-cell no-print"><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
             `;
             document.getElementById('logbook-body').insertBefore(newRow, document.querySelector('.add-log-row'));
 
             // Re-attach delete listener to new button
-            newRow.querySelector('.delete-log-icon').addEventListener('click', () => {
+            document.querySelectorAll('.delete-log-icon').forEach(button => {
+                button.addEventListener('click', () => {
                 const row = newRow;
                 const id = row.dataset.id;
                 const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
                 const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                axios.delete(`/deleteflightlog/${id}`, {
-                    headers: { [csrfHeader]: csrfToken }
-                })
-                .then(() => row.remove())
-                .catch(error => console.error('Error deleting log:', error));
+
+                if (confirm('Are you sure you want to delete this entry?')) {
+                    axios.delete(`/deleteflightlog/${id}`, {
+                        headers: { [csrfHeader]: csrfToken }
+                    })
+                    .then(() => row.remove())
+                    .catch(error => console.error('Error deleting log:', error));
+
+                }
+                    
             });
+                
+        });
+
+            const hobbsDiff = hobbsOut - hobbsIn;
+            const tachDiff = tachOut - tachIn;
+
+            console.log("HOBBS DIFFERENCE: ", hobbsDiff);
+            console.log("TACH DIFFERENCE: ", tachDiff);
+
+            // Prepare combined updates
+            const updates = {};
+            if (hobbsDiff > 0) updates.hobbsTimeToAdd = hobbsDiff;
+            if (tachDiff > 0) updates.tachTimeToAdd = tachDiff;
+
+            // Send combined update if needed
+            if (Object.keys(updates).length > 0) {
+                await updateHours(updates);
+            } else {
+                console.log("No positive diffs, no hours added");
+            }   
 
             // Clear inputs
             document.getElementById('fromAirport').value = '';
@@ -1246,6 +1364,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('hobbsOut').value = '';
             document.getElementById('tachIn').value = '';
             document.getElementById('tachOut').value = '';
+            } catch (error) {
+                console.error('Error adding log:', error);
+            }
+
         })
         .catch(error => {
             console.error('Error adding log:', error);
@@ -1254,24 +1376,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // NEW: Delete log row
     document.querySelectorAll('.delete-log-icon').forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {  // Made async
             const row = button.closest('tr');
             const id = row.dataset.id;
+    
+            const hobbsIn = parseFloat(row.querySelector('input[name="hobbsIn"]').value) || 0;
+            const hobbsOut = parseFloat(row.querySelector('input[name="hobbsOut"]').value) || 0;
+            const tachIn = parseFloat(row.querySelector('input[name="tachIn"]').value) || 0;
+            const tachOut = parseFloat(row.querySelector('input[name="tachOut"]').value) || 0;
+    
+            const hobbsDiff = hobbsOut - hobbsIn;
+            const tachDiff = tachOut - tachIn;
+    
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-
-            axios.delete(`/deleteflightlog/${id}`, {
-                headers: { [csrfHeader]: csrfToken }
-            })
-            .then(() => {
+    
+            try {
+                await axios.delete(`/deleteflightlog/${id}`, {
+                    headers: { [csrfHeader]: csrfToken }
+                });
+    
                 row.remove();
                 console.log(`Log ${id} deleted`);
-            })
-            .catch(error => {
+    
+                // Prepare combined subtracts
+                const updates = {};
+                if (hobbsDiff > 0) updates.hobbsTimeToAdd = -hobbsDiff;
+                if (tachDiff > 0) updates.tachTimeToAdd = -tachDiff;
+    
+                // Send combined update if needed
+                if (Object.keys(updates).length > 0) {
+                    await updateHours(updates);
+                }
+            } catch (error) {
                 console.error('Error deleting log:', error);
-            });
+            }
         });
     });
-
-
-});

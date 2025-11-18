@@ -1,356 +1,260 @@
+/* Add this for consistent resets */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 /* Login background */
-  body {
-    /* Auto layout */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    background: #87CFB4;
-  }
-  
-  /* login-title */
-  .login-title {
-    height: 20px;
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 700;
-    font-size: 48px;
-    line-height: 20px;
-    color: #FFFFFF;
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #87CFB4;
+  height: 100vh;
+  justify-content: center;
+}
 
-  }
+/* login-title */
+.login-title {
+  height: 50px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 20px;
+  color: #FFFFFF;
+}
+
+/* Login form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  align-items: center;
+  gap: 15px;
+  padding: 35px 0;
+  background: #409A78;
+  border-radius: 25px;
+  flex: none;
+  flex-grow: 0;
+  min-height: 400px; /* NEW: Optional min-height to make forms similar in size despite content differences */
+}
+
+/* username-password */
+.username-password {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  width: 85%;
+}
+
+/* username-label */
+.username-label {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0;
+  gap: 10px;
+  width: 100%;
+  height: 39px;
+  flex: none;
+  flex-grow: 0;
+}
+
+.username-label::before {
+  content: "Username";
+  width: 100%;
+  justify-content: flex-start;
+  height: 39px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: min(max(10vw, 20px), 40px);
+  line-height: 39px;
+  color: #FFFFFF;
+  flex: none;
+  flex-grow: 0;
+}
+
+/* username-input-box */
+.username-input-box, .password-input-box {
+  box-sizing: border-box;
+  padding: 0 20px;
+  width: 100%;
+  height: 50px;
+  font-size: 32px;
+  background: #FFFFFF;
+  border-radius: 50px;
+  flex: none;
+  flex-grow: 0;
+}
+
+.username-input-box::placeholder, .password-input-box::placeholder {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 39px;
+  color: #847F7F;
+}
+
+/* password-label */
+.password-label {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0;
+  width: 100%;
+  height: 39px;
+  flex: none;
+  flex-grow: 0;
+}
+
+.password-label::before {
+  content: "Password";
+  width: 100%;
+  justify-content: flex-start;
+  height: 39px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: min(max(10vw, 20px), 40px);
+  line-height: 39px;
+  color: #FFFFFF;
+  flex: none;
+  flex-grow: 0;
+}
+
+/* additional-buttons */
+.additional-buttons {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0;
+  flex-grow: 0; /* Adjusted for consistency */
+}
+
+/* checkbox-and-text */
+.checkbox-and-text {
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+  height: 26px;
+}
+
+/* checkbox */
+.checkbox-and-text input[type="checkbox"] { /* NEW: Style the proper checkbox */
+  width: 22px;
+  height: 22px;
+  flex: none;
+  flex-grow: 0;
+}
+
+/* Remember me */
+.checkbox-and-text p {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: min(max(4.5vw, 10px), 22px);
+  line-height: 20px;
+  align-items: center;
+  color: #FFFFFF;
   
-  /* Login form */
+}
+
+/* Forgot Password? */
+.additional-buttons a {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: min(max(4.5vw, 10px), 22px);
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  color: #FFFFFF;
+
+}
+
+/* login-button */
+.login-button {
+  width: 85%;
+  height: 64px;
+  background: #AFD7C8;
+  border-radius: 25px;
+}
+
+.login-button::before {
+  content: "Login";
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: min(max(4.5vw, 20px), 30px);
+  line-height: 34px;
+  color: #FFFFFF;
+}
+
+/* google-signin-btn */
+.google-signin-btn {
+  width: 85%;
+  max-width: 85%;
+  height: 64px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  background: #AFD7C8;
+  border-radius: 25px;
+}
+
+/* google-logo-and-text */
+.google-logo-and-text {
+  justify-content: center;
+  align-items:center;
+  width: 100%;
+  display: flex;
+  height: 100%;
+  flex-direction: row;
+  padding: 0;
+
+}
+
+/* google-logo */
+.google-logo {
+  width: 44px;
+  background: url(google-logo-9808); /* Replace with actual image URL */
+
+}
+
+/* signin-google-text */
+.signin-google-text {
+  display: flex;
+  flex-basis: 75%;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  height: 54px;
+}
+
+.signin-google-text::before {
+  content: "Sign in with Google";
+  font-family: 'Inter';
+  font-style: normal;
+  font-size: min(max(4.5vw, 5px), 30px);
+  font-weight: 500;
+  line-height: 34px;
+  color: #FFFFFF;
+
+}
+
+/* Mobile media query */
+@media screen and (max-width: 600px) {
   .login-form {
-    display: flex;
-    flex-direction: column;
-    width: 50%;
-    align-items: center;
-    gap: 15px;
-    padding: 35px 0px;
-  
-    background: #409A78;
-    border-radius: 25px;
-  
-    /* Inside auto layout */
-    flex: none;
-    order: 1;
-    flex-grow: 0;
-    align-items: center;
+    width: 80%;
   }
-  
-  /* username-password */
-  .username-password {
-    /* Auto layout */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 11px;
-  
-    
-    width: 85%;
-    left: calc(50% - 468px/2);
-    top: 18px;
-  }
-  
-  /* username-label */
-  .username-label {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 0px;
-    gap: 10px;
-  
-    width: 100%;
-    height: 39px;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  .username-label::before {
-    content: "Username";
-    width: 100%;
-    justify-content: flex-start;
-    height: 39px;
-  
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 400;
-    font-size: 32px;
-    line-height: 39px;
-    /* identical to box height */
-  
-    color: #FFFFFF;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  /* username-input-box */
-  .username-input-box, .password-input-box{
-    box-sizing: border-box;
-    padding: 0px 20px;
-    width: 100%;
-    height: 50px;
-    font-size: 32px;
-  
-    background: #FFFFFF;
-    border-radius: 50px;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  .username-input-box::placeholder, .password-input-box::placeholder {
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 500;
-    font-size: 28px;
-    line-height: 39px;
-    /* identical to box height */
-  
-    color: #847F7F;
-  }
-  
-  /* password-label */
-  .password-label {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 0px;
-  
-    width: 100%;
-    height: 39px;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  .password-label::before {
-    content: "Password";
-    width: 100%;
-    justify-content: flex-start;
-    height: 39px;
-  
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 400;
-    font-size: 32px;
-    line-height: 39px;
-    /* identical to box height */
-  
-    color: #FFFFFF;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
- 
-  
-  /* additional-buttons */
-  .additional-buttons {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 0px;
-   
-  
-    width: 100%;
-    height: 26px;
-    /* Inside auto layout */
-    order: 1; /* Necessary to be under "Inccorrect username or password" */
-
-  }
-  
-  /* checkbox-and-text */
-  .checkbox-and-text {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    padding: 0px;
-    gap: 12px;
-  
-    height: 26px;
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  /* checkbox (note: in HTML this is a button, consider changing to input[type=checkbox] for proper functionality) */
-  .checkbox-and-text button {
-    width: 22px;
-    height: 22px;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  /* target-size=44px (this seems like a touch target overlay, perhaps pseudo-element) */
-  .checkbox-and-text button::before {
-    content: "";
-    
-  }
-  
-  /* radio (this might be a misnomer; seems like checkbox border) */
-  .checkbox-and-text button::after {
-    content: "";
-    
-  }
-  
-  /* Remember me */
-  .checkbox-and-text p {
-    height: 26px;
-  
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 400;
-    font-size: 20px;
-    line-height: 20px;
-    /* or 100% */
-    display: flex;
-    align-items: center;
-  
-    color: #FFFFFF;
-  
-    /* Inside auto layout */
-    flex: none;
-    align-self: stretch;
-    flex-grow: 0;
-    margin: 0;
-  }
-  
-  /* Forgot Password? */
-  .additional-buttons a {
-    height: 26px;
-  
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 400;
-    font-size: 20px;
-    line-height: 20px;
-    /* or 100% */
-    display: flex;
-    align-items: center;
-  
-    color: #FFFFFF;
-  
-    /* Inside auto layout */
-    flex: none;
-    flex-grow: 0;
-  }
-  
-  /* login-button */
-  .login-button {
-    width: 85%;
-    height: 64px;
-  
-    background: #AFD7C8;
-    border-radius: 25px;
-  }
-  
-  .login-button::before {
-    content: "Login";
-    width: 85%;
-    height: 64px;
-    left: calc(50% - 74px/2);
-    top: calc(50% - 34px/2);
-  
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 500;
-    font-size: 28px;
-    line-height: 34px;
-    /* identical to box height */
-  
-    color: #FFFFFF;
-  }
-  
-  /* google-signin-btn */
-  .google-signin-btn {
-    width: 85%;
-    height: 64px;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  
-    background: #AFD7C8;
-    border-radius: 25px;
-  }
-  
-  /* google-logo-and-text */
-  .google-logo-and-text {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 0px;
-    gap: 1px;
-
-    width: 324px;
-    height: 54px;
-    left: 205.5px;
-    top: 5px;
-  }
-  
-  /* google-logo */
-  .google-logo {
-    width: 44px;
-    height: 44px;
-  
-    background: url(google-logo-9808); /* Note: replace with actual URL or image path */
-  
-    /* Inside auto layout */
-    flex: none;
-    order: 0;
-    flex-grow: 0;
-  }
-  
-  /* signin-google-text */
-  .signin-google-text {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-  
-    width: 279px;
-    height: 54px;
-  
-    /* Inside auto layout */
-    flex: none;
-    order: 1;
-    flex-grow: 0;
-  }
-  
-  .signin-google-text::before {
-    content: "Sign in with Google";
-    width: 259px;
-    height: 34px;
-  
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 500;
-    font-size: 28px;
-    line-height: 34px;
-    /* identical to box height */
-  
-    color: #FFFFFF;
-  
-    /* Inside auto layout */
-    flex: none;
-    order: 0;
-    flex-grow: 0;
-  }
+}

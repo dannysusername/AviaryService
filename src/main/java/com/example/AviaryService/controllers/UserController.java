@@ -96,7 +96,8 @@ public class UserController {
         model.addAttribute("username", username);
         model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user));
         model.addAttribute("descriptionOptions", descriptionOptionRepository.findByUser(user));
-        model.addAttribute("currentHours", user.getHours());
+        model.addAttribute("hobbsHours", user.getHobbsHours());
+        model.addAttribute("tachHours", user.getTachHours());
 
         model.addAttribute("makeModel", user.getMakeModel());
         model.addAttribute("tailNumber", user.getTailNumber());
@@ -121,7 +122,7 @@ public class UserController {
     String cycle = data.get("cycle");
     String lastDone = data.get("lastDone");
     String dueDate = data.get("dueDate");
-    String timeLeft = data.get("timeLeft"); // POSSIBLY REMOVE THIS !!!
+    String timeLeft = data.get("timeLeft"); 
     String ajax = data.getOrDefault("ajax", "false");
 
     User user = userRepository.findByUsername(authentication.getName());
@@ -202,8 +203,10 @@ public class UserController {
 @PostMapping("/updateHours")
 @ResponseBody
 public ResponseEntity<Map<String, String>> updateHours(
-        @RequestParam(required = false) Integer hoursToAdd,
-        @RequestParam(required = false) Integer newTotalHours,
+        @RequestParam(required = false) Double hobbsTimeToAdd,
+        @RequestParam(required = false) Double tachTimeToAdd,
+        @RequestParam(required = false) Double newHobbsTime,
+        @RequestParam(required = false) Double newTachTime,
         Authentication authentication) {
     try {
         User user = userRepository.findByUsername(authentication.getName());
@@ -211,23 +214,45 @@ public ResponseEntity<Map<String, String>> updateHours(
             throw new IllegalArgumentException("User not found");
         }
 
-        if (newTotalHours != null) {
-            // Directly set the total hours (for current-hours editing)
-            user.setHours(newTotalHours);
-            System.out.println("Setting total hours to: " + newTotalHours);
-        } else if (hoursToAdd != null) {
-            // Add to existing hours (for add-hours button)
-            int currentHours = user.getHours();
-            user.setHours(currentHours + hoursToAdd);
-            System.out.println("Adding " + hoursToAdd + " to current hours: " + currentHours);
-        } else {
-            throw new IllegalArgumentException("Either hoursToAdd or newTotalHours must be provided");
+        boolean updated = false;
+
+        if (newHobbsTime != null) {
+            user.setHobbsHours(newHobbsTime);
+            System.out.println("Setting Hobbs time to: " + newHobbsTime);
+            updated = true;
+        } else if (hobbsTimeToAdd != null) {
+            double currentHobbs = user.getHobbsHours();
+            user.setHobbsHours(currentHobbs + hobbsTimeToAdd);
+            System.out.println("Adding " + hobbsTimeToAdd + " to current Hobbs: " + currentHobbs);
+            updated = true;
+        }
+
+        double finalHobbs = user.getHobbsHours();
+        System.out.println("Current hobbs: " + finalHobbs);
+
+        if (newTachTime != null) {
+            user.setTachHours(newTachTime);
+            System.out.println("Setting Tach time to: " + newTachTime);
+            updated = true;
+        } else if (tachTimeToAdd != null) {
+            double currentTach = user.getTachHours();
+            user.setTachHours(currentTach + tachTimeToAdd);
+            System.out.println("Adding " + tachTimeToAdd + " to current Tach: " + currentTach);
+            updated = true;
+        }
+
+        double finalTach = user.getTachHours();
+        System.out.println("Current Tach: " + finalTach);
+
+        if (!updated) {
+            throw new IllegalArgumentException("At least one update parameter must be provided");
         }
 
         userRepository.save(user);
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
-        response.put("newHours", String.valueOf(user.getHours()));
+        response.put("newHobbs", String.valueOf(user.getHobbsHours()));
+        response.put("newTach", String.valueOf(user.getTachHours()));
         return ResponseEntity.ok(response);
     } catch (Exception e) {
         Map<String, String> errorResponse = new HashMap<>();
@@ -237,8 +262,6 @@ public ResponseEntity<Map<String, String>> updateHours(
         return ResponseEntity.badRequest().body(errorResponse);
     }
 }
-
-    // Other existing methods remain unchanged...
 
 
     @PostMapping("/update/{id}")

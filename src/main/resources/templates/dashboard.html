@@ -13,6 +13,8 @@
     <script src="https://kit.fontawesome.com/647fe92b87.js" crossorigin="anonymous"></script>
 </head>
 <body>
+
+    
     <header class="fixed-header">
         <div class="header-left">
             <h1 class="print-remove">Aviary</h1>
@@ -26,19 +28,35 @@
 
     <div class = "header">
         <div class = "buttons">
-            <button id="export-excel" class="no-print">Export to Excel</button>
+            <!--<button id="export-excel" class="no-print">Export to Excel</button> -->
             <button id="print-dashboard" class="no-print">Print Dashboard</button>
         </div>
 
+        <!--Hobbs hours and Tach hours display and edit-->
         <div class="my-hours">
             <h3>My Hours</h3>
-            <span class="current-hours-display" id="current-hours-display" th:text="'Current Hours: ' + ${currentHours}"></span>
-            <button class="edit-hours-btn no-print">✎</button>
+            <span class="current-hobbs-display" id="current-hobbs-display" th:text="'Hobbs Time: ' + ${hobbsHours}"></span>
+            <span class="current-tach-display" id="current-tach-display" th:text="'Tach Time: ' + ${tachHours}"></span>
+            <button class="edit-hours-btn no-print">Edit</button>
             <div class="edit-hours-section no-print" style="display: none;">
-                <input type="number" id="current-hours" th:value="${currentHours}" step="1" min="0" placeholder="Edit current hours">
-                <span>Add Hours:</span>
-                <input type="number" id="add-hours" placeholder="Enter hours to add">
-                <button id="add-hours-btn">Add</button>
+                <div class="hours-edit-row">
+                    <label>Edit Hobbs:</label>
+                    <input type="number" id="current-hobbs" th:value="${hobbsHours}" step="0.1" min="0" placeholder="Edit current Hobbs">
+                </div>
+                <div class="hours-edit-row">
+                    <label>Edit Tach:</label>
+                    <input type="number" id="current-tach" th:value="${tachHours}" step="0.1" min="0" placeholder="Edit current Tach">
+                </div>
+                <div class="hours-add-row">
+                    <span>Add Hobbs:</span>
+                    <input type="number" id="add-hobbs-time" step="0.1" placeholder="Enter Hobbs to add">
+                    <button id="add-hobbs-btn" class="add-btn">Add Hobbs</button>
+                </div>
+                <div class="hours-add-row">
+                    <span>Add Tach:</span>
+                    <input type="number" id="add-tach-time" step="0.1" placeholder="Enter Tach to add">
+                    <button id="add-tach-btn" class="add-btn">Add Tach</button>
+                </div>
             </div>
         </div>
     </div>
@@ -51,6 +69,7 @@
     <!-- New aircraft info table -->
 
     <div id="service-tab" class="tab-content">
+        <h2 class="print-only tab-print-title">Service Timeline</h2>
         <div class = "main">
             <table class="aircraft-info-table">
                 <tbody>
@@ -73,26 +92,9 @@
                 </tbody>
             </table>
 
-            <table class = "hours-table">
-                <tr>
-                    <td class="Hobbs-hours-tag">Hobbs hours:</td>
-                    <td>
-                        <input type="text" name="hobbsHours" class="user-info-input no-print" th:value="${ownerName}" placeholder="Hobbs hours">
-                        <span class="print-only"></span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="Tach-hours-tag">Tach hours:</td>
-                    <td>
-                        <input type="text" name="tachHours" class="user-info-input no-print" th:value="${makeModelSN}" placeholder="Tach hours">
-                        <span class="print-only"></span>
-                    </td>
-                </tr>
-            </table>
-
             <!-- Existing first table follows here -->
             <table>
-                <thead>
+                <thead class = "sortable-head">
                     <tr>
                         <th class = "grip-column no-print"></th> <!-- Grip column hidden in print -->
                         <th class = "print">Item</th>
@@ -115,18 +117,15 @@
                         <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
                             <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
                             <td colspan="6" class="title-cell" th:text="${timeline.item}"></td>
-                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
                         </tr>
                         <!-- Regular item row -->
-                        <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">
-                            
-                            
-                            <i class="fa-solid fa-grip-vertical"></i>
-                            <td class = "grip-cell"><i class="fa-solid fa-grip-vertical"></i><span class="grip-icon no-print">⋮</span></td>
+                        <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">                           
+                            <td class = "grip-cell"><i class="fa-solid fa-grip-vertical"></i></td>
                             <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea>
                                 <span class="print-only" th:text="${timeline.item}"></span></td>
                             <td>
-                                <div class="custom-dropdown">
+                                <div class="custom-dropdown no-print">
                                     <div class="selected-option no-print"></div>
                                     <input type="hidden" name="description" th:value="${timeline.description}">
                                     <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
@@ -138,7 +137,7 @@
                                         <div class="option" data-value="Overhaul">Overhaul</div>
                                         <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:data-option-id="${option.id}">
                                             <span th:text="${option.option}"></span>
-                                            <button class="remove-option-btn" th:data-option-id="${option.id}">x</button>
+                                            <button class="remove-option-btn" th:data-option-id="${option.id}"><i class="fa-solid fa-xmark"></i></button>
                                         </div>
                                         <div class="add-option-container">
                                             <input type="text" class="custom-description" placeholder="New option">
@@ -183,7 +182,7 @@
                             </td>
                             <td><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
                             <!--<td class="status-cell"><span class="save-status no-print">✓</span></td>-->
-                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)">🗑️</span></td>
+                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
                         </tr>
                     </th:block>
                 </tbody>
@@ -206,8 +205,8 @@
                             <input type="hidden" name="isTitle" id="isTitleHidden" value="false">
                         </td>
                         <td>
-                            <div class="custom-dropdown">
-                                <div class="selected-option"></div>
+                            <div class="custom-dropdown no-print">
+                                <div class="selected-option no-print"></div>
                                 <input type="hidden" name="description" value="">
                                 <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                 <div class="dropdown-options" style="display: none;">
@@ -269,6 +268,7 @@
     </div>
     
     <div id="logbook-tab" class="tab-content">
+        <h2 class="print-only tab-print-title">Flight Logs</h2>
         <div class="main">
             <table class="logbook-table">
                 <thead>
@@ -284,23 +284,43 @@
                 </thead>
                 <tbody id="logbook-body">
                     <tr th:each="log : ${flightlogs}" class="log-row" th:data-id="${log.id}">
-                        <td><span class="print-only" th:text="${log.fromAirport}"></span><input type="text" name="fromAirport" class="no-print" th:value="${log.fromAirport}" readonly></td>
-                        <td><span class="print-only" th:text="${log.toAirport}"></span><input type="text" name="toAirport" class="no-print" th:value="${log.toAirport}" readonly></td>
-                        <td><span class="print-only" th:text="${log.hobbsIn}"></span><input type="number" name="hobbsIn" class="no-print" th:value="${log.hobbsIn}" readonly step="0.1"></td>
-                        <td><span class="print-only" th:text="${log.hobbsOut}"></span><input type="number" name="hobbsOut" class="no-print" th:value="${log.hobbsOut}" readonly step="0.1"></td>
-                        <td><span class="print-only" th:text="${log.tachIn}"></span><input type="number" name="tachIn" class="no-print" th:value="${log.tachIn}" readonly step="0.1"></td>
-                        <td><span class="print-only" th:text="${log.tachOut}"></span><input type="number" name="tachOut" class="no-print" th:value="${log.tachOut}" readonly step="0.1"></td>
-                        <td class="delete-cell no-print"><button class="delete-log-icon">🗑️</button></td>
+                        <td data-label="From">
+                            <span class="print-only" th:text="${log.fromAirport}"></span>
+                            <input type="text" name="fromAirport" class="no-print" th:value="${log.fromAirport}" readonly>
+                        </td>
+                        <td data-label="To">
+                            <span class="print-only" th:text="${log.toAirport}"></span>
+                            <input type="text" name="toAirport" class="no-print" th:value="${log.toAirport}" readonly>
+                        </td>
+                        <td data-label="Hobbs In">
+                            <span class="print-only" th:text="${log.hobbsIn}"></span>
+                            <input type="number" name="hobbsIn" class="no-print" th:value="${log.hobbsIn}" readonly step="0.1">
+                        </td>
+                        <td data-label="Hobbs Out">
+                            <span class="print-only" th:text="${log.hobbsOut}"></span>
+                            <input type="number" name="hobbsOut" class="no-print" th:value="${log.hobbsOut}" readonly step="0.1">
+                        </td>
+                        <td data-label="Tach In">
+                            <span class="print-only" th:text="${log.tachIn}"></span>
+                            <input type="number" name="tachIn" class="no-print" th:value="${log.tachIn}" readonly step="0.1">
+                        </td>
+                        <td data-label="Tach Out">
+                            <span class="print-only" th:text="${log.tachOut}"></span>
+                            <input type="number" name="tachOut" class="no-print" th:value="${log.tachOut}" readonly step="0.1">
+                        </td>
+                        <td class="delete-cell no-print" data-label="">
+                            <button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button>
+                        </td>
                     </tr>
                     <!-- NEW: Add row for new log -->
-                    <tr class="add-log-row">
-                        <td><input type="text" id="fromAirport" placeholder="From Airport"></td>
-                        <td><input type="text" id="toAirport" placeholder="To Airport"></td>
-                        <td><input type="number" id="hobbsIn" placeholder="Hobbs In" step="0.1"></td>
-                        <td><input type="number" id="hobbsOut" placeholder="Hobbs Out" step="0.1"></td>
-                        <td><input type="number" id="tachIn" placeholder="Tach In" step="0.1"></td>
-                        <td><input type="number" id="tachOut" placeholder="Tach Out" step="0.1"></td>
-                        <td class="add-cell">
+                    <tr class="add-log-row no-print">
+                        <td data-label="From"><input type="text" id="fromAirport" name="fromAirport" autocomplete="fromAirport" placeholder="From Airport"></td>
+                        <td data-label="To"><input type="text" id="toAirport" name="toAirport" autocomplete="toAirport" placeholder="To Airport"></td>
+                        <td data-label="Hobbs In"><input type="number" id="hobbsIn" name="hobbsIn" autocomplete="hobbsIn" placeholder="Hobbs In" step="0.1"></td>
+                        <td data-label="Hobbs Out"><input type="number" id="hobbsOut" name="hobbsOut" autocomplete="hobbsOut" placeholder="Hobbs Out" step="0.1"></td>
+                        <td data-label="Tach In"><input type="number" id="tachIn" name="tachIn" autocomplete="tachIn" placeholder="Tach In" step="0.1"></td>
+                        <td data-label="Tach Out"><input type="number" id="tachOut" name="tachOut" autocomplete="tachOut" placeholder="Tach Out" step="0.1"></td>
+                        <td class="add-cell" data-label="">
                             <button id="add-log-button" class="add-log-button">Add</button>
                         </td>
                     </tr>

@@ -26,7 +26,10 @@ public class User {
     private List<FlightLog> flightLogs;
 
     @Column
-    private Integer hours; // New field to store total hours
+    private Double hobbsHours;
+
+    @Column
+    private Double tachHours;
 
     @Column
     private String makeModel;
@@ -47,7 +50,8 @@ public class User {
     public User(String username, String password){
         this.username = username;
         this.password = password;
-        this.hours = 0;
+        this.hobbsHours = 0.0;
+        this.tachHours = 0.0;
         this.makeModel = ""; 
         this.tailNumber = "";
         this.ownerName = "";
@@ -71,8 +75,20 @@ public class User {
         return serviceTimeline;
     }
     
-    public Integer getHours() {
-        return hours != null ? hours : 0;
+    public Double getHobbsHours() {
+        return hobbsHours !=null ? hobbsHours : 0.0;
+    }
+
+    public void setHobbsHours(Double hobbsHours) {
+        this.hobbsHours = (hobbsHours != null) ? hobbsHours : 0.0;
+    }
+
+    public Double getTachHours() {
+        return tachHours !=null ? tachHours : 0.0;
+    }
+
+    public void setTachHours(Double tachHours) {
+        this.tachHours = (tachHours != null) ? tachHours : 0.0;
     }
 
     public void setId(long id) {
@@ -89,10 +105,6 @@ public class User {
 
     public void setServiceTimeline(List<ServiceTimeline> serviceTimeline) {
         this.serviceTimeline = serviceTimeline;
-    }
-
-    public void setHours(Integer hours) {
-        this.hours = (hours != null) ? hours : 0;
     }
 
     public String getMakeModel() { 
