@@ -14,10 +14,12 @@
             <label class="username-label"></label>
             <input id="username" class="username-input-box" type="text" name="username" placeholder="Username" autocomplete="username" required> <!-- Updated placeholder for consistency -->
             <label class="password-label"></label>
-            <input id="password" class="password-input-box" type="password" name="password" placeholder="Password" autocomplete="current-password" required>
-            <span class="toggle-password" onclick="togglePassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.3rem;">
-                <i class="fa-solid fa-eye-slash" id="eye-icon"></i>
-            </span>
+            <div class ="password-eyeball-container">
+                <input id="password" class="password-input-box" type="password" name="password" placeholder="Password" autocomplete="current-password" required>
+                <span class="toggle-password" style="cursor: pointer; font-size: 1.3rem;">
+                    <i class="fa-solid fa-eye-slash" id="eye-icon"></i>
+                </span>
+            </div>
             <div class="additional-buttons">
                 <div class="checkbox-and-text">  
                     <input type="checkbox" name="remember"> <!-- FIXED: Changed to proper checkbox input -->
