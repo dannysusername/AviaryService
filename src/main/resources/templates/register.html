@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title> <!-- FIXED: Removed duplicate -->
     <link rel="stylesheet" th:href="@{/css/registerstyle.css}" href="/Users/danieli/Documents/Projects/aviaryservice/src/main/resources/static/css/registerstyle.css">
+    <script th:src="@{/js/signin.js}"></script>
     <script src="https://kit.fontawesome.com/647fe92b87.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -12,9 +13,12 @@
     <form class="register-form" method="post" th:action="@{/register}">
         <div class="username-password">
             <label class="username-label"></label>
-            <input class="username-input-box" type="text" name="username" placeholder="Username" required>
+            <input id = "username" class="username-input-box" type="text" name="username" placeholder="Username" autocomplete="username" required>
             <label class="password-label"></label>
-            <input class="password-input-box" type="password" name="password" placeholder="Password" required> <!-- FIXED: Removed <br> -->
+            <input id ="password" class="password-input-box" type="password" name="password" placeholder="Password" autocomplete="new-password" required> <!-- FIXED: Removed <br> -->
+            <span class="toggle-password" onclick="togglePassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.3rem;">
+                <i class="fa-solid fa-eye-slash" id="eye-icon"></i>
+             </span>
         </div>
         <div th:if="${error}" th:text="${error}" style="color: red;"></div>
         <button class="register-button" type="submit"></button>
