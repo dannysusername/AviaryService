@@ -38,6 +38,16 @@ body {
   min-height: 400px; /* NEW: Optional min-height to match login */
 }
 
+form p {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: min(max(4.5vw, 10px), 22px);
+  line-height: 20px;
+  align-items: center;
+  color: #FFFFFF;
+}
+
 /* username-label */
 .username-label {
   display: flex;
@@ -123,6 +133,33 @@ body {
   color: #FFFFFF;
   flex: none;
   flex-grow: 0;
+}
+
+
+.password-eyeball-container{
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  align-items: center;
+
+}
+
+.toggle-password {
+  position: relative;
+  left: -50px;
+}
+
+.toggle-password i {
+  color: #666;
+  transition: color 0.2s ease;   /* smooth colour change */
+}
+
+.toggle-password:hover i {
+  color: #333;   /* dark grey */
+}
+
+.toggle-password:hover {
+  opacity: 0.9;
 }
 
 label {

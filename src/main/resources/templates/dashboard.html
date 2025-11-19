@@ -35,9 +35,11 @@
         <!--Hobbs hours and Tach hours display and edit-->
         <div class="my-hours">
             <h3>My Hours</h3>
-            <span class="current-hobbs-display" id="current-hobbs-display" th:text="'Hobbs Time: ' + ${hobbsHours}"></span>
-            <span class="current-tach-display" id="current-tach-display" th:text="'Tach Time: ' + ${tachHours}"></span>
-            <button class="edit-hours-btn no-print">Edit</button>
+            <div class="hours-display-and-editbutton-container">
+                <span class="current-hobbs-display" id="current-hobbs-display" th:text="'Hobbs Time: ' + ${hobbsHours}"></span>
+                <span class="current-tach-display" id="current-tach-display" th:text="'Tach Time: ' + ${tachHours}"></span>
+                <button class="edit-hours-btn no-print">Edit</button>
+            </div>
             <div class="edit-hours-section no-print" style="display: none;">
                 <div class="hours-edit-row">
                     <label>Edit Hobbs:</label>

@@ -41,6 +41,10 @@ body {
   min-height: 400px; /* NEW: Optional min-height to make forms similar in size despite content differences */
 }
 
+form p {
+
+}
+
 /* username-password */
 .username-password {
   display: flex;
@@ -107,8 +111,8 @@ body {
   flex-direction: row;
   justify-content: flex-start;
   align-items: center;
+  width:100%;
   padding: 0;
-  width: 100%;
   height: 39px;
   flex: none;
   flex-grow: 0;
@@ -129,6 +133,33 @@ body {
   flex-grow: 0;
 }
 
+.password-eyeball-container{
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  align-items: center;
+
+
+}
+
+.toggle-password {
+  position: relative;
+  left: -50px;
+}
+
+.toggle-password i {
+  color: #666;
+  transition: color 0.2s ease;   /* smooth colour change */
+}
+
+.toggle-password:hover i {
+  color: #333;   /* dark grey */
+}
+
+.toggle-password:hover {
+  opacity: 0.9;
+}
+
 /* additional-buttons */
 .additional-buttons {
   width: 100%;
@@ -145,6 +176,7 @@ body {
   flex-direction: row;
   padding: 0;
   height: 26px;
+  align-items: center;
 }
 
 /* checkbox */
@@ -156,7 +188,7 @@ body {
 }
 
 /* Remember me */
-.checkbox-and-text p {
+.checkbox-and-text p, form p {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 400;

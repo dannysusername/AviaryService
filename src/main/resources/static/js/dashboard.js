@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('add-tach-time').value = '';
             document.getElementById('add-hobbs-time').value = '';
             const editSection = document.querySelector('.edit-hours-section');
-            editSection.style.display = editSection.style.display === 'block' ? 'none' : 'block';
+            editSection.style.display = editSection.style.display === 'flex' ? 'none' : 'flex';
         }
     });
     
