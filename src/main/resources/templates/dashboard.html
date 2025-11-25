@@ -117,13 +117,13 @@
                     <th:block th:each="timeline : ${timelines}">
                         <!-- Title row -->
                         <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
-                            <td class = "grip-cell"><span class="grip-icon no-print">⋮</span></td>
+                            <td class = "grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></span></td>
                             <td colspan="6" class="title-cell" th:text="${timeline.item}"></td>
                             <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
                         </tr>
                         <!-- Regular item row -->
                         <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDone="${timeline.lastDone}" th:data-dueDate="${timeline.dueDate}" th:data-cycle="${timeline.cycle}" class="auto-save-row">                           
-                            <td class = "grip-cell"><i class="fa-solid fa-grip-vertical"></i></td>
+                            <td class = "grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></span></i></td>
                             <td><textarea name="item" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea>
                                 <span class="print-only" th:text="${timeline.item}"></span></td>
                             <td>
