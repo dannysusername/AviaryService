@@ -178,7 +178,7 @@ th:first-child, td:first-child{
     justify-content: center;
     height: 100%;
     cursor: move;
-    color: #666;
+    
 }
 
 .grip-icon span {
@@ -410,8 +410,6 @@ td textarea:focus {
 }
 
 .title-row td {
-    font-weight: bold;
-    font-size: 1.2em;
     text-align: center;
     background-color: #409A78;
 }
