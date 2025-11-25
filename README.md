@@ -5,7 +5,7 @@ Features
 Track flight timelines and service statuses.
 View historical data for airlines and routes.
 User authentication for personalized tracking.
-Responsive design for desktop and mobile use..
+Responsive design for desktop and mobile use...
 
 Tech Stack
 
