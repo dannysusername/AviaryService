@@ -591,12 +591,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addBackButton() {
-        const existingButton = document.querySelector('.back-button');
+        const existingButton = document.querySelector('.back-to-full-list-button');
         if (existingButton) existingButton.remove();
     
         const button = document.createElement('button');
         button.textContent = 'Back to Full List';
-        button.className = 'back-button';
+        button.className = 'back-to-full-list-button';
         button.addEventListener('click', () => {
             document.querySelectorAll('.sortable tr').forEach(row => {
                 row.style.display = '';
@@ -629,91 +629,91 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     let previousHobbsHours = 0;
-let previousTachHours = 0;
-let hoursTimeout;
+    let previousTachHours = 0;
+    let hoursTimeout;
 
-const currentHobbsHoursInput = document.getElementById('current-hobbs');
-const currentTachHoursInput = document.getElementById('current-tach');
+    const currentHobbsHoursInput = document.getElementById('current-hobbs');
+    const currentTachHoursInput = document.getElementById('current-tach');
 
-if (currentHobbsHoursInput) {
-    previousHobbsHours = currentHobbsHoursInput.value || 0;
-    currentHobbsHoursInput.addEventListener('input', function() {
-        updateAllTimeLeft();
-        updateAddRowTimeLeft();
-        clearTimeout(hoursTimeout);
-        const newHobbsHours = this.value.trim();
-        if (newHobbsHours === '' || isNaN(parseFloat(newHobbsHours))) {
-            return;
-        }
-        hoursTimeout = setTimeout(() => {
-            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-            const params = new URLSearchParams();
-            params.append('newHobbsTime', parseFloat(newHobbsHours));
-            axios.post('/updateHours', params, {
-                headers: { [csrfHeader]: csrfToken }
-            })
-            .then(response => {
-                if (response.data.status === 'success') {
-                    previousHobbsHours = newHobbsHours;
-                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbsHours}`;
-                    console.log('Hobbs hours updated successfully:', response.data.newHobbs);
-                } else {
+    if (currentHobbsHoursInput) {
+        previousHobbsHours = currentHobbsHoursInput.value || 0;
+        currentHobbsHoursInput.addEventListener('input', function() {
+            updateAllTimeLeft();
+            updateAddRowTimeLeft();
+            clearTimeout(hoursTimeout);
+            const newHobbsHours = this.value.trim();
+            if (newHobbsHours === '' || isNaN(parseFloat(newHobbsHours))) {
+                return;
+            }
+            hoursTimeout = setTimeout(() => {
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                const params = new URLSearchParams();
+                params.append('newHobbsTime', parseFloat(newHobbsHours));
+                axios.post('/updateHours', params, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        previousHobbsHours = newHobbsHours;
+                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbsHours}`;
+                        console.log('Hobbs hours updated successfully:', response.data.newHobbs);
+                    } else {
+                        this.value = previousHobbsHours;
+                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
+                        console.error('Failed to update hobbs hours:', response.data.message);
+                        alert('Failed to update hobbs hours');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating hours:', error.response ? error.response.data : error);
                     this.value = previousHobbsHours;
                     document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
-                    console.error('Failed to update hobbs hours:', response.data.message);
                     alert('Failed to update hobbs hours');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating hours:', error.response ? error.response.data : error);
-                this.value = previousHobbsHours;
-                document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
-                alert('Failed to update hobbs hours');
-            });
-        }, 500);
-    });
-}
+                });
+            }, 500);
+        });
+    }
 
-if (currentTachHoursInput) {
-    previousTachHours = currentTachHoursInput.value || 0;
-    currentTachHoursInput.addEventListener('input', function() {
-        updateAllTimeLeft();
-        updateAddRowTimeLeft();
-        clearTimeout(hoursTimeout);
-        const newTachHours = this.value.trim();
-        if (newTachHours === '' || isNaN(parseFloat(newTachHours))) {
-            return;
-        }
-        hoursTimeout = setTimeout(() => {
-            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-            const params = new URLSearchParams();
-            params.append('newTachTime', parseFloat(newTachHours));
-            axios.post('/updateHours', params, {
-                headers: { [csrfHeader]: csrfToken }
-            })
-            .then(response => {
-                if (response.data.status === 'success') {
-                    previousTachHours = newTachHours;
-                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTachHours}`;
-                    console.log('Tach hours updated successfully:', response.data.newTach);
-                } else {
+    if (currentTachHoursInput) {
+        previousTachHours = currentTachHoursInput.value || 0;
+        currentTachHoursInput.addEventListener('input', function() {
+            updateAllTimeLeft();
+            updateAddRowTimeLeft();
+            clearTimeout(hoursTimeout);
+            const newTachHours = this.value.trim();
+            if (newTachHours === '' || isNaN(parseFloat(newTachHours))) {
+                return;
+            }
+            hoursTimeout = setTimeout(() => {
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                const params = new URLSearchParams();
+                params.append('newTachTime', parseFloat(newTachHours));
+                axios.post('/updateHours', params, {
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        previousTachHours = newTachHours;
+                        document.getElementById('current-tach-display').textContent = `Tach Time: ${newTachHours}`;
+                        console.log('Tach hours updated successfully:', response.data.newTach);
+                    } else {
+                        this.value = previousTachHours;
+                        document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
+                        console.error('Failed to update tach hours:', response.data.message);
+                        alert('Failed to update tach hours');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating hours:', error.response ? error.response.data : error);
                     this.value = previousTachHours;
                     document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
-                    console.error('Failed to update tach hours:', response.data.message);
-                    alert('Failed to update tach hours');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating hours:', error.response ? error.response.data : error);
-                this.value = previousTachHours;
-                document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
-                alert('Failed to update Tach hours');
-            });
-        }, 500);
-    });
-}
+                    alert('Failed to update Tach hours');
+                });
+            }, 500);
+        });
+    }
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
         ['lastDone', 'dueDate'].forEach((field, index) => {
@@ -818,7 +818,7 @@ if (currentTachHoursInput) {
 
     const addForm = document.querySelector('.add-row form');
     if (addForm) {
-    addForm.addEventListener('submit', function(event) {
+        addForm.addEventListener('submit', function(event) {
         event.preventDefault();
 
         const isTitleHidden = document.getElementById('isTitleHidden');
@@ -859,177 +859,176 @@ if (currentTachHoursInput) {
                 [csrfHeader]: csrfToken,
                 'Content-Type': 'application/json'
             }
-        })
-        .then(response => {
-    const newRowData = response.data;
-    const newRow = document.createElement('tr');
-    newRow.setAttribute('data-id', newRowData.id); // Use server-provided ID
-    if (newRowData.isTitle) {
-        newRow.className = 'title-row';
-        newRow.innerHTML = `
-            <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
-            <td colspan="6" class="title-cell">${newRowData.item}</td>
-            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
-        `;
-    } else {
-        newRow.className = 'auto-save-row';
-        newRow.setAttribute('data-lastDone', newRowData.lastDone);
-        newRow.setAttribute('data-dueDate', newRowData.dueDate);
-        newRow.setAttribute('data-cycle', newRowData.cycle);
-        newRow.innerHTML = `
-            <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
-            <td><textarea name="item" class="no-print" oninput="autoSave(this)">${newRowData.item}</textarea><span class="print-only">${newRowData.item}</span></td>
-            <td>
-                <div class="custom-dropdown no-print">
-                    <div class="selected-option no-print">${newRowData.description}</div>
-                    <input type="hidden" name="description" value="${newRowData.description}">
-                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                    <div class="dropdown-options no-print">
-                        <div class="option" data-value="">--None--</div>
-                        <div class="option" data-value="Inspect">Inspect</div>
-                        <div class="option" data-value="Test">Test</div>
-                        <div class="option" data-value="Replace">Replace</div>
-                        <div class="option" data-value="Overhaul">Overhaul</div>
-                        <div class="add-option-container">
-                            <input type="text" class="custom-description" placeholder="New option">
-                            <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
+        }) .then(response => {
+            const newRowData = response.data;
+            const newRow = document.createElement('tr');
+            newRow.setAttribute('data-id', newRowData.id); // Use server-provided ID
+            if (newRowData.isTitle) {
+                newRow.className = 'title-row';
+                newRow.innerHTML = `
+                    <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
+                    <td colspan="6" class="title-cell">${newRowData.item}</td>
+                    <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
+                `;
+            } else {
+                newRow.className = 'auto-save-row';
+                newRow.setAttribute('data-lastDone', newRowData.lastDone);
+                newRow.setAttribute('data-dueDate', newRowData.dueDate);
+                newRow.setAttribute('data-cycle', newRowData.cycle);
+                newRow.innerHTML = `
+                <td class="grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
+                <td><textarea name="item" class="no-print" oninput="autoSave(this)">${newRowData.item}</textarea><span class="print-only">${newRowData.item}</span></td>
+                <td>
+                    <div class="custom-dropdown no-print">
+                        <div class="selected-option no-print">${newRowData.description}</div>
+                        <input type="hidden" name="description" value="${newRowData.description}">
+                        <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
+                        <div class="dropdown-options no-print">
+                            <div class="option" data-value="">--None--</div>
+                            <div class="option" data-value="Inspect">Inspect</div>
+                            <div class="option" data-value="Test">Test</div>
+                            <div class="option" data-value="Replace">Replace</div>
+                            <div class="option" data-value="Overhaul">Overhaul</div>
+                            <div class="add-option-container">
+                                <input type="text" class="custom-description" placeholder="New option">
+                                <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <span class="print-only">${newRowData.description}</span>
-            </td>
-            <td><textarea name="cycle" class="no-print" oninput="autoSave(this)">${newRowData.cycle}</textarea><span class="print-only">${newRowData.cycle}</span></td>
-            <td>
-                <div class="input-with-dropdown no-print">
-                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                    <div class="type-dropdown" style="display: none;">
-                        <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
-                        <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
+                    <span class="print-only">${newRowData.description}</span>
+                </td>
+                <td><textarea name="cycle" class="no-print" oninput="autoSave(this)">${newRowData.cycle}</textarea><span class="print-only">${newRowData.cycle}</span></td>
+                <td>
+                    <div class="input-with-dropdown no-print">
+                        <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
+                            <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
+                        </div>
                     </div>
-                </div>
-                <span class="print-only">${newRowData.lastDone}</span>
-            </td>
-            <td>
-                <div class="input-with-dropdown no-print">
-                    <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                    <div class="type-dropdown" style="display: none;">
-                        <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
-                        <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
+                    <span class="print-only">${newRowData.lastDone}</span>
+                </td>
+                <td>
+                    <div class="input-with-dropdown no-print">
+                        <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
+                        <div class="type-dropdown" style="display: none;">
+                            <div class="type-option"><span>Calendar</span><button class="add-type" data-type="calendar">+</button></div>
+                            <div class="type-option"><span>Clock</span><button class="add-type" data-type="clock">+</button></div>
+                        </div>
                     </div>
-                </div>
-                <span class="print-only">${newRowData.dueDate}</span>
-            </td>
-            <td><div class="time-left">${newRowData.timeLeft}</div></td>
-            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
-        `;
-                // Handle lastDone and dueDate inputs (existing code)
-                ['lastDone', 'dueDate'].forEach((field, index) => {
-                    const value = newRowData[field];
-                    if (value) {
-                        const container = newRow.querySelector(`td:nth-child(${index === 0 ? 5 : 6}) .input-with-dropdown`);
-                        const parts = value.split(' ');
-                        let datePart = null;
-                        let textPart = null;
+                    <span class="print-only">${newRowData.dueDate}</span>
+                </td>
+                <td><div class="time-left">${newRowData.timeLeft}</div></td>
+                <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
+            `;
+                    // Handle lastDone and dueDate inputs (existing code)
+                    ['lastDone', 'dueDate'].forEach((field, index) => {
+                        const value = newRowData[field];
+                        if (value) {
+                            const container = newRow.querySelector(`td:nth-child(${index === 0 ? 5 : 6}) .input-with-dropdown`);
+                            const parts = value.split(' ');
+                            let datePart = null;
+                            let textPart = null;
 
-                        if (parts[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
-                            datePart = parts[0];
-                            if (parts.length > 1) {
-                                textPart = parts.slice(1).join(' ');
+                            if (parts[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                datePart = parts[0];
+                                if (parts.length > 1) {
+                                    textPart = parts.slice(1).join(' ');
+                                }
+                            } else {
+                                textPart = value;
                             }
-                        } else {
-                            textPart = value;
+
+                            if (datePart) {
+                                const dateInput = document.createElement('input');
+                                dateInput.type = 'date';
+                                dateInput.className = 'extra-input';
+                                dateInput.value = datePart;
+                                dateInput.oninput = () => autoSave(dateInput);
+                                container.insertBefore(dateInput, container.querySelector('.trigger-dropdown'));
+                                container.querySelector('.add-type[data-type="calendar"]').textContent = '-';
+                            }
+
+                            if (textPart) {
+                                const textInput = document.createElement('input');
+                                textInput.type = 'text';
+                                textInput.className = 'extra-input';
+                                textInput.value = textPart;
+                                textInput.oninput = () => autoSave(textInput);
+                                container.insertBefore(textInput, container.querySelector('.trigger-dropdown'));
+                                container.querySelector('.add-type[data-type="clock"]').textContent = '-';
+                            }
                         }
-
-                        if (datePart) {
-                            const dateInput = document.createElement('input');
-                            dateInput.type = 'date';
-                            dateInput.className = 'extra-input';
-                            dateInput.value = datePart;
-                            dateInput.oninput = () => autoSave(dateInput);
-                            container.insertBefore(dateInput, container.querySelector('.trigger-dropdown'));
-                            container.querySelector('.add-type[data-type="calendar"]').textContent = '-';
-                        }
-
-                        if (textPart) {
-                            const textInput = document.createElement('input');
-                            textInput.type = 'text';
-                            textInput.className = 'extra-input';
-                            textInput.value = textPart;
-                            textInput.oninput = () => autoSave(textInput);
-                            container.insertBefore(textInput, container.querySelector('.trigger-dropdown'));
-                            container.querySelector('.add-type[data-type="clock"]').textContent = '-';
-                        }
-                    }
-                });
-                const dropdown = newRow.querySelector('.custom-dropdown');
-                dropdown.querySelectorAll('.option').forEach(opt => opt.onclick = () => selectOption(opt));
-                updateAllDropdowns(newRowData.description);
-            }
-
-            const sortableTbody = document.querySelector('.sortable');
-
-            // Insert the new row in the correct position
-            if (currentSectionId && !newRowData.isTitle) {
-                const titleRow = document.querySelector(`tr[data-id="${currentSectionId}"]`);
-                let nextRow = titleRow.nextElementSibling;
-                while (nextRow && !nextRow.classList.contains('title-row')) {
-                    nextRow = nextRow.nextElementSibling;
+                    });
+                    const dropdown = newRow.querySelector('.custom-dropdown');
+                    dropdown.querySelectorAll('.option').forEach(opt => opt.onclick = () => selectOption(opt));
+                    updateAllDropdowns(newRowData.description);
                 }
-                if (nextRow) {
-                    sortableTbody.insertBefore(newRow, nextRow);
+
+                const sortableTbody = document.querySelector('.sortable');
+
+                // Insert the new row in the correct position
+                if (currentSectionId && !newRowData.isTitle) {
+                    const titleRow = document.querySelector(`tr[data-id="${currentSectionId}"]`);
+                    let nextRow = titleRow.nextElementSibling;
+                    while (nextRow && !nextRow.classList.contains('title-row')) {
+                        nextRow = nextRow.nextElementSibling;
+                    }
+                    if (nextRow) {
+                        sortableTbody.insertBefore(newRow, nextRow);
+                    } else {
+                        sortableTbody.appendChild(newRow);
+                        
+                    }
                 } else {
                     sortableTbody.appendChild(newRow);
-                    
                 }
-            } else {
-                sortableTbody.appendChild(newRow);
-            }
 
-            if (!newRow.classList.contains('title-row')) {
-                const itemTextarea = newRow.querySelector('textarea[name="item"]');
-                if (itemTextarea) {
-                    setTextareaMinHeight(itemTextarea);
-                    itemTextarea.addEventListener('input', () => {
+                if (!newRow.classList.contains('title-row')) {
+                    const itemTextarea = newRow.querySelector('textarea[name="item"]');
+                    if (itemTextarea) {
                         setTextareaMinHeight(itemTextarea);
-                    });
-                }
-                const cycleTextarea = newRow.querySelector('textarea[name="cycle"]');
-                if (cycleTextarea) {
-                    setTextareaMinHeight(cycleTextarea);
-                    cycleTextarea.addEventListener('input', () => {
+                        itemTextarea.addEventListener('input', () => {
+                            setTextareaMinHeight(itemTextarea);
+                        });
+                    }
+                    const cycleTextarea = newRow.querySelector('textarea[name="cycle"]');
+                    if (cycleTextarea) {
                         setTextareaMinHeight(cycleTextarea);
-                    });
+                        cycleTextarea.addEventListener('input', () => {
+                            setTextareaMinHeight(cycleTextarea);
+                        });
+                    }
                 }
-            }
 
-            // Update the order on the server TAKE A LOOK HERE
+                // Update the order on the server TAKE A LOOK HERE
 
-            updateOrderOnServer();
+                updateOrderOnServer();
 
-            // Reset add row (existing code)
-            document.querySelector('.add-row textarea[name="item"]').value = '';
-            document.querySelector('.add-row input[name="title"]').value = '';
-            document.querySelector('.add-row textarea[name="cycle"]').value = '';
-            document.querySelector('.add-row .custom-dropdown input[name="description"]').value = '';
-            document.querySelector('.add-row .selected-option').textContent = '';
-            document.querySelectorAll('.add-row .input-with-dropdown input.extra-input').forEach(input => input.remove());
-            document.querySelectorAll('.add-row .add-type').forEach(btn => btn.textContent = '+');
-            document.querySelector('.add-row .time-left').textContent = '';
-            document.getElementById('lastDoneHidden').value = '';
-            document.getElementById('dueDateHidden').value = '';
+                // Reset add row (existing code)
+                document.querySelector('.add-row textarea[name="item"]').value = '';
+                document.querySelector('.add-row input[name="title"]').value = '';
+                document.querySelector('.add-row textarea[name="cycle"]').value = '';
+                document.querySelector('.add-row .custom-dropdown input[name="description"]').value = '';
+                document.querySelector('.add-row .selected-option').textContent = '';
+                document.querySelectorAll('.add-row .input-with-dropdown input.extra-input').forEach(input => input.remove());
+                document.querySelectorAll('.add-row .add-type').forEach(btn => btn.textContent = '+');
+                document.querySelector('.add-row .time-left').textContent = '';
+                document.getElementById('lastDoneHidden').value = '';
+                document.getElementById('dueDateHidden').value = '';
 
-            selectRowType('item', document.querySelector('.row-type-option[data-type="item"]'));
+                selectRowType('item', document.querySelector('.row-type-option[data-type="item"]'));
 
-            const timeLeftCell = newRow.querySelector('.time-left');
-            if (timeLeftCell && newRowData.timeLeft) {
-                setTimeLeftText(timeLeftCell, newRowData.timeLeft);
-            }
-        })
-        .catch(error => {
-            console.error('Error adding row:', error.response ? error.response.data : error);
-            alert('Error adding row: ' + (error.response?.data || error.message));
+                const timeLeftCell = newRow.querySelector('.time-left');
+                if (timeLeftCell && newRowData.timeLeft) {
+                    setTimeLeftText(timeLeftCell, newRowData.timeLeft);
+                }
+            })
+            .catch(error => {
+                console.error('Error adding row:', error.response ? error.response.data : error);
+                alert('Error adding row: ' + (error.response?.data || error.message));
+            });
         });
-    });
     }
     
     // Function to update all Time Left cells in real-time
@@ -1326,50 +1325,49 @@ if (currentTachHoursInput) {
                 const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
                 const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
 
-                if (confirm('Are you sure you want to delete this entry?')) {
-                    axios.delete(`/deleteflightlog/${id}`, {
-                        headers: { [csrfHeader]: csrfToken }
-                    })
-                    .then(() => row.remove())
-                    .catch(error => console.error('Error deleting log:', error));
+                    if (confirm('Are you sure you want to delete this entry?')) {
+                        axios.delete(`/deleteflightlog/${id}`, {
+                            headers: { [csrfHeader]: csrfToken }
+                        })
+                        .then(() => row.remove())
+                        .catch(error => console.error('Error deleting log:', error));
 
-                }
+                    }
                     
-            });
+                });
                 
-        });
+            });
 
-            const hobbsDiff = hobbsOut - hobbsIn;
-            const tachDiff = tachOut - tachIn;
+        const hobbsDiff = hobbsOut - hobbsIn;
+        const tachDiff = tachOut - tachIn;
 
-            console.log("HOBBS DIFFERENCE: ", hobbsDiff);
-            console.log("TACH DIFFERENCE: ", tachDiff);
+        console.log("HOBBS DIFFERENCE: ", hobbsDiff);
+        console.log("TACH DIFFERENCE: ", tachDiff);
 
-            // Prepare combined updates
-            const updates = {};
-            if (hobbsDiff > 0) updates.hobbsTimeToAdd = hobbsDiff;
-            if (tachDiff > 0) updates.tachTimeToAdd = tachDiff;
+        // Prepare combined updates
+        const updates = {};
+        if (hobbsDiff > 0) updates.hobbsTimeToAdd = hobbsDiff;
+        if (tachDiff > 0) updates.tachTimeToAdd = tachDiff;
 
-            // Send combined update if needed
-            if (Object.keys(updates).length > 0) {
-                await updateHours(updates);
-            } else {
-                console.log("No positive diffs, no hours added");
-            }   
+        // Send combined update if needed
+        if (Object.keys(updates).length > 0) {
+            await updateHours(updates);
+        } else {
+            console.log("No positive diffs, no hours added");
+        }   
 
-            // Clear inputs
-            document.getElementById('fromAirport').value = '';
-            document.getElementById('toAirport').value = '';
-            document.getElementById('hobbsIn').value = '';
-            document.getElementById('hobbsOut').value = '';
-            document.getElementById('tachIn').value = '';
-            document.getElementById('tachOut').value = '';
-            } catch (error) {
-                console.error('Error adding log:', error);
-            }
+        // Clear inputs
+        document.getElementById('fromAirport').value = '';
+        document.getElementById('toAirport').value = '';
+        document.getElementById('hobbsIn').value = '';
+        document.getElementById('hobbsOut').value = '';
+        document.getElementById('tachIn').value = '';
+        document.getElementById('tachOut').value = '';
+        } catch (error) {
+            console.error('Error adding log:', error);
+        }
 
-        })
-        .catch(error => {
+    }) .catch(error => {
             console.error('Error adding log:', error);
         });
     });
