@@ -1271,8 +1271,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // NEW: Add log row via AJAX
     document.getElementById('add-log-button').addEventListener('click', async () => {  // Note: made async for await if needed
-        console.log("====ADD LOG ROW BUTTON EXECUTED====");
-    
         const hobbsIn = parseFloat(document.getElementById('hobbsIn').value) || 0;
         const hobbsOut = parseFloat(document.getElementById('hobbsOut').value) || 0;
         const tachIn = parseFloat(document.getElementById('tachIn').value) || 0;
