@@ -568,6 +568,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.querySelector('.sortable').addEventListener('click', function(e) {
+        const titleCell = e.target.closest('.title-row .title-cell');
+        if (!titleCell) return;
+
+        // Prevent triggering if clicking the delete icon or grip
+        if (e.target.closest('.delete-icon') || e.target.closest('.grip-icon')) return;
+
+        const titleRow = titleCell.closest('tr');
+        filterByTitle(titleRow);
+    });
     
     let currentSectionId = null; // To track the current section being viewed
     function filterByTitle(titleRow) {
@@ -608,15 +618,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const table = document.querySelector('table');
         table.parentNode.insertBefore(button, table);
     }
-
-    document.querySelectorAll('.title-row .title-cell').forEach(cell => {
-        cell.addEventListener('click', function(e) {
-            // Prevent triggering if clicking the delete icon or grip
-            if (e.target.classList.contains('delete-icon') || e.target.classList.contains('grip-icon')) return;
-            const titleRow = this.closest('tr');
-            filterByTitle(titleRow);
-        });
-    });
 
     document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
         const hiddenInput = dropdown.querySelector('input[type="hidden"]');
@@ -1366,11 +1367,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error adding log:', error);
         }
+    }) 
 
-    }) .catch(error => {
-            console.error('Error adding log:', error);
-        });
-    });
+});
 
     // NEW: Delete log row
     document.querySelectorAll('.delete-log-icon').forEach(button => {
