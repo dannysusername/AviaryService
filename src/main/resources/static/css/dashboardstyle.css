@@ -42,7 +42,9 @@ table {
     font-size: 1.4rem;
 }
 
-.fixed-header .header-right .logout-btn, .edit-hours-btn {
+.fixed-header .header-right .logout-btn, .edit-hours-btn, .back-to-full-list-button{
+
+    margin: 0px 10px;
     background: rgba(227, 75, 109, 0.839);
     color: white;
     border: none;
@@ -410,6 +412,7 @@ td textarea:focus {
 }
 
 .title-row td {
+    font-weight: bold;
     text-align: center;
     background-color: #409A78;
 }
@@ -649,7 +652,7 @@ textarea::placeholder {
 
     /* Title row as a card */
     .sortable tr.title-row {
-        background-color: rgba(73, 170, 245, 0.929);
+        background-color: #409A78;
         font-weight: bold;
         font-size: 1.1em;
         text-align: center;
