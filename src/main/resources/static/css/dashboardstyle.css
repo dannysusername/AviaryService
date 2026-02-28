@@ -224,6 +224,7 @@ body {
   flex-direction: column;
   gap: 12px;
   padding: 16px 24px;
+  overflow-x: auto; /* contain table overflow — prevents thead from stretching the page wider than other elements */
 }
 
 /* ── Aircraft info table ── */
@@ -331,7 +332,6 @@ th:first-child {
 td {
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
@@ -437,39 +437,39 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 /* ── Dropdowns ── */
 .custom-dropdown {
   position: relative;
-  min-height: 28px;
   display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 1;
+  align-items: flex-start; /* top-align to match textarea style */
+  width: 100%;
+  /* no z-index here — letting the open panel's own z-index work globally */
 }
 
 .selected-option {
-  width: 100%;
+  flex: 1;
   min-height: 28px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  padding: 4px 8px;
+  padding: 4px 6px;
   box-sizing: border-box;
   text-align: left;
   cursor: pointer;
   font-size: 13px;
+  color: var(--text);
   border-radius: 4px;
 }
-.selected-option:hover { background: var(--primary-light); }
+.selected-option:hover { border-color: var(--border); }
 
 .dropdown-options {
   display: none;
   position: absolute;
   top: 100%;
-  left: 0; right: 0;
+  left: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: var(--shadow-md);
   z-index: 1500;
   max-height: 200px;
-  min-width: 120px;
+  min-width: 200px;  /* wide enough to show "New option" input + Add button */
   overflow-y: auto;
 }
 
@@ -493,11 +493,12 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   align-items: center;
   padding: 6px 8px;
   border-top: 1px solid var(--border);
-  gap: 4px;
+  gap: 6px;
 }
 
 .custom-description {
-  flex-grow: 1;
+  flex: 1;
+  min-width: 0; /* allow shrinking */
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -506,6 +507,7 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 }
 
 .add-option-btn {
+  flex-shrink: 0; /* never shrink — always fully visible */
   padding: 4px 10px;
   background: var(--accent);
   color: #fff;
@@ -514,6 +516,7 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .add-option-btn:hover { background: var(--accent-hover); }
 
@@ -536,15 +539,18 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   align-items: center;
   width: 100%;
   min-width: 100px;
-  z-index: 1;
+  /* no z-index — open panel's own z-index works globally */
 }
 
 .trigger-dropdown {
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 4px;
   margin-left: auto;
   color: var(--text-muted);
   font-size: 11px;
+  flex-shrink: 0;
+  align-self: flex-start; /* stay at top when parent is flex-start */
+  padding-top: 6px;       /* align with first line of text */
 }
 
 .type-dropdown {
@@ -613,7 +619,28 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  table-layout: fixed;
 }
+
+/* From / To columns: generous width for airport codes / names */
+.logbook-table th:nth-child(1),
+.logbook-table td:nth-child(1),
+.logbook-table th:nth-child(2),
+.logbook-table td:nth-child(2) { width: 18%; min-width: 100px; }
+
+/* Hobbs / Tach columns: compact — numbers only */
+.logbook-table th:nth-child(3),
+.logbook-table td:nth-child(3),
+.logbook-table th:nth-child(4),
+.logbook-table td:nth-child(4),
+.logbook-table th:nth-child(5),
+.logbook-table td:nth-child(5),
+.logbook-table th:nth-child(6),
+.logbook-table td:nth-child(6) { width: 12%; }
+
+/* Delete / Add column */
+.logbook-table th:nth-child(7),
+.logbook-table td:nth-child(7) { width: 5%; min-width: 44px; }
 
 .logbook-table th {
   background: var(--primary);
@@ -688,26 +715,50 @@ textarea::placeholder { display: none; }
 
 .add-row.title-mode td:nth-child(n+3):nth-child(-n+7) * { visibility: hidden; }
 
-/* ── Mobile (≤600px) ── */
-@media screen and (max-width: 600px) {
+/* ── Mobile (≤768px) ── */
+@media screen and (max-width: 768px) {
   .header { padding: 12px 12px 0; }
   .main   { padding: 12px; }
   .tabs   { padding: 16px 12px 0; }
 
   textarea::placeholder { display: inline; color: #999; }
 
-  .aircraft-info-table, .hours-table { display: block; }
-  .aircraft-info-table tbody, .aircraft-info-table tr,
-  .hours-table tbody, .hours-table tr { display: block; }
+  /* aircraft-info-table: keep label-left | value-right row layout */
+  .aircraft-info-table, .hours-table {
+    overflow: visible; /* stop border-radius from clipping cell content */
+  }
+  .aircraft-info-table tbody, .hours-table tbody { display: block; }
+
+  /* tr stays as a flex row so label and value remain side-by-side */
+  .aircraft-info-table tr, .hours-table tr {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .aircraft-info-table tr:last-child,
+  .hours-table tr:last-child { border-bottom: none; }
 
   .aircraft-info-table td, .hours-table td {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
+    display: block;
+    padding: 8px 10px;
     border: none;
-    border-bottom: 1px solid var(--border);
+  }
+
+  /* Label column — fixed 42% width so the text is always fully visible */
+  .aircraft-info-table tr td:first-child,
+  .hours-table tr td:first-child {
+    flex: 0 0 42%;
+    max-width: 42%;
+    font-size: 11px;
+    word-break: break-word;
+    white-space: normal;
+    align-self: center;
+  }
+
+  /* Value column — fills the rest */
+  .aircraft-info-table tr td:nth-child(2),
+  .hours-table tr td:nth-child(2) {
+    flex: 1;
+    min-width: 0;
   }
 
   .sortable { display: flex; flex-direction: column; gap: 8px; margin: 0; }
@@ -807,8 +858,8 @@ textarea::placeholder { display: none; }
   .my-hours { width: 100%; margin: 8px 0; }
 }
 
-/* ── Tablet (601–1024px) ── */
-@media screen and (min-width: 601px) and (max-width: 1024px) {
+/* ── Tablet (769–1024px) ── */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
   table { font-size: 13px; }
   th, td { padding: 7px 8px; }
   .grip-column { min-width: 20px; }
