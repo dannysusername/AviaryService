@@ -1,292 +1,302 @@
-/* Add this for consistent resets */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary:       #2C9B6F;
+  --primary-dark:  #1E7A54;
+  --primary-light: #E6F4EE;
+  --bg:            #F2F7F4;
+  --surface:       #FFFFFF;
+  --border:        #D8E6DE;
+  --text:          #1B2B23;
+  --text-muted:    #5E7A6A;
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.09);
+  --radius:        8px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Login background */
 body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #87CFB4;
-  height: 100vh;
   justify-content: center;
+  padding: 24px 16px;
 }
 
-/* login-title */
-.login-title {
-  height: 50px;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 700;
-  font-size: 48px;
-  line-height: 20px;
-  color: #FFFFFF;
-}
-
-/* Login form */
+/* ── Card ── */
 .login-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 36px;
   display: flex;
   flex-direction: column;
-  width: 50%;
-  align-items: center;
-  gap: 15px;
-  padding: 35px 0;
-  background: #409A78;
-  border-radius: 25px;
-  flex: none;
-  flex-grow: 0;
-  min-height: 400px; /* NEW: Optional min-height to make forms similar in size despite content differences */
+  gap: 20px;
 }
 
-form p {
-
+/* ── Title ── */
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
 }
 
-/* username-password */
+/* ── Field group ── */
 .username-password {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 11px;
-  width: 85%;
+  gap: 16px;
+  width: 100%;
 }
 
-/* username-label */
-.username-label {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-  padding: 0;
-  gap: 10px;
+/* ── Labels via pseudo-elements (preserved from original HTML structure) ── */
+.username-label,
+.password-label {
+  display: block;
   width: 100%;
-  height: 39px;
-  flex: none;
-  flex-grow: 0;
 }
 
 .username-label::before {
   content: "Username";
-  width: 100%;
-  justify-content: flex-start;
-  height: 39px;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  font-size: min(max(10vw, 20px), 40px);
-  line-height: 39px;
-  color: #FFFFFF;
-  flex: none;
-  flex-grow: 0;
-}
-
-/* username-input-box */
-.username-input-box, .password-input-box {
-  box-sizing: border-box;
-  padding: 0 20px;
-  width: 100%;
-  height: 50px;
-  font-size: 32px;
-  background: #FFFFFF;
-  border-radius: 50px;
-  flex: none;
-  flex-grow: 0;
-}
-
-.username-input-box::placeholder, .password-input-box::placeholder {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  font-size: 28px;
-  line-height: 39px;
-  color: #847F7F;
-}
-
-/* password-label */
-.password-label {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-  width:100%;
-  padding: 0;
-  height: 39px;
-  flex: none;
-  flex-grow: 0;
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
 }
 
 .password-label::before {
   content: "Password";
-  width: 100%;
-  justify-content: flex-start;
-  height: 39px;
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  font-size: min(max(10vw, 20px), 40px);
-  line-height: 39px;
-  color: #FFFFFF;
-  flex: none;
-  flex-grow: 0;
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
 }
 
-.password-eyeball-container{
-  display: flex;
+/* ── Inputs ── */
+.username-input-box,
+.password-input-box {
   width: 100%;
-  justify-content: flex-start;
+  height: 44px;
+  padding: 0 14px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.username-input-box:focus,
+.password-input-box:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(44,155,111,0.15);
+}
+
+.username-input-box::placeholder,
+.password-input-box::placeholder {
+  color: #B0C4BB;
+  font-size: 14px;
+}
+
+/* ── Password row with eye toggle ── */
+.password-eyeball-container {
+  display: flex;
   align-items: center;
+  width: 100%;
+  position: relative;
+}
 
-
+.password-eyeball-container .password-input-box {
+  padding-right: 44px;
 }
 
 .toggle-password {
-  position: relative;
-  left: -50px;
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 .toggle-password i {
-  color: #666;
-  transition: color 0.2s ease;   /* smooth colour change */
+  color: var(--text-muted);
+  font-size: 15px;
+  transition: color 0.15s;
 }
 
 .toggle-password:hover i {
-  color: #333;   /* dark grey */
+  color: var(--primary);
 }
 
-.toggle-password:hover {
-  opacity: 0.9;
-}
-
-/* additional-buttons */
+/* ── Remember me / Forgot password row ── */
 .additional-buttons {
-  width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: 0;
-  flex-grow: 0; /* Adjusted for consistency */
+  align-items: center;
+  width: 100%;
 }
 
-/* checkbox-and-text */
 .checkbox-and-text {
   display: flex;
-  flex-direction: row;
-  padding: 0;
-  height: 26px;
   align-items: center;
+  gap: 7px;
 }
 
-/* checkbox */
-.checkbox-and-text input[type="checkbox"] { /* NEW: Style the proper checkbox */
-  width: 22px;
-  height: 22px;
-  flex: none;
-  flex-grow: 0;
+.checkbox-and-text input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
 }
 
-/* Remember me */
-.checkbox-and-text p, form p {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  font-size: min(max(4.5vw, 10px), 22px);
-  line-height: 20px;
-  align-items: center;
-  color: #FFFFFF;
-  
+.checkbox-and-text p,
+form p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1;
 }
 
-/* Forgot Password? */
 .additional-buttons a {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400;
-  font-size: min(max(4.5vw, 10px), 22px);
-  line-height: 20px;
-  display: flex;
-  align-items: center;
-  color: #FFFFFF;
-
+  font-size: 13px;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
 }
 
-/* login-button */
+.additional-buttons a:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* ── Error message ── */
+[style*="color: red"] {
+  font-size: 13px;
+  color: #CC3355 !important;
+  background: #FFF0F3;
+  border: 1px solid #FFC0CB;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  text-align: center;
+}
+
+/* ── Primary button (Login) ── */
 .login-button {
-  width: 85%;
-  height: 64px;
-  background: #AFD7C8;
-  border-radius: 25px;
+  width: 100%;
+  height: 46px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
 }
 
 .login-button::before {
   content: "Login";
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  font-size: min(max(4.5vw, 20px), 30px);
-  line-height: 34px;
-  color: #FFFFFF;
 }
 
-/* google-signin-btn */
+.login-button:hover {
+  background: var(--primary-dark);
+}
+
+.login-button:active {
+  transform: translateY(1px);
+}
+
+/* ── Google button ── */
 .google-signin-btn {
-  width: 85%;
-  max-width: 85%;
-  height: 64px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  background: #AFD7C8;
-  border-radius: 25px;
-}
-
-/* google-logo-and-text */
-.google-logo-and-text {
-  justify-content: center;
-  align-items:center;
   width: 100%;
+  height: 46px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
   display: flex;
-  height: 100%;
-  flex-direction: row;
-  padding: 0;
-
-}
-
-/* google-logo */
-.google-logo {
-  width: 44px;
-  background: url(google-logo-9808); /* Replace with actual image URL */
-
-}
-
-/* signin-google-text */
-.signin-google-text {
-  display: flex;
-  flex-basis: 75%;
-  flex-direction: row;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.google-signin-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.google-logo-and-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
-  white-space: nowrap;
-  height: 54px;
+  width: 100%;
+}
+
+.google-logo {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 18px;
 }
 
 .signin-google-text::before {
   content: "Sign in with Google";
-  font-family: 'Inter';
-  font-style: normal;
-  font-size: min(max(4.5vw, 5px), 30px);
+  font-size: 14px;
   font-weight: 500;
-  line-height: 34px;
-  color: #FFFFFF;
-
+  color: var(--text);
 }
 
-/* Mobile media query */
-@media screen and (max-width: 600px) {
+/* ── Footer link ── */
+form > p {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+form > p a {
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+form > p a:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* ── Mobile ── */
+@media screen and (max-width: 480px) {
   .login-form {
-    width: 80%;
+    padding: 28px 20px;
+    border-radius: 12px;
   }
 }

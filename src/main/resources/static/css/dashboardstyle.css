@@ -1,1016 +1,902 @@
-/* Existing styles with additions for responsive design */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* General table styles */
+:root {
+  --primary:       #2C9B6F;
+  --primary-dark:  #1E7A54;
+  --primary-light: #E6F4EE;
+  --accent:        #E64E6D;
+  --accent-hover:  #CC3355;
+  --bg:            #F2F7F4;
+  --surface:       #FFFFFF;
+  --border:        #D8E6DE;
+  --text:          #1B2B23;
+  --text-muted:    #5E7A6A;
+  --row-hover:     #F0FAF4;
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.07);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.09);
+  --radius:        8px;
+}
 
-
+/* ── Reset ── */
 * {
-    box-sizing: border-box;
-    margin: 0px;
-    padding: 0px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-    padding-top: 70px;
-    background-color: #FFF5E4;
-
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-top: 64px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-table {
-    border-collapse: collapse;
-    margin: 20px 0;
-    
-}
-
+/* ── Fixed header ── */
 .fixed-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;               /* adjust if you want taller */
-    background: #409A78;        /* same green as your theme */
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    z-index: 2000;              /* above everything else */
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 2000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .fixed-header .header-left h1 {
-    margin: 0;
-    font-size: 1.4rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
-.fixed-header .header-right .logout-btn, .edit-hours-btn, .back-to-full-list-button{
-
-    margin: 0px 10px;
-    background: rgba(227, 75, 109, 0.839);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
+/* ── Shared button base ── */
+.fixed-header .header-right .logout-btn,
+.edit-hours-btn,
+.back-to-full-list-button,
+#add-hobbs-btn,
+#add-tach-btn,
+.add-button,
+.add-log-button,
+#print-dashboard,
+#export-excel {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
 }
 
-#add-hobbs-btn, #add-tach-btn {
-    background: rgba(227, 75, 109, 0.839);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 400;
-    border: none;
-    transition: background 0.2s;
+.fixed-header .header-right .logout-btn {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 8px 16px;
 }
+.fixed-header .header-right .logout-btn:hover { background: rgba(255,255,255,0.3); }
 
-.fixed-header .header-right .logout-btn:hover {
-    background: rgba(227, 75, 109, 1);
+.edit-hours-btn,
+.back-to-full-list-button {
+  background: var(--accent);
+  color: #fff;
+  padding: 7px 14px;
+  margin-left: 8px;
 }
+.edit-hours-btn:hover,
+.back-to-full-list-button:hover { background: var(--accent-hover); }
 
-/*HEADER - "REAL TIME CLOCK AND ADD HOURS FUNCTION*/
+#add-hobbs-btn,
+#add-tach-btn {
+  background: var(--accent);
+  color: #fff;
+  padding: 5px 10px;
+}
+#add-hobbs-btn:hover, #add-tach-btn:hover { background: var(--accent-hover); }
 
+#print-dashboard,
+#export-excel {
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 16px;
+  margin: 16px 0;
+}
+#print-dashboard:hover, #export-excel:hover { background: var(--accent-hover); }
+
+/* ── Sub-header bar ── */
 .header {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
-    padding: 10px;
-    background-color: #FFF5E4;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 16px 24px 0;
+  background: var(--bg);
 }
 
-
+/* ── Hours card ── */
 .my-hours {
-    display: block;
-    width: 100%;
-    background-color: #409A78;
-    padding: 10px;
-    margin: 20px 0;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for separation */
-    border-radius: 10px; /* Slightly curved edges */
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 0;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+}
+
+.my-hours h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
 }
 
 .hours-display-and-editbutton-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.current-hobbs-display,
+.current-tach-display {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .edit-hours-section {
-    flex-direction: column;
-    gap: 7.5px;
-}
-
-.edit-hours-section input{
-    height: 30px;
-    font-size: 20px;
-    max-width: 100%;
-}
-
-
-
-/*==========================*/
-
-.main {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-table:not(.aircraft-info-table):not(.hours-table) {
-    width: 100%;
-    
-}
-
-.aircraft-info-table, .hours-table {
-    margin: 0px 10px;
-    margin-bottom: 20px;
-
-}
-
-thead {
-    border-bottom: 1px solid black;
-}
-
-th, td {
-    padding: 8px;
-    text-align: left;
-}
-
-th:first-child, td:first-child{
-    background-color: #409A78;
-    text-align: center;
-    padding: 8px;
-    min-width: 20px;
-}
-
-.aircraft-info-table tr, .hours-table tr {
-    display: flex;
-    flex-direction: row;
-}
-
-.aircraft-info-table tr td, .hours-table tr td{
-    flex: 0 0 50%;
-
-}
-
-.auto-save-row td, .aircraft-info-table td:nth-child(2), .hours-table td:nth-child(2){
-    background-color: #87CFB4;
-}
-
-.add-row td {
-    background-color: #409A78;
-}
-
-/* Grip column */
-.grip-column {
-    width: 10px;
-    min-width: 10px;
-    background-color: #f0f0f0;
-    text-align: center;
-    padding: 0;
-}
-
-.grip-icon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    cursor: move;
-    
-}
-
-.grip-icon span {
-    font-size: 6px;
-    line-height: 1;
-    margin: 1px 0;
-}
-
-.status-header,
-.status-cell {
-    text-align: center;
-}
-
-.delete-header,
-.delete-cell {
-    width: 30px;
-    text-align: center;
-}
-
-th {
-    background-color: #409A78;
-    font-weight: bold;
-}
-
-td input {
-    box-sizing: border-box;
-}
-
-.time-left {
-    white-space: pre-line;
-}
-
-.custom-description {
-    width: 100%;
-}
-
-td input:focus {
-    outline: 1px solid rgba(227, 75, 109, 0.839);
-}
-
-td textarea {
-    width: 100%;
-    min-height: 25px;
-    max-height: 120px;
-    min-width: 100px;
-    box-sizing: border-box;
-    border: 1px solid #ddd;
-    padding: 4px;
-    resize: none;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-td textarea:focus {
-    outline: 1px solid rgba(227, 75, 109, 0.839);
-}
-
-.extra-textarea {
-    min-width: 120px;
-}
-
-.extra-input {
-    width: 100%;
-    min-width: 70px;
-}
-
-.title-input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 2px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    font-weight: bold;
-    font-size: 1.2em;
-}
-
-
-
-.input-with-dropdown {
-    display: flex;
-    position: relative;
-    align-items: center;
-    width: 100%;
-}
-
-.input-with-dropdown {
-    min-width: 100px;
-    width: 100%;
-}
-
-.input-with-dropdown [name="lastDone_date"] {
-    min-width: 110px;
-}
-
-.trigger-dropdown {
-    cursor: pointer;
-    padding: 2px 6px;
-    margin-left: auto;
-}
-
-.type-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: white;
-    border: 1px solid #ddd;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    z-index: 1000;
-    display: none;
-}
-
-.type-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 8px;
-    min-width: 100px;
-}
-
-.type-option:hover {
-    background: #f5f5f5;
-}
-
-.add-type {
-    cursor: pointer;
-    color: rgba(227, 75, 109, 0.839);
-    background: none;
-    border: none;
-    padding: 0 4px;
-    font-size: 16px;
-    width: 16px;
-    text-align: center;
-}
-
-.add-type:hover {
-    color: rgba(227, 75, 109, 0.839);
-}
-
-.custom-dropdown {
-    position: relative;
-    min-height: 25px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.selected-option {
-    width: 100%;
-    min-height: 25px;
-    border: none;
-    background: white;
-    padding: 4px 8px;
-    box-sizing: border-box;
-    white-space: normal;
-    text-align: left;
-    word-wrap: break-word;
-    cursor: pointer;
-}
-
-.custom-dropdown:has(input[value=""]) .selected-option::after {
-    content: none;
-}
-
-.custom-dropdown .dropdown-trigger {
-    padding: 2px 6px;
-    
-}
-
-.selected-option:hover {
-    background: rgba(73, 170, 245, 0.929);
-}
-
-.dropdown-options {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #ddd;
-    z-index: 1000;
-    max-height: 200px;
-    min-width: 100px;
-    overflow-y: auto;
-}
-
-.option {
-    padding: 4px 8px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.custom-option {
-    display: flex;
-    white-space: normal;
-    word-wrap: break-word;
-    max-width: 150px;
-}
-
-.option:hover {
-    background: rgba(73, 170, 245, 0.929);
-}
-
-.add-option-container {
-    display: flex;
-    align-items: center;
-    padding: 4px;
-    border-top: 1px solid #ddd;
-}
-
-.custom-description {
-    flex-grow: 1;
-    padding: 2px;
-    border: 1px solid #ccc;
-    margin-right: 4px;
-}
-
-.add-option-btn {
-    padding: 2px 6px;
-    background-color: rgba(227, 75, 109, 0.839);
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-.add-option-btn:hover {
-    background-color: rgba(227, 75, 109, 0.839);
-}
-
-.title-row td {
-    font-weight: bold;
-    text-align: center;
-    background-color: #409A78;
-}
-
-.title-row .title-cell:hover {
-    background-color: #409A78;
-    cursor: pointer;
-}
-
-.row-type-selector {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 4px;
-}
-
-.row-type-option {
-    cursor: pointer;
-    padding: 2px 6px;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-}
-
-.row-type-option.selected {
-    background: rgba(227, 75, 109, 0.839);
-    color: white;
-    border-color: rgba(227, 75, 109, 0.839);
-}
-
-.add-row.title-mode td:nth-child(n+3):nth-child(-n+7) *{
-    visibility: hidden;
-
-}
-
-.save-status {
-    display: inline-block;
-    padding: 2px 6px;
-    text-align: center;
-}
-
-.save-status.saving {
-    color: rgba(227, 75, 109, 0.839);
-    font-style: italic;
-}
-
-.save-status.saved {
-    color: rgba(73, 170, 245, 0.929);
-}
-
-.save-status.error {
-    color: red;
-}
-
-.delete-icon {
-    cursor: pointer;
-    color: rgba(227, 75, 109, 0.839);
-    font-size: 18px;
-}
-
-.delete-icon:hover {
-    color: rgba(227, 75, 109, 0.839);
-}
-
-
-
-#export-excel, #print-dashboard {
-    margin: 20px 0;
-    padding: 10px 20px;
-    background-color: rgba(227, 75, 109, 0.839);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-#export-excel:hover {
-    background-color: rgba(227, 75, 109, 0.839);
-}
-
-.add-button {
-    width: 100%;
-    padding: 10px;
-    background-color: rgba(227, 75, 109, 0.839);
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-.add-button:hover {
-    background-color: rgba(227, 75, 109, 0.839);
-}
-
-/* New styles for drag-and-drop */
-.grip-icon {
-    cursor: move;
-}
-
-textarea::placeholder {
-    display: none;
-}
-
-.print-only {
-    display: none; /* Hidden by default, shown in print */
-}
-
-/* Responsive styles for aircraft-info table */
-
-.aircraft-info-table input, .hours-table input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 4px;
-}
-
-/* NEW: Tabs */
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hours-edit-row,
+.hours-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hours-edit-row label,
+.hours-add-row span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.edit-hours-section input {
+  height: 34px;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 160px;
+  color: var(--text);
+  background: var(--bg);
+}
+.edit-hours-section input:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
+}
+
+/* ── Tabs ── */
 .tabs {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 24px 0;
 }
 
 .tab-button {
-    padding: 10px 20px;
-    background: #87CFB4;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    margin: 0 5px;
-    border-radius: 5px;
+  padding: 8px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 20px;
+  transition: all 0.15s;
 }
-
+.tab-button:hover { background: var(--primary-light); color: var(--primary); }
 .tab-button.active {
-    background: #409A78;
-    color: white;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
 }
 
-.tab-content {
-    /* Existing main styles can apply */
+/* ── Main content area ── */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 24px;
+  overflow-x: auto; /* contain table overflow — prevents thead from stretching the page wider than other elements */
 }
 
-/* NEW: Logbook table */
+/* ── Aircraft info table ── */
+.aircraft-info-table,
+.hours-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin: 0;
+}
+
+.aircraft-info-table tr,
+.hours-table tr {
+  display: flex;
+  flex-direction: row;
+  border-bottom: 1px solid var(--border);
+}
+.aircraft-info-table tr:last-child,
+.hours-table tr:last-child { border-bottom: none; }
+
+.aircraft-info-table tr td,
+.hours-table tr td { flex: 0 0 50%; }
+
+/* Label cells */
+.aircraft-info-table tr td:first-child,
+.hours-table tr td:first-child {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+}
+
+/* Value cells */
+.aircraft-info-table tr td:nth-child(2),
+.hours-table tr td:nth-child(2) {
+  background: var(--surface);
+  padding: 6px 10px;
+}
+
+.aircraft-info-table input,
+.hours-table input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+}
+.aircraft-info-table input:focus,
+.hours-table input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+/* ── Service timeline table ── */
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: visible;
+  margin: 0;
+}
+
+/* Round the header corners since overflow:visible no longer clips them */
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) thead th:first-child {
+  border-top-left-radius: var(--radius);
+}
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) thead th:last-child {
+  border-top-right-radius: var(--radius);
+}
+
+thead { border-bottom: 2px solid var(--border); }
+
+th {
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 11px 10px;
+  text-align: left;
+}
+
+/* Override first-child rule for grip column header */
+th:first-child {
+  background: var(--primary);
+  padding: 11px 8px;
+  min-width: 24px;
+  text-align: center;
+}
+
+td {
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Grip column */
+td:first-child {
+  background: #F5F8F6;
+  text-align: center;
+  padding: 8px 6px;
+  min-width: 24px;
+  width: 24px;
+}
+
+.grip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  cursor: move;
+  color: #aec5b8;
+}
+
+.grip-column {
+  width: 24px;
+  min-width: 24px;
+  text-align: center;
+  background: #F5F8F6;
+  padding: 0;
+}
+
+/* Data rows */
+.auto-save-row td { background: var(--surface); }
+.auto-save-row:hover td { background: var(--row-hover); }
+.auto-save-row td:first-child { background: #F5F8F6; }
+
+/* Title rows */
+.title-row td {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+}
+.title-row .title-cell:hover { background: var(--primary-dark); cursor: pointer; }
+
+/* Add row */
+.add-row td { background: var(--primary-light); }
+.add-row td:first-child { background: var(--primary-light); }
+
+/* Inputs inside table cells */
+td input {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+td input:focus {
+  outline: 2px solid var(--primary);
+  border-radius: 4px;
+}
+
+td textarea {
+  width: 100%;
+  min-height: 28px;
+  max-height: 120px;
+  min-width: 80px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 6px;
+  resize: none;
+  overflow-y: auto;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+}
+td textarea:hover { border-color: var(--border); }
+td textarea:focus { outline: 2px solid var(--primary); background: var(--surface); }
+
+.title-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+/* Add / delete cells */
+.add-button {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--accent);
+  color: #fff;
+}
+.add-button:hover { background: var(--accent-hover); }
+
+.delete-header, .delete-cell { width: 36px; text-align: center; }
+.delete-icon { cursor: pointer; color: #c0ccc5; font-size: 15px; }
+.delete-icon:hover { color: var(--accent); }
+
+/* ── Dropdowns ── */
+.custom-dropdown {
+  position: relative;
+  display: flex;
+  align-items: flex-start; /* top-align to match textarea style */
+  width: 100%;
+  /* no z-index here — letting the open panel's own z-index work globally */
+}
+
+.selected-option {
+  flex: 1;
+  min-height: 28px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 6px;
+  box-sizing: border-box;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: 4px;
+}
+.selected-option:hover { border-color: var(--border); }
+
+.dropdown-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  z-index: 1500;
+  max-height: 200px;
+  min-width: 200px;  /* wide enough to show "New option" input + Add button */
+  overflow-y: auto;
+}
+
+.option {
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.option:hover { background: var(--primary-light); color: var(--primary-dark); }
+
+.custom-option {
+  display: flex;
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 160px;
+}
+
+.add-option-container {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  gap: 6px;
+}
+
+.custom-description {
+  flex: 1;
+  min-width: 0; /* allow shrinking */
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.add-option-btn {
+  flex-shrink: 0; /* never shrink — always fully visible */
+  padding: 4px 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.add-option-btn:hover { background: var(--accent-hover); }
+
+.remove-option-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c0ccc5;
+  font-size: 12px;
+  padding: 0 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.remove-option-btn:hover { color: var(--accent); }
+
+/* Date/type dropdown */
+.input-with-dropdown {
+  display: flex;
+  position: relative;
+  align-items: center;
+  width: 100%;
+  min-width: 100px;
+  /* no z-index — open panel's own z-index works globally */
+}
+
+.trigger-dropdown {
+  cursor: pointer;
+  padding: 2px 4px;
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  align-self: flex-start; /* stay at top when parent is flex-start */
+  padding-top: 6px;       /* align with first line of text */
+}
+
+.type-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  z-index: 1500;
+  display: none;
+}
+
+.type-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  min-width: 110px;
+  font-size: 13px;
+}
+.type-option:hover { background: var(--primary-light); }
+
+.add-type {
+  cursor: pointer;
+  color: var(--primary);
+  background: none;
+  border: none;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Row type selector */
+.row-type-selector {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.row-type-option {
+  cursor: pointer;
+  padding: 3px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.row-type-option.selected {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* Time left */
+.time-left { white-space: pre-line; font-size: 12px; }
+
+/* ── Logbook table ── */
 .logbook-table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  table-layout: fixed;
 }
 
-.logbook-table th, .logbook-table td {
-    padding: 8px;
-    border: 1px solid #ccc;
-    text-align: left;
+/* From / To columns: generous width for airport codes / names */
+.logbook-table th:nth-child(1),
+.logbook-table td:nth-child(1),
+.logbook-table th:nth-child(2),
+.logbook-table td:nth-child(2) { width: 18%; min-width: 100px; }
+
+/* Hobbs / Tach columns: compact — numbers only */
+.logbook-table th:nth-child(3),
+.logbook-table td:nth-child(3),
+.logbook-table th:nth-child(4),
+.logbook-table td:nth-child(4),
+.logbook-table th:nth-child(5),
+.logbook-table td:nth-child(5),
+.logbook-table th:nth-child(6),
+.logbook-table td:nth-child(6) { width: 12%; }
+
+/* Delete / Add column */
+.logbook-table th:nth-child(7),
+.logbook-table td:nth-child(7) { width: 5%; min-width: 44px; }
+
+.logbook-table th {
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 11px 12px;
+  text-align: left;
 }
+
+.logbook-table thead tr th:first-child { background: var(--primary); }
+
+.logbook-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  background: var(--surface);
+}
+
+.logbook-table tr.log-row:hover td { background: var(--row-hover); }
+
+.logbook-table tr.add-log-row td { background: var(--primary-light); }
 
 .logbook-table input {
-    width: 100%;
-    padding: 5px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+}
+.logbook-table tr.log-row input { background: transparent; border: none; }
+.logbook-table tr.add-log-row input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.logbook-table tr.add-log-row input:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
 }
 
 .add-log-button {
-    background: #eb7086;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-weight: 600;
 }
+.add-log-button:hover { background: var(--accent-hover); }
 
 .delete-log-icon {
-    background: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c0ccc5;
+  font-size: 14px;
+}
+.delete-log-icon:hover { color: var(--accent); }
+
+/* ── Misc ── */
+textarea::placeholder { display: none; }
+.print-only { display: none; }
+
+.save-status { display: inline-block; padding: 2px 6px; text-align: center; }
+.save-status.saving { color: var(--accent); font-style: italic; }
+.save-status.saved   { color: var(--primary); }
+.save-status.error   { color: red; }
+
+.add-row.title-mode td:nth-child(n+3):nth-child(-n+7) * { visibility: hidden; }
+
+/* ── Mobile (≤768px) ── */
+@media screen and (max-width: 768px) {
+  .header { padding: 12px 12px 0; }
+  .main   { padding: 12px; }
+  .tabs   { padding: 16px 12px 0; }
+
+  textarea::placeholder { display: inline; color: #999; }
+
+  /* aircraft-info-table: keep label-left | value-right row layout */
+  .aircraft-info-table, .hours-table {
+    overflow: visible; /* stop border-radius from clipping cell content */
+  }
+  .aircraft-info-table tbody, .hours-table tbody { display: block; }
+
+  /* tr stays as a flex row so label and value remain side-by-side */
+  .aircraft-info-table tr, .hours-table tr {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .aircraft-info-table tr:last-child,
+  .hours-table tr:last-child { border-bottom: none; }
+
+  .aircraft-info-table td, .hours-table td {
+    display: block;
+    padding: 8px 10px;
     border: none;
-    cursor: pointer;
-    font-size: 1.2em;
+  }
+
+  /* Label column — fixed 42% width so the text is always fully visible */
+  .aircraft-info-table tr td:first-child,
+  .hours-table tr td:first-child {
+    flex: 0 0 42%;
+    max-width: 42%;
+    font-size: 11px;
+    word-break: break-word;
+    white-space: normal;
+    align-self: center;
+  }
+
+  /* Value column — fills the rest */
+  .aircraft-info-table tr td:nth-child(2),
+  .hours-table tr td:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sortable { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+  .sortable-head { display: none; }
+
+  .sortable tr:not(.add-row) {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    padding: 10px;
+  }
+
+  .sortable tr.title-row {
+    background: var(--primary);
+    font-weight: 700;
+    text-align: center;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .sortable tr.title-row td { display: block; border: none; color: #fff; }
+
+  .sortable tr:not(.title-row):not(.add-row) td:not(.grip-cell) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .sortable tr:not(.title-row):not(.add-row) td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex: 1;
+  }
+
+  .sortable td textarea, .sortable td .selected-option,
+  .sortable td .input-with-dropdown { width: 100%; }
+
+  .grip-column { display: none; }
+  .custom-dropdown, .input-with-dropdown { width: 100%; }
+  .dropdown-options, .type-dropdown { width: 100%; max-height: 150px; }
+
+  .add-row {
+    display: block; padding: 12px; margin: 0;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--primary-light);
+  }
+  .add-row td { display: block; border: none; padding: 6px 8px; background: var(--primary-light); }
+  .add-row td::before { content: attr(data-label); font-weight: 600; font-size: 11px; display: block; margin-bottom: 4px; color: var(--text-muted); }
+  .add-row td.grip-column { display: none; }
+
+  #export-excel, #print-dashboard, .add-button { width: 100%; margin: 8px 0; padding: 12px; }
+
+  .logbook-table { display: block; width: 100%; border: none; }
+  .logbook-table thead { display: none; }
+  .logbook-table tbody#logbook-body { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+
+  .logbook-table tr.log-row,
+  .logbook-table tr.add-log-row {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 10px;
+    margin-bottom: 4px;
+  }
+  .logbook-table tr.log-row { background: var(--surface); }
+  .logbook-table tr.add-log-row { background: var(--primary-light); }
+
+  .logbook-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+  }
+  .logbook-table td::before { content: attr(data-label); font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--text-muted); flex: 1; margin-right: 8px; }
+  .logbook-table td > * { flex: 2; text-align: right; }
+  .logbook-table input { width: 100%; padding: 8px; box-sizing: border-box; }
+
+  .logbook-table .delete-cell,
+  .logbook-table .add-cell { display: block !important; text-align: center; border-bottom: none; padding-top: 10px; }
+
+  .logbook-table .print-only { display: none; }
+
+  .header { flex-direction: column; align-items: flex-start; }
+  .my-hours { width: 100%; margin: 8px 0; }
 }
 
-/* Responsive styles for mobile (below 600px) */
-@media screen and (max-width: 600px) {
-    /* Aircraft-info table: Stack cells vertically */
-
-    textarea::placeholder {
-        display: inline;
-        color: #999;
-    }
-
-    .aircraft-info-table, .hours-table{
-        display: block;
-    }
-
-    .aircraft-info-table tbody,
-    .aircraft-info-table tr , .hours-table tbody,
-    .hours-table tr {
-        display: block;
-    }
-
-    .aircraft-info-table td, .hours-table td{
-        display: flex;
-        flex-direction: row-reverse;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px;
-        border: none;
-        border-bottom: 1px solid #ddd;
-    }
-
-    .aircraft-info-table td::before, .hours-table td::before {
-        content: attr(data-label);
-        font-weight: bold;
-        flex: 1;
-        text-align: left;
-    }
-
-    .aircraft-info-table td input,
-    .aircraft-info-table td .print-only, .hours-table td input,
-    .hours-table td .print-only {
-        flex: 2;
-        text-align: right;
-    }
-
-    
-
-    /* Sortable table: Transform into cards */
-    .sortable {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin: 0 10px;
-    }
-
-    .sortable-head {
-        display: none;
-    }
-
-    .sortable tr:not(.add-row) {
-        display: block;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background-color: #87cfb4;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 10px;
-    }
-
-    /* Title row as a card */
-    .sortable tr.title-row {
-        background-color: #409A78;
-        font-weight: bold;
-        font-size: 1.1em;
-        text-align: center;
-        padding: 12px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .sortable tr.title-row td {
-        display: block;
-        border: none;
-    }
-
-    .sortable tr.title-row .title-cell {
-        margin: 0;
-    }
-
-    /* Item row as a card */
-    .sortable tr:not(.title-row):not(.add-row) {
-        display: block;
-    }
-
-    .sortable tr:not(.title-row):not(.add-row) td:not(.grip-cell) {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 6px 8px;
-        border: none;
-        border-bottom: 1px solid #eee;
-    }
-
-    .sortable tr:not(.title-row):not(.add-row) td::before {
-        content: attr(data-label);
-        font-weight: bold;
-        flex: 1;
-        text-align: left;
-    }
-
-    .sortable tr:not(.title-row):not(.add-row) td > * {
-        text-align: right;
-    }
-
-    /* Ensure inputs and textareas take full width */
-    .sortable td textarea,
-    .sortable td .selected-option,
-    .sortable td .input-with-dropdown {
-        width: 100%;
-    }
-
-    .grip-column {
-        display: none;
-    }
-
-    /* Adjust dropdowns for mobile */
-    .custom-dropdown,
-    .input-with-dropdown {
-        width: 100%;
-    }
-
-    .dropdown-options,
-    .type-dropdown {
-        width: 100%;
-        max-height: 150px;
-    }
-
-    .extra-input {
-        height: 40px;
-    }
-
-    /* Add row adjustments */
-    .add-row {
-        display: block;
-        padding: 10px;
-        margin: 10px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-       background-color: rgba(75, 227, 227, 0.839);
-    }
-
-    .add-row td {
-        display: block;
-        border: none;
-        padding: 6px 8px;
-    }
-
-    .add-row td::before {
-        content: attr(data-label);
-        font-weight: bold;
-        display: block;
-        margin-bottom: 4px;
-    }
-
-    .add-row td.grip-column {
-        display: none;
-    }
-
-    /* NEW: Logbook table transformations into cards */
-    .logbook-table {
-        display: block;  /* Treat table as block for stacking */
-        width: 100%;
-        border: none;  /* Remove table borders */
-    }
-
-    .logbook-table thead {
-        display: none;  /* Hide headers on mobile */
-    }
-
-    .logbook-table tbody#logbook-body {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;  /* Space between cards */
-        margin: 0 10px;
-    }
-
-    .logbook-table tr.log-row,
-    .logbook-table tr.add-log-row {
-        display: block;  /* Each row is a card */
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 10px;
-        margin-bottom: 10px;  /* Extra space if needed */
-    }
-
-    /* Data rows (log-row) specific styles */
-    .logbook-table tr.log-row {
-        background-color: #87CFB4;  /* Match sortable item rows */
-    }
-
-    /* Add row specific styles */
-    .logbook-table tr.add-log-row {
-        background-color: #409A78;  /* Match add-row theme */
-    }
-
-    .logbook-table td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 6px 8px;
-        border: none;
-        border-bottom: 1px solid #eee;  /* Subtle divider between fields */
-    }
-
-    .logbook-table td::before {
-        content: attr(data-label);  /* Use data-label for field names */
-        font-weight: bold;
-        flex: 1;
-        text-align: left;
-        margin-right: 10px;  /* Space between label and input */
-    }
-
-    .logbook-table td > * {  /* Inputs, spans, etc. */
-        flex: 2;
-        text-align: right;
-    }
-
-    /* Ensure inputs take full width in cards */
-    .logbook-table input {
-        width: 100%;
-        padding: 8px;  /* Better touch targets */
-        box-sizing: border-box;
-    }
-
-    /* Delete and add cells: Position buttons at bottom for mobile */
-    .logbook-table .delete-cell,
-    .logbook-table .add-cell {
-        display: block !important;  /* Override any hides */
-        text-align: center;
-        border-bottom: none;  /* No divider under button */
-        padding-top: 10px;  /* Space above button */
-    }
-
-    .logbook-table .delete-log-icon,
-    .logbook-table .add-log-button {
-        width: auto;  /* Fit content */
-        padding: 8px 16px;  /* Larger for touch */
-        font-size: 1em;
-        border-radius: 4px;
-    }
-
-    /* Hide print-only on mobile (since no-print is visible) */
-    .logbook-table .print-only {
-        display: none;
-    }
-
-    /* Buttons and layout */
-    #export-excel, #print-dashboard, .add-button {
-        width: 100%;
-        margin: 10px 0;
-        padding: 12px;
-        font-size: 1em;
-    }
-
-    /* Header adjustments */
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .my-hours {
-        width: 100%;
-        margin: 10px 0;
-    }
-
-    body > table:nth-child(3) > thead > tr {
-        display: none;
-    }
-
-
+/* ── Tablet (769–1024px) ── */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  table { font-size: 13px; }
+  th, td { padding: 7px 8px; }
+  .grip-column { min-width: 20px; }
 }
 
-/* iPad and tablet styles (601px to 1024px) */
-@media screen and (min-width: 601px) and (max-width: 1024px) {
-    /* Keep table layout but optimize */
-    table {
-        font-size: 1.2em; /* Slightly smaller text */
-    }
-
-    th, td {
-        padding: 6px; /* Reduced padding */
-    }
-
-    body > table:nth-child(3) > thead > tr {
-        display: table-row;
-    }
-
-    /* Reduce column widths where possible */
-    .grip-column {
-        min-width: 15px;
-    }
-
-    .status-header,
-    .delete-header,
-    .status-cell,
-    .delete-cell {
-        min-width: 20px;
-    }
-
-    td textarea,
-    td .selected-option,
-    td .input-with-dropdown {
-        min-width: 70px;
-    }
-
-    /* Increase tap target sizes for buttons */
-    .trigger-dropdown,
-    .add-type,
-    .add-option-btn,
-    .remove-option-btn,
-    .delete-icon {
-        padding: 4px 8px;
-        font-size: 14px;
-    }
-
-    .add-button,
-    #export-excel,
-    #print-dashboard {
-        padding: 8px 16px;
-        font-size: 0.9em;
-    }
-
-    /* Aircraft-info adjustments */
-    .aircraft-info-table td, .hours-table td{
-        padding: 6px;
-        font-size: 0.9em;
-    }
-
-    .aircraft-info-table input .hours-table input{
-        font-size: 0.9em;
-    }
-
-    /* Header adjustments */
-    .header {
-        flex-wrap: wrap;
-    }
-
-}
-
-/* Print-specific styles (unchanged) */
+/* ── Print ── */
 @media print {
+  .fixed-header { display: none; }
+  main { padding-top: 0; }
 
-    .fixed-header { 
-        display: none; 
-    }
+  .no-print, .status-cell, .delete-cell, .status-header,
+  .delete-header, .print-remove, .grip-cell { display: none !important; }
 
-    main {
-        padding-top: 0px;
-    }
+  .print-only { display: inline !important; visibility: visible; }
 
-    .header, .header, .aircraft-info-table td, .hours-table td, table, table thead, table th.print, table tbody.sortable td > *, .title-cell {
-        visibility: visible;
-    }
+  body { padding-top: 0; font-size: 12pt; line-height: 1.4; color: black; background: white; }
 
-    .no-print, .status-cell, .delete-cell, .status-header, .delete-header, .print-remove, .grip-cell {
-        display: none !important;
-    }
+  .header { position: relative; width: 100%; text-align: center; }
 
-    .print-only {
-        display: inline !important;
-        visibility: visible;
-    }
+  table { border-collapse: collapse; page-break-inside: auto; }
+  th, td { border: 1px solid black !important; padding: 8px; }
+  th { background: #2C9B6F !important; -webkit-print-color-adjust: exact; }
 
-    body {
-        padding-top: 0px;
-        font-size: 12pt;
-        line-height: 1.4;
-        color: black;
-    }
+  th.grip-column, td.grip-column, .title-grip-icon-cell { display: none; }
 
-    .header {
-        position: relative;
-        width: 100%;
-        text-align: center;
-    }
+  .time-left { white-space: pre-line; font-weight: bold; }
+  .aircraft-info-table td, .hours-table td { text-align: left; }
+  .my-hours h3, #print-current-hours { visibility: visible; }
 
-    table {
-        border-collapse: collapse;
-        page-break-inside: auto;
-    }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  .title-row td { font-weight: bold; font-size: 14pt; background: #2C9B6F !important; color: white !important; }
 
-    th, td {
-        border: 1px solid black !important;
-        padding: 8px;
-    }
-
-    th.grip-column, td.grip-column, .title-grip-icon-cell {
-        display: none;
-    }
-
-    .time-left {
-        white-space: pre-line;
-        font-weight: bold;
-    }
-
-    .aircraft-info-table td, .hours-table td{
-        text-align: left;
-    }
-
-    .my-hours h3, #print-current-hours {
-        visibility: visible;
-    }
-
-    tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-    }
-
-    .title-row td {
-        font-weight: bold;
-        font-size: 14pt;
-    }
-
-    .tab-print-title {
-        display: block !important;
-        text-align: center;
-        font-size: 18pt;
-        margin: 10px 0 20px 0;
-        visibility: visible;
-    }
-
+  .tab-print-title {
+    display: block !important;
+    text-align: center;
+    font-size: 18pt;
+    margin: 10px 0 20px 0;
+    visibility: visible;
+  }
 }
