@@ -1308,52 +1308,57 @@ document.addEventListener('DOMContentLoaded', () => {
             newRow.innerHTML = `
                 <td><span class="print-only">${log.fromAirport || ''}</span><input type="text" name="fromAirport" class="no-print" value="${log.fromAirport || ''}" readonly></td>
                 <td><span class="print-only">${log.toAirport || ''}</span><input type="text" name="toAirport" class="no-print" value="${log.toAirport || ''}" readonly></td>
-                <td><span class="print-only">${log.hobbsIn || ''}</span><input type="number" name="hobbsIn" class="no-print" value="${log.hobbsIn || ''}" readonly step="0.1"></td>
                 <td><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
-                <td><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
+                <td><span class="print-only">${log.hobbsIn || ''}</span><input type="number" name="hobbsIn" class="no-print" value="${log.hobbsIn || ''}" readonly step="0.1"></td>
                 <td><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
+                <td><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
                 <td class="delete-cell no-print"><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
             `;
             document.getElementById('logbook-body').insertBefore(newRow, document.querySelector('.add-log-row'));
 
-            // Re-attach delete listener to new button
-            document.querySelectorAll('.delete-log-icon').forEach(button => {
-                button.addEventListener('click', () => {
-                const row = newRow;
+            // Attach delete listener to only this new row's button
+            const newDeleteButton = newRow.querySelector('.delete-log-icon');
+            newDeleteButton.addEventListener('click', async () => {
+                const row = newDeleteButton.closest('tr');
                 const id = row.dataset.id;
                 const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
                 const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-
-                    if (confirm('Are you sure you want to delete this entry?')) {
-                        axios.delete(`/deleteflightlog/${id}`, {
-                            headers: { [csrfHeader]: csrfToken }
-                        })
-                        .then(() => row.remove())
-                        .catch(error => console.error('Error deleting log:', error));
-
+                try {
+                    const deleteResponse = await axios.delete(`/deleteflightlog/${id}`, {
+                        headers: { [csrfHeader]: csrfToken }
+                    });
+                    row.remove();
+                    const { newHobbs, newTach } = deleteResponse.data;
+                    if (newHobbs !== undefined) {
+                        document.getElementById('current-hobbs').value = newHobbs;
+                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
+                        previousHobbsHours = newHobbs;
                     }
-                    
-                });
-                
+                    if (newTach !== undefined) {
+                        document.getElementById('current-tach').value = newTach;
+                        document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
+                        previousTachHours = newTach;
+                    }
+                    updateAllTimeLeft();
+                    updateAddRowTimeLeft();
+                } catch (error) {
+                    console.error('Error deleting log:', error);
+                }
             });
 
-        const hobbsDiff = hobbsOut - hobbsIn;
-        const tachDiff = tachOut - tachIn;
-
-        console.log("HOBBS DIFFERENCE: ", hobbsDiff);
-        console.log("TACH DIFFERENCE: ", tachDiff);
-
-        // Prepare combined updates
-        const updates = {};
-        if (hobbsDiff > 0) updates.hobbsTimeToAdd = hobbsDiff;
-        if (tachDiff > 0) updates.tachTimeToAdd = tachDiff;
-
-        // Send combined update if needed
-        if (Object.keys(updates).length > 0) {
-            await updateHours(updates);
-        } else {
-            console.log("No positive diffs, no hours added");
-        }   
+        // Update hours display from backend-calculated totals
+        if (log.newHobbs !== undefined && log.newHobbs !== null) {
+            document.getElementById('current-hobbs').value = log.newHobbs;
+            document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${log.newHobbs}`;
+            previousHobbsHours = log.newHobbs;
+        }
+        if (log.newTach !== undefined && log.newTach !== null) {
+            document.getElementById('current-tach').value = log.newTach;
+            document.getElementById('current-tach-display').textContent = `Tach Time: ${log.newTach}`;
+            previousTachHours = log.newTach;
+        }
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();
 
         // Clear inputs
         document.getElementById('fromAirport').value = '';
@@ -1369,40 +1374,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-    // NEW: Delete log row
+    // Delete log row (server-rendered rows)
     document.querySelectorAll('.delete-log-icon').forEach(button => {
-        button.addEventListener('click', async () => {  // Made async
+        button.addEventListener('click', async () => {
             const row = button.closest('tr');
             const id = row.dataset.id;
-    
-            const hobbsIn = parseFloat(row.querySelector('input[name="hobbsIn"]').value) || 0;
-            const hobbsOut = parseFloat(row.querySelector('input[name="hobbsOut"]').value) || 0;
-            const tachIn = parseFloat(row.querySelector('input[name="tachIn"]').value) || 0;
-            const tachOut = parseFloat(row.querySelector('input[name="tachOut"]').value) || 0;
-    
-            const hobbsDiff = hobbsOut - hobbsIn;
-            const tachDiff = tachOut - tachIn;
-    
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-    
             try {
-                await axios.delete(`/deleteflightlog/${id}`, {
+                const deleteResponse = await axios.delete(`/deleteflightlog/${id}`, {
                     headers: { [csrfHeader]: csrfToken }
                 });
-    
                 row.remove();
                 console.log(`Log ${id} deleted`);
-    
-                // Prepare combined subtracts
-                const updates = {};
-                if (hobbsDiff > 0) updates.hobbsTimeToAdd = -hobbsDiff;
-                if (tachDiff > 0) updates.tachTimeToAdd = -tachDiff;
-    
-                // Send combined update if needed
-                if (Object.keys(updates).length > 0) {
-                    await updateHours(updates);
+                const { newHobbs, newTach } = deleteResponse.data;
+                if (newHobbs !== undefined) {
+                    document.getElementById('current-hobbs').value = newHobbs;
+                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
+                    previousHobbsHours = newHobbs;
                 }
+                if (newTach !== undefined) {
+                    document.getElementById('current-tach').value = newTach;
+                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
+                    previousTachHours = newTach;
+                }
+                updateAllTimeLeft();
+                updateAddRowTimeLeft();
             } catch (error) {
                 console.error('Error deleting log:', error);
             }

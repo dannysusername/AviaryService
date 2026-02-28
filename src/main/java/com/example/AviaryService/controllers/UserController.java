@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import jakarta.transaction.Transactional;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -373,33 +375,92 @@ public ResponseEntity<Map<String, String>> updateHours(
         return flightLogRepository.findByUser(user);
     }
 
-    // NEW: POST to add flight log (now AJAX-friendly)
+    // POST to add flight log
     @PostMapping(value = "/addflightlog", consumes = "application/json")
     @ResponseBody
-    public ResponseEntity<FlightLog> addFlightLog(@RequestBody FlightLog newLog, Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> addFlightLog(@RequestBody FlightLog newLog, Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName());
         newLog.setUser(user);
         FlightLog savedLog = flightLogRepository.save(newLog);
-        return ResponseEntity.ok(savedLog);  // Return the saved entity as JSON
+
+        List<FlightLog> allLogs = flightLogRepository.findByUser(user);
+        double newHobbs = calculateMergedHours(allLogs, true);
+        double newTach = calculateMergedHours(allLogs, false);
+        user.setHobbsHours(newHobbs);
+        user.setTachHours(newTach);
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", savedLog.getId());
+        response.put("fromAirport", savedLog.getFromAirport());
+        response.put("toAirport", savedLog.getToAirport());
+        response.put("hobbsIn", savedLog.getHobbsIn());
+        response.put("hobbsOut", savedLog.getHobbsOut());
+        response.put("tachIn", savedLog.getTachIn());
+        response.put("tachOut", savedLog.getTachOut());
+        response.put("newHobbs", newHobbs);
+        response.put("newTach", newTach);
+        return ResponseEntity.ok(response);
     }
 
-    // NEW: DELETE flight log
+    // DELETE flight log
     @DeleteMapping("/deleteflightlog/{id}")
     @ResponseBody
     @Transactional
-    public ResponseEntity<String> deleteFlightLog(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> deleteFlightLog(@PathVariable Long id, Authentication authentication) {
         try {
             User user = userRepository.findByUsername(authentication.getName());
             FlightLog log = flightLogRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Flight log not found"));
             if (!log.getUser().equals(user)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not own this log");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
             }
             flightLogRepository.delete(log);
-            return ResponseEntity.ok("Flight log deleted");
+
+            List<FlightLog> remainingLogs = flightLogRepository.findByUser(user);
+            double newHobbs = calculateMergedHours(remainingLogs, true);
+            double newTach = calculateMergedHours(remainingLogs, false);
+            user.setHobbsHours(newHobbs);
+            user.setTachHours(newTach);
+            userRepository.save(user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("newHobbs", newHobbs);
+            response.put("newTach", newTach);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting flight log: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+    }
+
+    // Calculates total hours from all logs using interval merging to prevent double-counting
+    private double calculateMergedHours(List<FlightLog> logs, boolean useHobbs) {
+        List<double[]> intervals = new ArrayList<>();
+        for (FlightLog log : logs) {
+            Double a = useHobbs ? log.getHobbsOut() : log.getTachIn();
+            Double b = useHobbs ? log.getHobbsIn() : log.getTachOut();
+            if (a != null && b != null) {
+                double lo = Math.min(a, b);
+                double hi = Math.max(a, b);
+                if (hi > lo) intervals.add(new double[]{lo, hi});
+            }
+        }
+        if (intervals.isEmpty()) return 0.0;
+        intervals.sort(Comparator.comparingDouble(i -> i[0]));
+        double total = 0.0;
+        double[] current = intervals.get(0);
+        for (int i = 1; i < intervals.size(); i++) {
+            double[] interval = intervals.get(i);
+            if (interval[0] <= current[1]) {
+                current[1] = Math.max(current[1], interval[1]);
+            } else {
+                total += current[1] - current[0];
+                current = interval;
+            }
+        }
+        total += current[1] - current[0];
+        return total;
     }
 
     private void saveCustomDescriptionOption(String description, User user) {

@@ -273,10 +273,10 @@
                     <tr>
                         <th>From</th>
                         <th>To</th>
-                        <th>Hobbs In</th>
                         <th>Hobbs Out</th>
-                        <th>Tach In</th>
+                        <th>Hobbs In</th>
                         <th>Tach Out</th>
+                        <th>Tach In</th>
                         <th class="delete-header"></th>
                     </tr>
                 </thead>
@@ -290,21 +290,21 @@
                             <span class="print-only" th:text="${log.toAirport}"></span>
                             <input type="text" name="toAirport" class="no-print" th:value="${log.toAirport}" readonly>
                         </td>
-                        <td data-label="Hobbs In">
-                            <span class="print-only" th:text="${log.hobbsIn}"></span>
-                            <input type="number" name="hobbsIn" class="no-print" th:value="${log.hobbsIn}" readonly step="0.1">
-                        </td>
                         <td data-label="Hobbs Out">
                             <span class="print-only" th:text="${log.hobbsOut}"></span>
                             <input type="number" name="hobbsOut" class="no-print" th:value="${log.hobbsOut}" readonly step="0.1">
                         </td>
-                        <td data-label="Tach In">
-                            <span class="print-only" th:text="${log.tachIn}"></span>
-                            <input type="number" name="tachIn" class="no-print" th:value="${log.tachIn}" readonly step="0.1">
+                        <td data-label="Hobbs In">
+                            <span class="print-only" th:text="${log.hobbsIn}"></span>
+                            <input type="number" name="hobbsIn" class="no-print" th:value="${log.hobbsIn}" readonly step="0.1">
                         </td>
                         <td data-label="Tach Out">
                             <span class="print-only" th:text="${log.tachOut}"></span>
                             <input type="number" name="tachOut" class="no-print" th:value="${log.tachOut}" readonly step="0.1">
+                        </td>
+                        <td data-label="Tach In">
+                            <span class="print-only" th:text="${log.tachIn}"></span>
+                            <input type="number" name="tachIn" class="no-print" th:value="${log.tachIn}" readonly step="0.1">
                         </td>
                         <td class="delete-cell no-print" data-label="">
                             <button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button>
@@ -314,10 +314,10 @@
                     <tr class="add-log-row no-print">
                         <td data-label="From"><input type="text" id="fromAirport" name="fromAirport" autocomplete="fromAirport" placeholder="From Airport"></td>
                         <td data-label="To"><input type="text" id="toAirport" name="toAirport" autocomplete="toAirport" placeholder="To Airport"></td>
-                        <td data-label="Hobbs In"><input type="number" id="hobbsIn" name="hobbsIn" autocomplete="hobbsIn" placeholder="Hobbs In" step="0.1"></td>
                         <td data-label="Hobbs Out"><input type="number" id="hobbsOut" name="hobbsOut" autocomplete="hobbsOut" placeholder="Hobbs Out" step="0.1"></td>
-                        <td data-label="Tach In"><input type="number" id="tachIn" name="tachIn" autocomplete="tachIn" placeholder="Tach In" step="0.1"></td>
+                        <td data-label="Hobbs In"><input type="number" id="hobbsIn" name="hobbsIn" autocomplete="hobbsIn" placeholder="Hobbs In" step="0.1"></td>
                         <td data-label="Tach Out"><input type="number" id="tachOut" name="tachOut" autocomplete="tachOut" placeholder="Tach Out" step="0.1"></td>
+                        <td data-label="Tach In"><input type="number" id="tachIn" name="tachIn" autocomplete="tachIn" placeholder="Tach In" step="0.1"></td>
                         <td class="add-cell" data-label="">
                             <button id="add-log-button" class="add-log-button">Add</button>
                         </td>
