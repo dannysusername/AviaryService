@@ -434,15 +434,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } else if (event.target.classList.contains('trigger-dropdown')) {
-            const dropdown = event.target.nextElementSibling; // The .type-dropdown menu
-            const isOpen = dropdown.style.display === 'block';
-            // Close all other dropdowns
-            document.querySelectorAll('.type-dropdown').forEach(d => d.style.display = 'none');
-            // Toggle the clicked dropdown
-            if (!isOpen) {
-                dropdown.style.display = 'block';
-                // Add a one-time listener to close the dropdown when clicking outside
-                setTimeout(() => document.addEventListener('click', closeTypeDropdowns, { once: true }), 0);
+            const sibling = event.target.nextElementSibling;
+            if (sibling && sibling.classList.contains('type-dropdown')) {
+                // Calendar/clock type dropdown
+                const isOpen = sibling.style.display === 'block';
+                document.querySelectorAll('.type-dropdown').forEach(d => d.style.display = 'none');
+                if (!isOpen) {
+                    sibling.style.display = 'block';
+                    setTimeout(() => document.addEventListener('click', closeTypeDropdowns, { once: true }), 0);
+                }
+            } else if (sibling && sibling.classList.contains('dropdown-options')) {
+                // Description custom dropdown
+                const isOpen = sibling.style.display === 'block';
+                document.querySelectorAll('.dropdown-options').forEach(d => d.style.display = 'none');
+                if (!isOpen) {
+                    sibling.style.display = 'block';
+                    setTimeout(() => document.addEventListener('click', closeDropdownOutside, { once: true }), 0);
+                }
             }
 
         } else if (event.target.classList.contains('add-type')) {
