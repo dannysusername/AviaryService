@@ -230,7 +230,6 @@ body {
 /* ── Aircraft info table ── */
 .aircraft-info-table,
 .hours-table {
-  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -717,8 +716,8 @@ textarea::placeholder { display: none; }
 
 /* ── Mobile (≤768px) ── */
 @media screen and (max-width: 768px) {
-  .header { padding: 12px 12px 0; }
-  .main   { padding: 12px; }
+  .header { padding: 16px 24px 0; }
+  /*.main   { padding: 12px; }*/
   .tabs   { padding: 16px 12px 0; }
 
   textarea::placeholder { display: inline; color: #999; }
@@ -743,16 +742,6 @@ textarea::placeholder { display: none; }
     border: none;
   }
 
-  /* Label column — fixed 42% width so the text is always fully visible */
-  .aircraft-info-table tr td:first-child,
-  .hours-table tr td:first-child {
-    flex: 0 0 42%;
-    max-width: 42%;
-    font-size: 11px;
-    word-break: break-word;
-    white-space: normal;
-    align-self: center;
-  }
 
   /* Value column — fills the rest */
   .aircraft-info-table tr td:nth-child(2),
