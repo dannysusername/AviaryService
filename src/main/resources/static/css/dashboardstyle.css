@@ -224,7 +224,7 @@ body {
   flex-direction: column;
   gap: 12px;
   padding: 16px 24px;
-  overflow-x: auto; /* contain table overflow — prevents thead from stretching the page wider than other elements */
+  
 }
 
 /* ── Aircraft info table ── */
@@ -291,6 +291,7 @@ body {
 /* ── Service timeline table ── */
 table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   background: var(--surface);
   border-radius: var(--radius);
@@ -298,6 +299,16 @@ table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) {
   overflow: visible;
   margin: 0;
 }
+
+/* Column widths — proportional so table always fits 100% width */
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(1) { width: 28px; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(2) { width: 22%; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(3) { width: 14%; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(4) { width: 11%; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(5) { width: 14%; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(6) { width: 14%; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(7) { width: 11%; }
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(8) { width: 36px; }
 
 /* Round the header corners since overflow:visible no longer clips them */
 table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) thead th:first-child {
@@ -376,8 +387,26 @@ td:first-child {
 .title-row .title-cell:hover { background: var(--primary-dark); cursor: pointer; }
 
 /* Add row */
-.add-row td { background: var(--primary-light); }
-.add-row td:first-child { background: var(--primary-light); }
+.add-row td { background: var(--primary-light); border-top: 2px dashed var(--primary); }
+.add-row td:first-child { background: var(--primary-light); border-top: 2px dashed var(--primary); }
+
+/* Add row inputs — always visible so user knows where to type */
+.add-row td textarea {
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+}
+.add-row td textarea::placeholder { display: inline; color: var(--text-muted); }
+.add-row .selected-option {
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  border-radius: 4px;
+}
+.add-row .input-with-dropdown {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
 
 /* Inputs inside table cells */
 td input {
@@ -394,7 +423,7 @@ td textarea {
   width: 100%;
   min-height: 28px;
   max-height: 120px;
-  min-width: 80px;
+  min-width: 0;
   box-sizing: border-box;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -484,7 +513,8 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   display: flex;
   white-space: normal;
   word-wrap: break-word;
-  max-width: 160px;
+  justify-content:space-between;
+ 
 }
 
 .add-option-container {
@@ -534,11 +564,31 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 /* Date/type dropdown */
 .input-with-dropdown {
   display: flex;
+  flex-wrap: wrap;
   position: relative;
   align-items: center;
   width: 100%;
-  min-width: 100px;
+  min-width: 0;
+  gap: 2px;
   /* no z-index — open panel's own z-index works globally */
+}
+
+.input-with-dropdown input.extra-input {
+  flex: 1 1 80px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+}
+
+.input-with-dropdown input.extra-input:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
 }
 
 .trigger-dropdown {
@@ -780,6 +830,13 @@ textarea::placeholder { display: none; }
     border: none;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
+  }
+
+  /* No border under the last field (trash icon) in a card */
+  .sortable tr:not(.title-row):not(.add-row) td.delete-cell {
+    border-bottom: none;
+    justify-content: center;
+    padding-top: 10px;
   }
 
   .sortable tr:not(.title-row):not(.add-row) td::before {
