@@ -180,7 +180,8 @@ function selectOption(option) {
     const selected = dropdown.querySelector('.selected-option');
     const hiddenInput = dropdown.querySelector('input[type="hidden"]');
     const value = option.getAttribute('data-value');
-    selected.textContent = value === '' ? '' : option.textContent;
+    const optionText = option.querySelector('span') ? option.querySelector('span').textContent : option.textContent;
+    selected.textContent = value === '' ? '' : optionText;
     hiddenInput.value = value;
     dropdown.querySelector('.dropdown-options').style.display = 'none';
     if (dropdown.closest('.auto-save-row')) autoSave(hiddenInput);
@@ -1314,13 +1315,13 @@ document.addEventListener('DOMContentLoaded', () => {
             newRow.className = 'log-row';
             newRow.dataset.id = log.id;
             newRow.innerHTML = `
-                <td><span class="print-only">${log.fromAirport || ''}</span><input type="text" name="fromAirport" class="no-print" value="${log.fromAirport || ''}" readonly></td>
-                <td><span class="print-only">${log.toAirport || ''}</span><input type="text" name="toAirport" class="no-print" value="${log.toAirport || ''}" readonly></td>
-                <td><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
-                <td><span class="print-only">${log.hobbsIn || ''}</span><input type="number" name="hobbsIn" class="no-print" value="${log.hobbsIn || ''}" readonly step="0.1"></td>
-                <td><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
-                <td><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
-                <td class="delete-cell no-print"><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
+                <td data-label="From"><span class="print-only">${log.fromAirport || ''}</span><input type="text" name="fromAirport" class="no-print" value="${log.fromAirport || ''}" readonly></td>
+                <td data-label="To"><span class="print-only">${log.toAirport || ''}</span><input type="text" name="toAirport" class="no-print" value="${log.toAirport || ''}" readonly></td>
+                <td data-label="Hobbs Out"><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
+                <td data-label="Hobbs In"><span class="print-only">${log.hobbsIn || ''}</span><input type="number" name="hobbsIn" class="no-print" value="${log.hobbsIn || ''}" readonly step="0.1"></td>
+                <td data-label="Tach Out"><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
+                <td data-label="Tach In"><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
+                <td class="delete-cell no-print" data-label=""><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
             `;
             document.getElementById('logbook-body').insertBefore(newRow, document.querySelector('.add-log-row'));
 

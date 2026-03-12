@@ -311,14 +311,8 @@ table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-chi
 table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) th:nth-child(8) { width: 36px; }
 
 /* Round the header corners since overflow:visible no longer clips them */
-table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) thead th:first-child {
-  border-top-left-radius: var(--radius);
-}
-table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) thead th:last-child {
-  border-top-right-radius: var(--radius);
-}
 
-thead { border-bottom: 2px solid var(--border); }
+thead { border-bottom: 2px solid rgba(255, 255, 255, 0.2); }
 
 th {
   background: var(--primary);
@@ -331,27 +325,10 @@ th {
   text-align: left;
 }
 
-/* Override first-child rule for grip column header */
-th:first-child {
-  background: var(--primary);
-  padding: 11px 8px;
-  min-width: 24px;
-  text-align: center;
-}
-
 td {
   padding: 8px 10px;
   text-align: left;
   vertical-align: middle;
-}
-
-/* Grip column */
-td:first-child {
-  background: #F5F8F6;
-  text-align: center;
-  padding: 8px 6px;
-  min-width: 24px;
-  width: 24px;
 }
 
 .grip-icon {
@@ -364,10 +341,10 @@ td:first-child {
 }
 
 .grip-column {
+  border-top-left-radius: var(--radius);
   width: 24px;
   min-width: 24px;
   text-align: center;
-  background: #F5F8F6;
   padding: 0;
 }
 
@@ -388,7 +365,14 @@ td:first-child {
 
 /* Add row */
 .add-row td { background: var(--primary-light); border-top: 2px dashed var(--primary); }
-.add-row td:first-child { background: var(--primary-light); border-top: 2px dashed var(--primary); }
+.add-row td:first-child { 
+  background: #F5F8F6;
+  text-align: center;
+  padding: 8px 6px;
+  min-width: 24px;
+  width: 24px;
+  background: var(--primary-light); 
+  border-top: 2px dashed var(--primary); }
 
 /* Add row inputs — always visible so user knows where to type */
 .add-row td textarea {
@@ -458,7 +442,11 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 }
 .add-button:hover { background: var(--accent-hover); }
 
-.delete-header, .delete-cell { width: 36px; text-align: center; }
+.delete-header {
+   border-top-right-radius: var(--radius);
+}
+
+.delete-header, .delete-cell { text-align: center; }
 .delete-icon { cursor: pointer; color: #c0ccc5; font-size: 15px; }
 .delete-icon:hover { color: var(--accent); }
 
@@ -593,13 +581,23 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 
 .trigger-dropdown {
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 6px 10px;
   margin-left: auto;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 13px;
   flex-shrink: 0;
-  align-self: flex-start; /* stay at top when parent is flex-start */
-  padding-top: 6px;       /* align with first line of text */
+  align-self: center;
+  align-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 4px;
+}
+.trigger-dropdown:hover {
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 .type-dropdown {
@@ -662,6 +660,7 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 
 /* ── Logbook table ── */
 .logbook-table {
+  border: none;
   width: 100%;
   border-collapse: collapse;
   background: var(--surface);
@@ -671,39 +670,6 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   table-layout: fixed;
 }
 
-/* From / To columns: generous width for airport codes / names */
-.logbook-table th:nth-child(1),
-.logbook-table td:nth-child(1),
-.logbook-table th:nth-child(2),
-.logbook-table td:nth-child(2) { width: 18%; min-width: 100px; }
-
-/* Hobbs / Tach columns: compact — numbers only */
-.logbook-table th:nth-child(3),
-.logbook-table td:nth-child(3),
-.logbook-table th:nth-child(4),
-.logbook-table td:nth-child(4),
-.logbook-table th:nth-child(5),
-.logbook-table td:nth-child(5),
-.logbook-table th:nth-child(6),
-.logbook-table td:nth-child(6) { width: 12%; }
-
-/* Delete / Add column */
-.logbook-table th:nth-child(7),
-.logbook-table td:nth-child(7) { width: 12%; min-width: 44px; }
-
-.logbook-table th {
-  background: var(--primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 11px 12px;
-  text-align: left;
-}
-
-.logbook-table thead tr th:first-child { background: var(--primary); }
-
 .logbook-table td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
@@ -711,11 +677,10 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   background: var(--surface);
 }
 
-.logbook-table tr.log-row:hover td { background: var(--row-hover); }
+.logbook-table tr.log-row td { background: var(--primary-light); }
 
-.logbook-table tr.add-log-row td { 
-  width: 100%;
-  background: var(--primary-light); 
+.logbook-table tr.add-log-row td {
+  background: var(--primary-light);
 }
 
 .logbook-table input {
@@ -728,12 +693,13 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
   color: var(--text);
   background: transparent;
 }
-.logbook-table tr.log-row input { background: transparent; border: none; }
+.logbook-table tr.log-row input,
 .logbook-table tr.add-log-row input {
   background: var(--surface);
   width: 100%;
   border: 1px solid var(--border);
 }
+.logbook-table tr.log-row input:focus,
 .logbook-table tr.add-log-row input:focus {
   outline: 2px solid var(--primary);
   border-color: transparent;
@@ -871,7 +837,7 @@ textarea::placeholder { display: none; }
 
   #export-excel, #print-dashboard, .add-button { width: 100%; margin: 8px 0; padding: 12px; }
 
-  .logbook-table { display: block; width: 100%; border: none; }
+  
   .logbook-table thead { display: none; }
   .logbook-table tbody#logbook-body { display: flex; flex-direction: column; gap: 8px; margin: 0; }
 
@@ -884,7 +850,7 @@ textarea::placeholder { display: none; }
     padding: 10px;
     margin-bottom: 4px;
   }
-  .logbook-table tr.log-row { background: var(--surface); }
+  .logbook-table tr.log-row,
   .logbook-table tr.add-log-row { background: var(--primary-light); }
 
   .logbook-table td {
@@ -907,7 +873,7 @@ textarea::placeholder { display: none; }
     text-align: left;
   }
 
-  .logbook-table td > * { flex: 2; text-align: right; }
+  .logbook-table td > *:not(.add-log-button) { flex: 2; text-align: right; }
   .logbook-table input { width: 100%; padding: 8px; box-sizing: border-box; }
 
   .logbook-table .delete-cell,
