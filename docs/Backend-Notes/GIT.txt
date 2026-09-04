@@ -1,0 +1,34 @@
+Git is a versional control system that keeps a full history of every save you've ever made, so you can go back at any 
+point.
+
+Git has 4 areas
+1. Working directory - local 
+2. Staging area - local 
+3. Repository (history) - local
+4. Remote history - remote
+
+git add <file> moves a change from "working directory" into the "staging area"
+git add file.txt
+git add --all
+
+Creates new empty repo in your current folder 
+git init
+
+Takes everything stages and saves it as a permanent snapshot, with a message describing it
+git commit -m "<message>"
+
+Upload local commits to the remote. Usually git push origin <branch>, origin is the name of the remote.
+git push origin <branch>
+
+Moves you to a different branch
+git switch <branch-name>
+
+To grab commits from a remote branch into log
+git fetch
+
+To pull commits from a remote branch and save them to local repository
+git pull origin <branch-name>
+
+Show local logs
+git log 
+

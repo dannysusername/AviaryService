@@ -8,13 +8,34 @@
   --accent-hover:  #CC3355;
   --bg:            #F2F7F4;
   --surface:       #FFFFFF;
+  --surface-muted: #F5F8F6;
   --border:        #D8E6DE;
   --text:          #1B2B23;
   --text-muted:    #5E7A6A;
   --row-hover:     #F0FAF4;
+  --icon-muted:    #AEC5B8;
+  --icon-faint:    #C0CCC5;
   --shadow-sm:     0 1px 4px rgba(0,0,0,0.07);
   --shadow-md:     0 4px 16px rgba(0,0,0,0.09);
   --radius:        8px;
+}
+
+/* Dark mode: toggled in Settings, persisted in localStorage (see dashboard.js
+   applyTheme/initTheme). Brand colors (primary/accent) stay the same in both
+   themes -- only backgrounds, surfaces, borders and text swap. */
+:root[data-theme="dark"] {
+  --primary-light: #16352A;
+  --bg:            #10231A;
+  --surface:       #17281F;
+  --surface-muted: #1E332A;
+  --border:        #2C4536;
+  --text:          #E8F0EA;
+  --text-muted:    #93AC9E;
+  --row-hover:     #1C3327;
+  --icon-muted:    #4E6B5C;
+  --icon-faint:    #3F5A4C;
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.35);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.45);
 }
 
 /* ── Reset ── */
@@ -57,6 +78,21 @@ input[type="checkbox"]:focus-visible {
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
+.front-page {
+  display: none;
+}
+
+.front-page.active {
+  display: block;
+}
+
+#settings-page.active {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
 .fixed-header .header-left h1 {
   font-size: 1.3rem;
   font-weight: 700;
@@ -75,6 +111,16 @@ input[type="checkbox"]:focus-visible {
   gap: 20px;
 }
 
+.fixed-header #settings {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #fff;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+
 .fixed-header .share-dropdown {
   padding-top: 10px;
   display: flex;
@@ -88,8 +134,8 @@ input[type="checkbox"]:focus-visible {
 .fixed-header #subscribe,
 .edit-hours-btn,
 .back-to-full-list-button,
-#add-hobbs-btn,
-#add-tach-btn,
+#add-block-time-btn,
+#add-time-in-service-btn,
 .add-button,
 .add-log-button,
 #print-dashboard,
@@ -138,13 +184,13 @@ input[type="checkbox"]:focus-visible {
 .edit-hours-btn:hover,
 .back-to-full-list-button:hover { background: var(--primary-light); border-color: var(--primary); }
 
-#add-hobbs-btn,
-#add-tach-btn {
+#add-block-time-btn,
+#add-time-in-service-btn {
   background: var(--primary);
   color: #fff;
   padding: 5px 10px;
 }
-#add-hobbs-btn:hover, #add-tach-btn:hover { background: var(--primary-dark); }
+#add-block-time-btn:hover, #add-time-in-service-btn:hover { background: var(--primary-dark); }
 
 /* Utility actions — quiet outline style so they don't compete with the
    page's real work (the timeline and log book). */
@@ -196,8 +242,8 @@ input[type="checkbox"]:focus-visible {
   flex-wrap: wrap;
 }
 
-.current-hobbs-display,
-.current-tach-display {
+.current-block-time-display,
+.current-time-in-service-display {
   font-size: 15px;
   font-weight: 600;
   color: var(--primary);
@@ -214,6 +260,18 @@ input[type="checkbox"]:focus-visible {
   font-size: 11px;
   font-weight: 500;
   color: var(--text-muted);
+}
+
+.check-now-info {
+  color: var(--text-muted);
+  margin-left: 6px;
+  cursor: help;
+}
+
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .edit-hours-section {
@@ -260,10 +318,10 @@ input[type="checkbox"]:focus-visible {
   display: flex;
   justify-content: center;
   gap: 6px;
-  padding: 20px 24px 0;
+  padding: 16px 24px 0;
 }
 
-.tab-button {
+.tab-button, #back-to-dashboard {
   padding: 8px 22px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -293,7 +351,7 @@ input[type="checkbox"]:focus-visible {
 
 /* ── Aircraft info table ── */
 .aircraft-info-table,
-.hours-table {
+.hours-table, .settings-table{
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -302,21 +360,21 @@ input[type="checkbox"]:focus-visible {
 }
 
 .aircraft-info-table tr,
-.hours-table tr {
+.hours-table tr, .settings-table tr {
   display: flex;
   flex-direction: row;
 }
 .aircraft-info-table tr + tr,
-.hours-table tr + tr { border-top: 1px solid var(--border); }
+.hours-table tr + tr, .settings-table tr + tr{ border-top: 1px solid var(--border); }
 
 /* Spec-sheet layout: one white surface, narrow label column + flexible value
    column (not two 50% slabs in different colors). */
 .aircraft-info-table tr td,
-.hours-table tr td { background: var(--surface); }
+.hours-table tr td, .settings-table tr td { background: var(--surface); }
 
 /* Label cells */
 .aircraft-info-table tr td:first-child,
-.hours-table tr td:first-child {
+.hours-table tr td:first-child, .settings-table tr td:first-child{
   flex: 0 0 200px;
   color: var(--text-muted);
   font-weight: 600;
@@ -330,14 +388,14 @@ input[type="checkbox"]:focus-visible {
 
 /* Value cells */
 .aircraft-info-table tr td:nth-child(2),
-.hours-table tr td:nth-child(2) {
+.hours-table tr td:nth-child(2),  .settings-table tr td:nth-child(2){
   flex: 1;
   min-width: 0;
   padding: 6px 10px;
 }
 
 .aircraft-info-table input,
-.hours-table input {
+.hours-table input, .settings-table input{
   width: 100%;
   padding: 6px 10px;
   border: 1px solid transparent;
@@ -411,11 +469,11 @@ td {
 
 /* Continuous-grid hairlines — the cell border IS the field's outline, so no
    control needs its own box. */
-table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) td {
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table):not(.settings-table) td {
   border-top: 1px solid var(--border);
   overflow-wrap: break-word;
 }
-table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) td + td {
+table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table):not(.settings-table) td + td {
   border-left: 1px solid var(--border);
 }
 
@@ -445,7 +503,7 @@ td.add-cell {
   justify-content: center;
   height: 100%;
   cursor: move;
-  color: #aec5b8;
+  color: var(--icon-muted);
 }
 
 .grip-column {
@@ -459,7 +517,7 @@ td.add-cell {
 /* Data rows */
 .auto-save-row td { background: var(--surface); }
 .auto-save-row:hover td { background: var(--row-hover); }
-.auto-save-row td:first-child { background: #F5F8F6; }
+.auto-save-row td:first-child { background: var(--surface-muted); }
 
 /* Title rows */
 .title-row td {
@@ -476,7 +534,7 @@ td.add-cell {
 /* Add row */
 .add-row td { background: var(--primary-light); border-top: 2px dashed var(--primary); }
 .add-row td:first-child { 
-  background: #F5F8F6;
+  background: var(--surface-muted);
   text-align: center;
   padding: 8px 6px;
   min-width: 24px;
@@ -622,7 +680,7 @@ td textarea:focus { outline: 2px solid var(--primary); background: var(--surface
 }
 
 .delete-header, .delete-cell { text-align: center; }
-.delete-icon { cursor: pointer; color: #c0ccc5; font-size: 15px; padding: 8px; }
+.delete-icon { cursor: pointer; color: var(--icon-faint); font-size: 15px; padding: 8px; }
 .delete-icon:hover { color: var(--accent); }
 
 .complete-header, .complete-cell { text-align: center; }
@@ -699,7 +757,7 @@ table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) td:has(> .
 }
 .cycle-unit:focus { outline: 2px solid var(--primary); }
 /* "hrs" suffix sits flush right inside the cell, never spilling out */
-.cycle-unit-label { font-size: 12px; color: #5a6b66; flex-shrink: 0; margin-left: auto; }
+.cycle-unit-label { font-size: 12px; color: var(--text-muted); flex-shrink: 0; margin-left: auto; }
 
 /* ── Dropdowns ── */
 .custom-dropdown {
@@ -1003,6 +1061,20 @@ table:not(.aircraft-info-table):not(.hours-table):not(.logbook-table) td:has(> .
   border-color: transparent;
 }
 
+.log-timestamp {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.logbook-table input.log-timestamp-input {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 /*
 Upload csv button
 */
@@ -1075,7 +1147,7 @@ textarea::placeholder { display: none; }
   /*.main   { padding: 12px; }*/
   .tabs   { padding: 16px 12px 0; }
 
-  textarea::placeholder { display: inline; color: #999; }
+  textarea::placeholder { display: inline; color: var(--text-muted); }
 
   /* tr stays as a flex row so label and value remain side-by-side */
   .aircraft-info-table tr, .hours-table tr {
@@ -1220,7 +1292,7 @@ textarea::placeholder { display: none; }
     margin: 0;                     /* reset desktop's `margin: 0 auto` so the dots pin left */
     padding: 10px 8px;             /* roomy tap target, distinct from desktop sizing */
     font-size: 18px;               /* larger dots than the 13px desktop grip */
-    color: #aec5b8;                /* same dot color as desktop */
+    color: var(--icon-muted);      /* same dot color as desktop */
     pointer-events: auto;
     cursor: grab;
     touch-action: none;            /* let SortableJS own the drag gesture on touch */
@@ -1535,7 +1607,7 @@ textarea::placeholder { display: none; }
   .logbook-table thead { display: none; }
   .logbook-table tbody#logbook-body { display: flex; flex-direction: column; gap: 8px; margin: 0; }
 
-  /* Option C: each log = 2-col grid (From|To, Hobbs Out|In, Tach Out|In) */
+  /* Option C: each log = 2-col grid (From|To, Block Time Out|In, Time in Service Out|In) */
   .logbook-table tr.log-row,
   .logbook-table tr.add-log-row {
     display: grid;
@@ -1773,3 +1845,65 @@ textarea::placeholder { display: none; }
 .confirm-btn.cancel:hover { background: var(--border); }
 .confirm-btn.ok { background: var(--accent); color: #fff; }
 .confirm-btn.ok:hover { background: var(--accent-hover); }
+
+.flight-suggestions {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.flight-suggestions h3 { margin: 0 0 8px; font-size: 15px; }
+.flight-suggestion-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.flight-suggestion-row:first-of-type { border-top: none; }
+.suggestion-accept-btn, .suggestion-dismiss-btn {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.suggestion-accept-btn { background: var(--accent); color: #fff; border: none; }
+.suggestion-accept-btn:hover { background: var(--accent-hover); }
+.suggestion-dismiss-btn { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.suggestion-dismiss-btn:hover { background: var(--border); }
+
+#all-suggestions-details {
+  margin-bottom: 16px;
+  padding-left: 24px;
+  padding-right: 24px;
+  font-size: 13px;
+}
+#all-suggestions-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+.all-suggestions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+.all-suggestions-table th, .all-suggestions-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.audit-add-btn, .audit-delete-btn {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.audit-add-btn { background: var(--accent); color: #fff; border: none; }
+.audit-add-btn:hover { background: var(--accent-hover); }
+.audit-delete-btn { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.audit-delete-btn:hover { background: var(--border); }

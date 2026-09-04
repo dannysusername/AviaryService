@@ -7,12 +7,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 
 import com.example.AviaryService.entity.User;
 import com.example.AviaryService.repositories.UserRepository;
-
-import jakarta.transaction.Transactional;
 
 @Service
 public class UserService {
@@ -46,9 +45,17 @@ public class UserService {
 
             // Update fields if provided in the request
             if (data.containsKey("makeModel")) user.setMakeModel(data.get("makeModel"));
-            if (data.containsKey("tailNumber")) user.setTailNumber(data.get("tailNumber"));
+            // Uppercase here, at the one place tailNumber gets saved from user input,
+            // so it always matches what /subscription/toggle stores on Subscription
+            // (which uppercases too) -- a case mismatch there made every subscription
+            // lookup silently fail.
+            if (data.containsKey("tailNumber")) {
+                String tailNumber = data.get("tailNumber");
+                user.setTailNumber(tailNumber == null ? null : tailNumber.trim().toUpperCase());
+            }
             if (data.containsKey("ownerName")) user.setOwnerName(data.get("ownerName"));
             if (data.containsKey("makeModelSN")) user.setMakeModelSN(data.get("makeModelSN"));
+            if (data.containsKey("aeroApiKey")) user.setAeroApiKey(data.get("aeroApiKey"));
 
             userRepository.save(user);
 

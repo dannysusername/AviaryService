@@ -66,7 +66,9 @@ bootRun {
             'spring.web.resources.static-locations': 'file:src/main/resources/static/',
             'spring.thymeleaf.prefix'             : 'file:src/main/resources/templates/',
             'spring.thymeleaf.cache'              : 'false',
-            'spring.web.resources.cache.period'   : '0'
+            'spring.web.resources.cache.period'   : '0',
+            'spring.web.resources.chain.strategy.content.enabled': 'false',
+            'spring.web.resources.cache.cachecontrol.max-age'    : '0'
         ]
     }
 }

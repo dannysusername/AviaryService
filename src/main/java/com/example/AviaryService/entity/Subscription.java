@@ -2,6 +2,7 @@ package com.example.AviaryService.entity;
 
 import java.time.Instant;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,11 +29,20 @@ public class Subscription {
     private Instant lastSeenAt;
     //the last time you actually found the plane. Only updated when a position comes back.
 
+    // How often the AeroAPI poller checks this subscription, and at what local
+    // hour. Bounds and defaults per docs/ADSB_SYNC_SPEC.md ("Poll interval"):
+    // 1-9 days, no settings UI to change these yet -- see "Turning it on" there.
+    @Column(nullable = false)
+    private int pollIntervalDays = 1;
+
+    @Column(nullable = false)
+    private int preferredCheckHour = 3;
+
     public Subscription() {
 
     }
 
-    //Once a subscription is created the user will be automatically active and their status will be 
+    //Once a subscription is created the user will be automatically active and their status will be
     public Subscription(User user, String tailNumber) {
         this.user = user;
         this.tailNumber = tailNumber;
@@ -97,6 +107,20 @@ public class Subscription {
         this.lastSeenAt = lastSeenAt;
     }
 
-    
-    
+    public int getPollIntervalDays() {
+        return pollIntervalDays;
+    }
+
+    public void setPollIntervalDays(int pollIntervalDays) {
+        this.pollIntervalDays = pollIntervalDays;
+    }
+
+    public int getPreferredCheckHour() {
+        return preferredCheckHour;
+    }
+
+    public void setPreferredCheckHour(int preferredCheckHour) {
+        this.preferredCheckHour = preferredCheckHour;
+    }
+
 }

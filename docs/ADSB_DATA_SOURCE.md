@@ -1,6 +1,6 @@
 # ADS-B Data Source
 
-Status: **Verified 2026-08-29** · Scope: where the flight data comes from, nothing else
+Status: **Verified 2026-09-04** · Scope: where the flight data comes from, nothing else
 
 This answers one question only: *when a user wants their flight history, what do we
 call and what do we get back?* Feature design lives in
@@ -8,144 +8,7 @@ call and what do we get back?* Feature design lives in
 
 ## Decision
 
-**Use adsb.lol's per-aircraft trace files. Do not download the daily archive.**
 
-Everything within the last ~23 days is available as a single small file per
-aircraft per day. That covers the backfill-at-signup moment and the daily poll.
-The 4 GB archive is out of scope (see [Not in scope](#not-in-scope)).
-
-## The two endpoints
-
-### 1. Today — live position
-
-```
-GET https://api.adsb.lol/v2/reg/{registration}
-```
-
-No API key. Returns the aircraft's current position, or an empty `ac` array if
-it isn't flying right now.
-
-```json
-{"hex":"a4e8ef", "r":"N415YX", "t":"E75L", "flight":"RPA4351",
- "lat":25.777231, "lon":-80.843569, "alt_baro":3900, "gs":225.0}
-```
-
-An empty result is a **normal state**, not an error — the plane is parked.
-
-### 2. Past days — full trace
-
-```
-GET https://adsb.lol/globe_history/{YYYY}/{MM}/{DD}/traces/{xx}/trace_full_{hex}.json
-```
-
-- `{hex}` — the aircraft's ICAO hex, lowercase (`a4e8ef`)
-- `{xx}` — the **last two characters** of that hex (`ef`)
-
-Example:
-
-```
-https://adsb.lol/globe_history/2026/08/20/traces/ef/trace_full_a4e8ef.json
-```
-
-Returns roughly **130 KB gzipped** — one aircraft, one full day of positions.
-
-## Retention: ~23 days
-
-Measured 2026-08-29, day by day:
-
-| Days ago | Result |
-|---|---|
-| 1–23 | `200` |
-| 24+ | `404` |
-
-Checked against 5 different aircraft on the old dates — 0 of 5 returned data, so
-the days are genuinely deleted rather than those planes not having flown.
-
-**Consequence:** a new user can be offered their **last ~3 weeks**, not their last
-year. Everything after signup comes from our own polling.
-
-Treat 23 as approximate and probe the boundary rather than hardcoding it.
-
-## What a trace contains
-
-```json
-{"icao":"a4e8ef", "r":"N415YX", "t":"E75L", "timestamp": 1787944218.557,
- "trace": [[138.07, 39.144985, -84.687073, 4825, 261.5, 74.5, 0, 1728,
-            null, "adsb_icao", 5125, 2176, null, null], ...]}
-```
-
-- `timestamp` — epoch seconds for the start of the day
-- each row's first element is **seconds offset from `timestamp`**, not an absolute time
-- ground speed is present (`261.5` kt above) — this is what the 35 kt airborne
-  threshold reads
-
-### Position sources
-
-Each point is tagged with where it came from. A sample day on one aircraft:
-
-```
-adsb_icao : 1221 points     the aircraft broadcasting its own GPS position
-tisb_icao :    1 point      ground radar, rebroadcast
-```
-
-Other possible tags: `mlat` (position computed from signal timing, for aircraft
-without ADS-B Out) and `adsr_*` (rebroadcast between frequencies).
-
-US aircraft have been required to carry ADS-B Out in most controlled airspace
-since 2020, so `adsb_icao` dominates. Filter to it if strictness is ever needed.
-
-## Open problem: registration → hex
-
-The trace URL is keyed by **ICAO hex**, but users type an **N-number**.
-
-`/v2/reg/{registration}` returns the hex — but only while the aircraft is
-airborne. A parked plane returns nothing, so it cannot be relied on for backfill.
-
-A registry lookup is therefore required. The FAA registry is already on disk from
-the charter-market-intel project:
-
-```
-charter-market-intel/data/raw/MASTER.txt      184 MB
-charter-market-intel/data/raw/ACFTREF.txt      14 MB
-```
-
-Unresolved: whether that ships with AviaryService or lives behind a lookup call.
-
-## What the API cannot do
-
-Pulled the full endpoint list from `https://api.adsb.lol/api/openapi.json` —
-19 endpoints, **all current-position only**:
-
-```
-/v2/reg/{registration}      /v2/hex/{icao_hex}       /v2/callsign/{callsign}
-/v2/registration/{reg}      /v2/icao/{icao_hex}      /v2/squawk/{squawk}
-/v2/lat/{lat}/lon/{lon}/dist/{radius}                /v2/type/{aircraft_type}
-/v2/closest/{lat}/{lon}/{radius}                     /v2/mil  /v2/pia  /v2/ladd
-```
-
-**There is no history endpoint.** The trace URLs above are static files served
-outside the API, which is why they don't appear here.
-
-`re-api.adsb.lol` (feeders only) is also live data, and is locked to the feeding
-station's IP address. It does not help.
-
-## Licensing
-
-Data is **ODbL 1.0**. Attribution required if the data is redisplayed.
-Terms: https://www.adsb.lol/docs/open-data/
-
-## If the ~23-day limit becomes the blocker
-
-Free ADS-B can only offer what a volunteer receiver happened to hear. Measured on
-N122AS, that was **8 flying days out of 43 checked** — most days have no data at
-all, and even good days have coverage gaps mid-flight. No amount of engineering
-fixes that; the data was never recorded.
-
-A commercial API is the way out, because it isn't limited to receivers.
-
-Endpoint shapes, parameters, and field names below were read from each vendor's
-published OpenAPI spec on 2026-08-29. **Pricing and tier names are still
-unverified** — confirm those before planning around them.
 
 ### FlightAware AeroAPI
 
@@ -199,10 +62,6 @@ nearest-airport guessing — arrives here as plain fields.
 `blocked` is the privacy-program case delivered as a boolean rather than an
 unexplained 404.
 
-**Also useful:** `GET /history/aircraft/{registration}/last_flight` returns only
-the most recent flight for a tail. That is a cheap "has anything happened since we
-last checked?" poll — far lighter than re-running a date range.
-
 The real advantage over free ADS-B is **it fills the gaps where no receiver was
 listening**, which is exactly the failure mode above.
 
@@ -216,7 +75,7 @@ listening**, which is exactly the failure mode above.
 
 Historical is $0.020/result set, but the **$100/month floor** is the real wall.
 
-**So plan on `GET /flights/{ident}` (no `/history/` prefix), which Personal can
+**So plan on `GET /flights/{ident}` (no `/history/` prefix, Personal plan users cannot use /history/ API endpoints), which Personal can
 call.** It returns ~14 days, which is enough if we poll and never fall behind.
 
 ### Reference: `GET /flights/{ident}`
@@ -428,17 +287,40 @@ integration on the critical path.
 a logbook to sign up for a *developer API* and enter card details. Expect low
 uptake. Treat this as a power-user option, not the primary onboarding.
 
-**Two obligations it creates:**
+**Three obligations it creates:**
 
 - **The key is a billable secret.** If it leaks, someone else spends that user's
-  money. Encrypt at rest, never log it, never expose it to the frontend.
+  money. Encrypt at rest, never log it, never expose it to the frontend. Built:
+  `User.aeroApiKey`, `AeroApiKeyConverter`, `AeroKeyHolder` — AES-256-GCM,
+  key sourced from `.env`, never rendered past a `••••last4` mask.
 - **Support lands on us**, not FlightAware — "why was I charged?" arrives here.
+- **License scope is unconfirmed and blocks opening this beyond the
+  developer's own account.** The AeroAPI Personal License (verified
+  2026-09-04, `AeroAPI_Personal_License_Jul2026_v2.pdf`) is granted to an
+  *individual* for *personal* use and forbids use "in furtherance of any
+  business... whether for profit or otherwise." AviaryService's server
+  automating each user's own key on a schedule may or may not still count as
+  that individual's personal use — the license text doesn't say. Get this in
+  writing from FlightAware before real users beyond the developer connect a
+  key. Full design and the poller that consumes the key:
+  [ADSB_SYNC_SPEC.md](ADSB_SYNC_SPEC.md).
+
+**Also from the license (clause 12):** AeroAPI data may not be used "in
+conjunction with or as a backfill to" another real-time/near-real-time flight
+data provider without written permission. That rules out ever blending this
+path with free ADS-B for the same subscription — see the sync spec's
+"This replaces the earlier free-ADS-B design" section.
 
 **Design note.** Put credential lookup behind a `CredentialProvider` interface
 rather than reading a key off the `User` entity. Then "use the user's key" and
 "use our key, bill them via subscription" are the same code path with a different
 provider, and switching models later is not a rewrite. This is what the existing
 `Subscription` entity eventually grows into.
+
+**Current state (2026-09-04): not done this way yet.** The poller reads
+`user.getAeroApiKey()` directly (see `AeroApiKeyConverter`). That's a known,
+accepted simplification for a single-source feature — revisit if/when a second
+credential source (our own key, billed via subscription) actually gets built.
 
 ### Also relevant to the deadhead project
 
@@ -486,3 +368,18 @@ All checked 2026-08-29 against live endpoints:
 - `globe_history/2026/08/{06,07,08,09,10,13,15,17,19,20,25,28}` → `200`
 - `globe_history/2026/{08/05, 08/01, 07/15, 07/29, 02/28}` → `404`
 - `api.adsb.lol/api/openapi.json` → 19 endpoints, no history endpoint
+
+Checked 2026-09-04:
+
+- `aeroapi-openapi.yml`, `GET /flights/{ident}` — confirmed `start` max 10 days
+  in the past, `end` max 2 days in the future, each bounded independently;
+  omitting both defaults to ~11 days back / ~2 days ahead.
+- `AeroAPI_Personal_License_Jul2026_v2.pdf` — read in full. Key terms: personal
+  use only, no business use, no mixing with another real-time provider
+  (clause 12), raw data may not be stored past 30 days (clause 11). Personal-use
+  scope as applied to a scheduled server-side poller is **not** resolved by the
+  text — see the obligation noted above.
+- AeroAPI portal / billing page — confirmed a payment method must be on file to
+  get a key at all. Could **not** confirm from public pages whether usage past
+  the $5/month credit auto-bills that card or whether a spend cap exists;
+  requires checking the logged-in billing dashboard directly.

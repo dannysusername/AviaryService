@@ -3,6 +3,7 @@ package com.example.AviaryService.services;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.AviaryService.entity.ServiceTimeline;
 import com.example.AviaryService.entity.User;
@@ -10,7 +11,6 @@ import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
 import com.example.AviaryService.util.Parsing;
 
-import jakarta.transaction.Transactional;
 
 @Service
 public class TimelineService {

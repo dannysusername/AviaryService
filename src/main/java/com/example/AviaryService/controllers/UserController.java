@@ -21,7 +21,10 @@ import com.example.AviaryService.repositories.DescriptionOptionRepository;
 import com.example.AviaryService.repositories.FlightLogRepository;
 import com.example.AviaryService.repositories.ServiceTimelineRepository;
 import com.example.AviaryService.repositories.UserRepository;
+import com.example.AviaryService.services.AeroApiClient;
 import com.example.AviaryService.services.DescriptionOptionService;
+import com.example.AviaryService.services.FlightSuggestionService;
+import com.example.AviaryService.services.FlightSyncService;
 import com.example.AviaryService.services.HoursService;
 import com.example.AviaryService.services.SubscriptionService;
 import com.example.AviaryService.services.TimelineService;
@@ -39,7 +42,7 @@ import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
-import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,22 +62,36 @@ public class UserController {
     private final TimelineService timelineService;
     private final DescriptionOptionService descriptionOptionService;
     private final HoursService hoursService;
-    
+    private final FlightSuggestionService flightSuggestionService;
+    private final com.example.AviaryService.repositories.FlightSuggestionRepository flightSuggestionRepository;
+    private final com.example.AviaryService.repositories.SubscriptionRepository subscriptionRepository;
+    private final AeroApiClient aeroApiClient;
+    private final FlightSyncService flightSyncService;
+
     public UserController(UserRepository userRepository, ServiceTimelineRepository serviceTimelineRepository,
-            PasswordEncoder passwordEncoder, DescriptionOptionRepository descriptionOptionRepository, 
-            FlightLogRepository flightLogRepository, SubscriptionService subscriptionService, UserService userService, 
-            TimelineService timelineService, DescriptionOptionService descriptionOptionService, HoursService hoursService) {
+            PasswordEncoder passwordEncoder, DescriptionOptionRepository descriptionOptionRepository,
+            FlightLogRepository flightLogRepository, SubscriptionService subscriptionService, UserService userService,
+            TimelineService timelineService, DescriptionOptionService descriptionOptionService, HoursService hoursService,
+            FlightSuggestionService flightSuggestionService,
+            com.example.AviaryService.repositories.FlightSuggestionRepository flightSuggestionRepository,
+            com.example.AviaryService.repositories.SubscriptionRepository subscriptionRepository,
+            AeroApiClient aeroApiClient, FlightSyncService flightSyncService) {
 
         this.userRepository = userRepository;
         this.serviceTimelineRepository = serviceTimelineRepository;
         this.passwordEncoder = passwordEncoder;
         this.flightLogRepository = flightLogRepository;
-        
+
         this.subscriptionService = subscriptionService;
         this.userService = userService;
         this.timelineService = timelineService;
         this.descriptionOptionService = descriptionOptionService;
         this.hoursService = hoursService;
+        this.flightSuggestionService = flightSuggestionService;
+        this.flightSuggestionRepository = flightSuggestionRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.aeroApiClient = aeroApiClient;
+        this.flightSyncService = flightSyncService;
     }
 
     @GetMapping("/register")
@@ -112,20 +129,188 @@ public class UserController {
         model.addAttribute("username", username);
         model.addAttribute("timelines", serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user));
         model.addAttribute("descriptionOptions", descriptionOptionService.cleanupAndLoadDescriptionOptions(user));
-        model.addAttribute("hobbsHours", user.getHobbsHours());
-        model.addAttribute("tachHours", user.getTachHours());
+        model.addAttribute("blockTimeHours", user.getBlockTimeHours());
+        model.addAttribute("timeInServiceHours", user.getTimeInServiceHours());
 
         model.addAttribute("makeModel", user.getMakeModel());
         model.addAttribute("tailNumber", user.getTailNumber());
         model.addAttribute("ownerName", user.getOwnerName());
         model.addAttribute("makeModelSN", user.getMakeModelSN());
-        model.addAttribute("flightlogs", flightLogRepository.findByUser(user));
-        model.addAttribute("hobbsUpdatedAt", user.getHobbsUpdatedAt() != null ? user.getHobbsUpdatedAt().toString() : null);
-        model.addAttribute("tachUpdatedAt", user.getTachUpdatedAt() != null ? user.getTachUpdatedAt().toString() : null);
-        model.addAttribute("hobbsUpdatedSource", user.getHobbsUpdatedSource());
-        model.addAttribute("tachUpdatedSource", user.getTachUpdatedSource());
+        model.addAttribute("flightlogs", sortedByFlightTime(flightLogRepository.findByUser(user)));
+        model.addAttribute("blockTimeUpdatedAt", user.getBlockTimeUpdatedAt() != null ? user.getBlockTimeUpdatedAt().toString() : null);
+        model.addAttribute("timeInServiceUpdatedAt", user.getTimeInServiceUpdatedAt() != null ? user.getTimeInServiceUpdatedAt().toString() : null);
+        model.addAttribute("blockTimeUpdatedSource", user.getBlockTimeUpdatedSource());
+        model.addAttribute("timeInServiceUpdatedSource", user.getTimeInServiceUpdatedSource());
+        String aeroApiKey = user.getAeroApiKey();
+        boolean hasAeroApiKey = aeroApiKey != null && !aeroApiKey.isEmpty();
+        model.addAttribute("aeroApiKey", hasAeroApiKey
+            ? "••••" + aeroApiKey.substring(Math.max(0, aeroApiKey.length() - 4))
+            : "");
+        model.addAttribute("hasAeroApiKey", hasAeroApiKey);
+        model.addAttribute("flightSuggestions", flightSuggestionRepository.findByUserAndStatus(user, "pending"));
+
+        com.example.AviaryService.entity.Subscription subscription =
+            subscriptionRepository.findByUserAndTailNumber(user, user.getTailNumber());
+        model.addAttribute("subscriptionActive", subscription != null && subscription.isActive());
+        model.addAttribute("pollIntervalDays", subscription != null ? subscription.getPollIntervalDays() : 1);
+        model.addAttribute("preferredCheckHour", subscription != null ? subscription.getPreferredCheckHour() : 3);
+        model.addAttribute("aeroDefaultLookbackDays", AeroApiClient.DEFAULT_LOOKBACK_DAYS);
+        model.addAttribute("aeroMaxStartDaysBack", AeroApiClient.MAX_START_DAYS_BACK);
+        model.addAttribute("aeroMaxEndDaysAhead", AeroApiClient.MAX_END_DAYS_AHEAD);
 
         return "dashboard";
+    }
+
+    // Current-period AeroAPI spend for the logged-in user's own key. Doubles
+    // as a validity check -- an invalid key surfaces as a clear 400 here
+    // instead of the user waiting for the next scheduled sync to fail.
+    @GetMapping("/aeroapi/usage")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getAeroApiUsage(Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        String apiKey = user.getAeroApiKey();
+        if (apiKey == null || apiKey.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No AeroAPI key connected"));
+        }
+        try {
+            AeroApiClient.AeroApiUsage usage = aeroApiClient.getUsage(apiKey);
+            return ResponseEntity.ok(Map.of(
+                "totalCost", usage.totalCost(),
+                "totalCalls", usage.totalCalls(),
+                "totalFailedCalls", usage.totalFailedCalls()
+            ));
+        } catch (Exception e) {
+            log.warn("AeroAPI usage check failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Could not verify that key with AeroAPI."));
+        }
+    }
+
+    // Manual, on-demand poll -- bypasses the interval/hour gate entirely.
+    // start/end are optional ISO dates (yyyy-MM-dd) from the "Custom check
+    // range" fields; omitted means AeroAPI's own default window. See
+    // docs/ADSB_SYNC_SPEC.md and docs/ADSB_DATA_SOURCE.md.
+    @PostMapping("/subscription/check-now")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> checkNow(
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        com.example.AviaryService.entity.Subscription subscription =
+            subscriptionRepository.findByUserAndTailNumber(user, user.getTailNumber());
+        if (subscription == null || !subscription.isActive()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Flight sync is not turned on."));
+        }
+        try {
+            java.time.LocalDate startDate = (start == null || start.isBlank()) ? null : java.time.LocalDate.parse(start);
+            java.time.LocalDate endDate = (end == null || end.isBlank()) ? null : java.time.LocalDate.parse(end);
+            int newCount = flightSyncService.syncNow(subscription, startDate, endDate);
+            return ResponseEntity.ok(Map.of("status", "success", "newFlights", newCount));
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid date format."));
+        } catch (Exception e) {
+            log.warn("Manual AeroAPI check failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // See docs/ADSB_SYNC_SPEC.md "Poll interval" -- how often and at what
+    // local hour the background poller checks this subscription.
+    @PostMapping("/subscription/settings")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateSubscriptionSettings(
+            @RequestBody Map<String, Object> data, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        String tailNumber = (String) data.get("tailNumber");
+        if (tailNumber == null || tailNumber.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "tailNumber is required"));
+        }
+        try {
+            int pollIntervalDays = ((Number) data.get("pollIntervalDays")).intValue();
+            int preferredCheckHour = ((Number) data.get("preferredCheckHour")).intValue();
+            subscriptionService.updateSettings(user, tailNumber.trim().toUpperCase(), pollIntervalDays, preferredCheckHour);
+            return ResponseEntity.ok(Map.of("status", "success"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Every AeroAPI suggestion ever seen, any status -- an audit trail
+    // independent of FlightLog's lifecycle. See docs/CHANGES.md.
+    @GetMapping("/flightsuggestions/all")
+    @ResponseBody
+    public ResponseEntity<List<Map<String, Object>>> getAllFlightSuggestions(Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        List<Map<String, Object>> result = flightSuggestionRepository.findByUserOrderByCreatedAtDesc(user)
+            .stream()
+            .map(s -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", s.getId());
+                m.put("origin", s.getOrigin());
+                m.put("destination", s.getDestination());
+                m.put("departureTime", s.getDepartureTime().toString());
+                m.put("arrivalTime", s.getArrivalTime().toString());
+                m.put("minutesAirborne", s.getMinutesAirborne());
+                m.put("status", s.getStatus());
+                return m;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    // AeroAPI-detected flight: turn a suggestion into a real FlightLog row.
+    // See docs/ADSB_SYNC_SPEC.md rule 1 -- this is the only thing that ever
+    // writes a suggestion to the log book; the poller never does.
+    @PostMapping("/flightsuggestions/{id}/accept")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> acceptFlightSuggestion(
+            @PathVariable long id, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        try {
+            FlightLog flightLog = flightSuggestionService.accept(id, user);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", flightLog.getId());
+            response.put("fromAirport", flightLog.getFromAirport());
+            response.put("toAirport", flightLog.getToAirport());
+            response.put("blockTimeIn", flightLog.getBlockTimeIn());
+            response.put("blockTimeOut", flightLog.getBlockTimeOut());
+            response.put("timeInServiceIn", flightLog.getTimeInServiceIn());
+            response.put("timeInServiceOut", flightLog.getTimeInServiceOut());
+            response.put("timeInServiceStart", flightLog.getTimeInServiceStart() != null ? flightLog.getTimeInServiceStart().toString() : null);
+            response.put("timeInServiceEnd", flightLog.getTimeInServiceEnd() != null ? flightLog.getTimeInServiceEnd().toString() : null);
+            response.put("newTimeInService", user.getTimeInServiceHours());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    // Permanent for that user -- see docs/ADSB_SYNC_SPEC.md "UX flow".
+    @PostMapping("/flightsuggestions/{id}/dismiss")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> dismissFlightSuggestion(
+            @PathVariable long id, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        try {
+            flightSuggestionService.dismiss(id, user);
+            return ResponseEntity.ok(Map.of("status", "success"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    // Permanent removal, not the same as dismiss -- see FlightSuggestionService.delete.
+    @DeleteMapping("/flightsuggestions/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> deleteFlightSuggestion(
+            @PathVariable long id, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        try {
+            flightSuggestionService.delete(id, user);
+            return ResponseEntity.ok(Map.of("status", "success"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
     }
 
     @PostMapping("/dashboard")
@@ -174,32 +359,35 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not authenticated"));
         }
 
-        boolean active = subscriptionService.toggle(user, tailNumber);
-       
-        return ResponseEntity.ok(Map.of(
-            "tailNumber", tailNumber,
-            "active", active
-        ));
-    } 
+        try {
+            boolean active = subscriptionService.toggle(user, tailNumber);
+            return ResponseEntity.ok(Map.of(
+                "tailNumber", tailNumber,
+                "active", active
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @PostMapping("/updateHours")
     @ResponseBody
     public ResponseEntity<Map<String, String>> updateHours(
-            @RequestParam(required = false) Double hobbsTimeToAdd,
-            @RequestParam(required = false) Double tachTimeToAdd,
-            @RequestParam(required = false) Double newHobbsTime,
-            @RequestParam(required = false) Double newTachTime,
+            @RequestParam(required = false) Double blockTimeToAdd,
+            @RequestParam(required = false) Double timeInServiceToAdd,
+            @RequestParam(required = false) Double newBlockTime,
+            @RequestParam(required = false) Double newTimeInService,
             Authentication authentication) {
         try {
             User user = userRepository.findByUsername(authentication.getName());
             if (user == null) {
                 throw new IllegalArgumentException("User not found");
             }
-            hoursService.updateHours(hobbsTimeToAdd, tachTimeToAdd, newHobbsTime, newTachTime, user);
+            hoursService.updateHours(blockTimeToAdd, timeInServiceToAdd, newBlockTime, newTimeInService, user);
             Map<String, String> response = new HashMap<>();
             response.put("status", "success");
-            response.put("newHobbs", String.valueOf(user.getHobbsHours()));
-            response.put("newTach", String.valueOf(user.getTachHours()));
+            response.put("newBlockTime", String.valueOf(user.getBlockTimeHours()));
+            response.put("newTimeInService", String.valueOf(user.getTimeInServiceHours()));
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -326,14 +514,32 @@ public class UserController {
     @ResponseBody
     public List<FlightLog> getFlightLogs(Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName());
-        return flightLogRepository.findByUser(user);
+        return sortedByFlightTime(flightLogRepository.findByUser(user));
+    }
+
+    // Chronological order for display: prefer blockTimeStart (engine start),
+    // fall back to timeInServiceStart (wheels-off) when only that's known.
+    // Rows with neither (legacy entries, or a manual entry saved without
+    // dates) sort last, in insertion order among themselves.
+    private static List<FlightLog> sortedByFlightTime(List<FlightLog> logs) {
+        return logs.stream()
+            .sorted(java.util.Comparator
+                .<FlightLog, java.time.Instant>comparing(log -> {
+                    java.time.Instant t = log.getBlockTimeStart() != null ? log.getBlockTimeStart() : log.getTimeInServiceStart();
+                    return t == null ? java.time.Instant.MAX : t;
+                })
+                .thenComparing(FlightLog::getId))
+            .collect(java.util.stream.Collectors.toList());
     }
 
     // POST to add flight log
     @PostMapping(value = "/addflightlog", consumes = "application/json")
     @ResponseBody
     @Transactional
-    public ResponseEntity<Map<String, Object>> addFlightLog(@RequestBody FlightLog newLog, Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> addFlightLog(
+            @RequestBody FlightLog newLog,
+            @RequestParam(required = false, defaultValue = "false") boolean force,
+            Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -342,63 +548,93 @@ public class UserController {
 
         // ── Validation ─────────────────────────────────────────────────────────
         // Reject incomplete entries before they can corrupt displayed hours.
-        // Rule: must provide at least one COMPLETE pair (hobbsOut+hobbsIn or
-        // tachOut+tachIn). Partial pairs (e.g. only tachOut) are the exact case
+        // Rule: must provide at least one COMPLETE pair (blockTimeOut+blockTimeIn or
+        // timeInServiceOut+timeInServiceIn). Partial pairs (e.g. only timeInServiceOut) are the exact case
         // that used to silently wipe the user's manual hours to zero.
-        Double ho = newLog.getHobbsOut(), hi = newLog.getHobbsIn();
-        Double to = newLog.getTachOut(), ti = newLog.getTachIn();
-        boolean hobbsPair = (ho != null && hi != null);
-        boolean tachPair  = (to != null && ti != null);
-        boolean hobbsPartial = (ho == null) != (hi == null);  // exactly one set
-        boolean tachPartial  = (to == null) != (ti == null);
+        Double ho = newLog.getBlockTimeOut(), hi = newLog.getBlockTimeIn();
+        Double to = newLog.getTimeInServiceOut(), ti = newLog.getTimeInServiceIn();
+        boolean blockTimePair = (ho != null && hi != null);
+        boolean timeInServicePair  = (to != null && ti != null);
+        boolean blockTimePartial = (ho == null) != (hi == null);  // exactly one set
+        boolean timeInServicePartial  = (to == null) != (ti == null);
 
-        if (!hobbsPair && !tachPair) {
+        if (!blockTimePair && !timeInServicePair) {
             return ResponseEntity.badRequest().body(errorBody(
-                "Enter both Hobbs Out and Hobbs In, or both Tach Out and Tach In."));
+                "Enter both Block Time Out and Block Time In, or both Time in Service Out and Time in Service In."));
         }
-        if (hobbsPartial) {
+        if (blockTimePartial) {
             return ResponseEntity.badRequest().body(errorBody(
-                "Hobbs entry is incomplete — enter both Hobbs Out and Hobbs In."));
+                "Block time entry is incomplete — enter both Block Time Out and Block Time In."));
         }
-        if (tachPartial) {
+        if (timeInServicePartial) {
             return ResponseEntity.badRequest().body(errorBody(
-                "Tach entry is incomplete — enter both Tach Out and Tach In."));
+                "Time in Service entry is incomplete — enter both Time in Service Out and Time in Service In."));
         }
-        if (hobbsPair && (ho < 0 || hi < 0 || hi < ho)) {
+        if (blockTimePair && (ho < 0 || hi < 0 || hi < ho)) {
             return ResponseEntity.badRequest().body(errorBody(
-                "Hobbs In must be ≥ Hobbs Out, and values cannot be negative."));
+                "Block Time In must be ≥ Block Time Out, and values cannot be negative."));
         }
-        if (tachPair && (to < 0 || ti < 0 || ti < to)) {
+        if (timeInServicePair && (to < 0 || ti < 0 || ti < to)) {
             return ResponseEntity.badRequest().body(errorBody(
-                "Tach In must be ≥ Tach Out, and values cannot be negative."));
+                "Time in Service In must be ≥ Time in Service Out, and values cannot be negative."));
+        }
+
+        // A CSV-prefilled or manually-typed entry -- decides whether
+        // HoursService.recomputeChain treats this row's Out/In as a fixed
+        // anchor ("manual") or something it can rewrite to fit
+        // chronologically ("csv"). AeroAPI rows are never created here --
+        // see FlightSuggestionService.accept().
+        String source = newLog.getSource();
+        if (source == null || source.isBlank()) source = "manual";
+        newLog.setSource(source);
+
+        // Only a manually-typed reading gets sanity-checked against nearby
+        // flights -- see HoursService.checkAccuracy. A CSV/AeroAPI reading
+        // has no physical meter behind it, so there's nothing to be
+        // "inaccurate": it just gets slotted into the chain below.
+        if ("manual".equals(source) && !force) {
+            List<FlightLog> existingLogs = flightLogRepository.findByUser(user);
+            HoursService.AccuracyIssue blockIssue = blockTimePair
+                ? hoursService.checkAccuracy(existingLogs, newLog.getBlockTimeStart(), newLog.getBlockTimeEnd(), ho, hi, true)
+                : null;
+            HoursService.AccuracyIssue serviceIssue = timeInServicePair
+                ? hoursService.checkAccuracy(existingLogs, newLog.getTimeInServiceStart(), newLog.getTimeInServiceEnd(), to, ti, false)
+                : null;
+            if (blockIssue != null || serviceIssue != null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(inaccuracyBody(blockIssue, serviceIssue));
+            }
         }
 
         // Force user ownership server-side regardless of what the client sent.
         newLog.setUser(user);
         FlightLog savedLog = flightLogRepository.save(newLog);
 
-        List<FlightLog> allLogs = flightLogRepository.findByUser(user);
-        double newHobbs = computeDisplayedHours(user, allLogs, /*useHobbs=*/true);
-        double newTach  = computeDisplayedHours(user, allLogs, /*useHobbs=*/false);
-        user.setHobbsHours(newHobbs);
-        user.setTachHours(newTach);
+        double newBlockTime = hoursService.recomputeChain(user, /*useBlockTime=*/true);
+        double newTimeInService  = hoursService.recomputeChain(user, /*useBlockTime=*/false);
+        user.setBlockTimeHours(newBlockTime);
+        user.setTimeInServiceHours(newTimeInService);
         java.time.Instant flightNow = java.time.Instant.now();
-        user.setHobbsUpdatedAt(flightNow);
-        user.setHobbsUpdatedSource("flightlog");
-        user.setTachUpdatedAt(flightNow);
-        user.setTachUpdatedSource("flightlog");
+        user.setBlockTimeUpdatedAt(flightNow);
+        user.setBlockTimeUpdatedSource("flightlog");
+        user.setTimeInServiceUpdatedAt(flightNow);
+        user.setTimeInServiceUpdatedSource("flightlog");
         userRepository.save(user);
 
         Map<String, Object> response = new HashMap<>();
         response.put("id", savedLog.getId());
         response.put("fromAirport", savedLog.getFromAirport());
         response.put("toAirport", savedLog.getToAirport());
-        response.put("hobbsIn", savedLog.getHobbsIn());
-        response.put("hobbsOut", savedLog.getHobbsOut());
-        response.put("tachIn", savedLog.getTachIn());
-        response.put("tachOut", savedLog.getTachOut());
-        response.put("newHobbs", newHobbs);
-        response.put("newTach", newTach);
+        response.put("blockTimeIn", savedLog.getBlockTimeIn());
+        response.put("blockTimeOut", savedLog.getBlockTimeOut());
+        response.put("blockTimeStart", savedLog.getBlockTimeStart() != null ? savedLog.getBlockTimeStart().toString() : null);
+        response.put("blockTimeEnd", savedLog.getBlockTimeEnd() != null ? savedLog.getBlockTimeEnd().toString() : null);
+        response.put("timeInServiceIn", savedLog.getTimeInServiceIn());
+        response.put("timeInServiceOut", savedLog.getTimeInServiceOut());
+        response.put("timeInServiceStart", savedLog.getTimeInServiceStart() != null ? savedLog.getTimeInServiceStart().toString() : null);
+        response.put("timeInServiceEnd", savedLog.getTimeInServiceEnd() != null ? savedLog.getTimeInServiceEnd().toString() : null);
+        response.put("newBlockTime", newBlockTime);
+        response.put("newTimeInService", newTimeInService);
         return ResponseEntity.ok(response);
     }
 
@@ -418,16 +654,16 @@ public class UserController {
     public static ResponseEntity<Map<String,Object>> parseGarminCsv(MultipartFile file, User user) {
 
         // Block time: first → last row where oil pressure > 15 psi.
-        // Mirrors the physical Hobbs meter on the Cirrus, which is oil-pressure activated.
-        LocalTime blockStart = null;
-        LocalTime blockEnd   = null;
+        // Mirrors the physical BlockTime meter on the Cirrus, which is oil-pressure activated.
+        java.time.Instant blockStart = null;
+        java.time.Instant blockEnd   = null;
 
         // Flight (airborne) time: GndSpd > 35 kt sustained for 3+ consecutive seconds.
         // Falls back to IAS when GndSpd is empty (no GPS fix yet).
-        LocalTime airborneStart     = null;
-        LocalTime airborneEnd       = null;
-        int       airborneConsec    = 0;
-        LocalTime airborneCandidate = null;
+        java.time.Instant airborneStart     = null;
+        java.time.Instant airborneEnd       = null;
+        int              airborneConsec    = 0;
+        java.time.Instant airborneCandidate = null;
 
         try(Scanner scanner = new Scanner(file.getInputStream())) {
             int lineNumber = 0;
@@ -468,14 +704,25 @@ public class UserController {
                 String[] cols = line.split(",", -1);
                 for(int i = 0; i < cols.length; i++) cols[i] = cols[i].trim();
 
-                //If Lcl Time does not exist in this row
+                // Row timestamp = Lcl Date + Lcl Time + UTCOfst combined into
+                // a real UTC instant (was just Lcl Time before -- the date
+                // and offset were parsed as headers but never read, so the
+                // actual date a flight happened was never saved anywhere).
+                // Using the real clock instead of a bare time-of-day also
+                // fixes a flight that crosses local midnight for free.
+                Integer dateIdx = headerIndexMap.get("Lcl Date");
                 Integer timeIdx = headerIndexMap.get("Lcl Time");
-                if(timeIdx == null || cols.length <= timeIdx || cols[timeIdx].isEmpty()) continue;
+                Integer ofstIdx = headerIndexMap.get("UTCOfst");
+                if (dateIdx == null || timeIdx == null || ofstIdx == null
+                        || cols.length <= dateIdx || cols.length <= timeIdx || cols.length <= ofstIdx
+                        || cols[dateIdx].isEmpty() || cols[timeIdx].isEmpty() || cols[ofstIdx].isEmpty()) {
+                    continue;
+                }
 
-                //Puts the time into a Local time object
-                LocalTime rowTime;
-                try { rowTime = LocalTime.parse(cols[timeIdx]); }
-                catch(Exception e) { continue; }
+                java.time.Instant rowTime;
+                try {
+                    rowTime = java.time.OffsetDateTime.parse(cols[dateIdx] + "T" + cols[timeIdx] + cols[ofstIdx]).toInstant();
+                } catch (Exception e) { continue; }
 
                 // ── Block time via oil pressure ──────────────────────────────────
                 Integer oilPIdx = headerIndexMap.get("E1 OilP");
@@ -544,24 +791,28 @@ public class UserController {
                 airStr = "H:" + airDuration.toHoursPart() + " M:" + airDuration.toMinutesPart() + " S:" + airDuration.toSecondsPart();
             }
 
-            double hobbsOut = user.getHobbsHours();
-            double hobbsIn  = Math.round((hobbsOut + blockDuration.toSeconds() / 3600.0) * 100.0) / 100.0;
-            double tachOut  = user.getTachHours();
-            Double tachIn   = airDuration != null
-                ? Math.round((tachOut + airDuration.toSeconds() / 3600.0) * 100.0) / 100.0
+            double blockTimeOut = user.getBlockTimeHours();
+            double blockTimeIn  = Math.round((blockTimeOut + blockDuration.toSeconds() / 3600.0) * 100.0) / 100.0;
+            double timeInServiceOut  = user.getTimeInServiceHours();
+            Double timeInServiceIn   = airDuration != null
+                ? Math.round((timeInServiceOut + airDuration.toSeconds() / 3600.0) * 100.0) / 100.0
                 : null;
 
             Map<String, Object> result = new HashMap<>();
             result.put("message",        "CSV parse completed");
             result.put("flightDuration", blockStr);
             result.put("airDuration",    airStr);
-            result.put("hobbsOut",       hobbsOut);
-            result.put("hobbsIn",        hobbsIn);
-            result.put("tachOut",        tachIn != null ? tachOut : null);
-            result.put("tachIn",         tachIn);
+            result.put("blockTimeOut",       blockTimeOut);
+            result.put("blockTimeIn",        blockTimeIn);
+            result.put("blockTimeStart",     blockStart.toString());
+            result.put("blockTimeEnd",       blockEnd.toString());
+            result.put("timeInServiceOut",        timeInServiceIn != null ? timeInServiceOut : null);
+            result.put("timeInServiceIn",         timeInServiceIn);
+            result.put("timeInServiceStart",      airborneStart != null ? airborneStart.toString() : null);
+            result.put("timeInServiceEnd",        airborneEnd != null ? airborneEnd.toString() : null);
 
             if(airDuration == null) {
-                result.put("warning", "Air time not detected — Tach fields were not populated");
+                result.put("warning", "Air time not detected — Time in Service fields were not populated");
             }
 
             return ResponseEntity.ok(result);
@@ -573,7 +824,7 @@ public class UserController {
 
     }
 
-    private static Map<String, Object> csvValues(String error, LocalTime blockStart, LocalTime blockEnd, LocalTime airborneStart, LocalTime airborneEnd) {
+    private static Map<String, Object> csvValues(String error, java.time.Instant blockStart, java.time.Instant blockEnd, java.time.Instant airborneStart, java.time.Instant airborneEnd) {
         Map<String, Object> map = new HashMap<>();
         map.put("error", error);
         map.put("blockStart", blockStart);
@@ -591,8 +842,44 @@ public class UserController {
         return body;
     }
 
+    // A manually-typed reading that doesn't line up with the user's other
+    // flight logs -- see HoursService.checkAccuracy. Not a hard error: the
+    // frontend shows this as a confirm ("Add it anyway?") and resubmits
+    // with force=true if the user says yes.
+    private static Map<String, Object> inaccuracyBody(HoursService.AccuracyIssue blockIssue, HoursService.AccuracyIssue serviceIssue) {
+        List<String> sentences = new ArrayList<>();
+        if (blockIssue != null) sentences.add(describeAccuracyIssue("Block Time", blockIssue));
+        if (serviceIssue != null) sentences.add(describeAccuracyIssue("Time in Service", serviceIssue));
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("inaccurate", true);
+        body.put("message", "This entry doesn't match your other flight logs. "
+            + String.join(" ", sentences) + " Add it anyway?");
+        return body;
+    }
+
+    private static String describeAccuracyIssue(String label, HoursService.AccuracyIssue issue) {
+        Double floor = issue.expectedFloor();
+        Double ceiling = issue.expectedCeiling();
+        if (floor != null && ceiling != null) {
+            return label + ": based on nearby flights, Out should be at least " + round2(floor)
+                + " and In should be no more than " + round2(ceiling)
+                + " (you entered Out: " + round2(issue.enteredOut()) + ", In: " + round2(issue.enteredIn()) + ").";
+        } else if (floor != null) {
+            return label + ": based on nearby flights, Out should be at least " + round2(floor)
+                + " (you entered " + round2(issue.enteredOut()) + ").";
+        } else {
+            return label + ": based on nearby flights, In should be no more than " + round2(ceiling)
+                + " (you entered " + round2(issue.enteredIn()) + ").";
+        }
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
     // POST: complete maintenance on a row.
-    // Server authoritatively picks "today" and "current tach hours" so the
+    // Server authoritatively picks "today" and "current time-in-service hours" so the
     // result is the same regardless of which tab the user clicks from.
     @PostMapping("/completeMaintenance/{id}")
     @ResponseBody
@@ -622,7 +909,7 @@ public class UserController {
         }
 
         java.time.LocalDate today = java.time.LocalDate.now();
-        double currentTach = user.getTachHours();
+        double currentTimeInService = user.getTimeInServiceHours();
 
         java.time.LocalDate dueDateLd = null;
         if (hasCalendar) {
@@ -634,9 +921,9 @@ public class UserController {
                     return ResponseEntity.badRequest().body(errorBody("Invalid calendar unit: " + calUnit));
             }
         }
-        Double dueHours = hasHours ? (currentTach + hrsCycle) : null;
+        Double dueHours = hasHours ? (currentTimeInService + hrsCycle) : null;
 
-        String timeLeftStr = computeTimeLeftString(dueDateLd, dueHours, today, currentTach);
+        String timeLeftStr = computeTimeLeftString(dueDateLd, dueHours, today, currentTimeInService);
         timeline.setTimeLeft(timeLeftStr);
 
         // Only update fields that belong to the active cycle type — leave the other type's
@@ -646,7 +933,7 @@ public class UserController {
             timeline.setDueDateDate(dueDateLd != null ? dueDateLd.toString() : null);
         }
         if (hasHours) {
-            timeline.setLastDoneHours(Formatting.formatHours(currentTach));
+            timeline.setLastDoneHours(Formatting.formatHours(currentTimeInService));
             timeline.setDueDateHours(dueHours != null ? Formatting.formatHours(dueHours) : null);
         }
         serviceTimelineRepository.save(timeline);
@@ -670,7 +957,7 @@ public class UserController {
     // the rest of the app already parses (see calculateTimeLeft in dashboard.js).
 
     private static String computeTimeLeftString(java.time.LocalDate dueDate, Double dueHours,
-                                                java.time.LocalDate today, double currentTach) {
+                                                java.time.LocalDate today, double currentTimeInService) {
         StringBuilder sb = new StringBuilder();
         if (dueDate != null) {
             long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(today, dueDate);
@@ -679,7 +966,7 @@ public class UserController {
                 : daysLeft + " days left");
         }
         if (dueHours != null) {
-            double hoursLeft = Math.round((dueHours - currentTach) * 10.0) / 10.0;
+            double hoursLeft = Math.round((dueHours - currentTimeInService) * 10.0) / 10.0;
             String h = hoursLeft < 0
                 ? Math.abs(hoursLeft) + " hours overdue"
                 : hoursLeft + " hours left";
@@ -725,63 +1012,45 @@ public class UserController {
             if (!log.getUser().equals(user)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
             }
+
+            // This log came from an accepted AeroAPI suggestion -- deleting it
+            // should give the flight back, not lose it forever. Otherwise the
+            // suggestion stays "accepted" with nothing pointing at it, and
+            // its fa_flight_id permanently blocks re-suggesting that flight.
+            if (log.getFaFlightId() != null) {
+                flightSuggestionRepository.findByUserAndFaFlightId(user, log.getFaFlightId())
+                    .ifPresent(suggestion -> {
+                        suggestion.setStatus("pending");
+                        flightSuggestionRepository.save(suggestion);
+                    });
+            }
+
             flightLogRepository.delete(log);
 
-            List<FlightLog> remainingLogs = flightLogRepository.findByUser(user);
-            double newHobbs = computeDisplayedHours(user, remainingLogs, /*useHobbs=*/true);
-            double newTach  = computeDisplayedHours(user, remainingLogs, /*useHobbs=*/false);
-            user.setHobbsHours(newHobbs);
-            user.setTachHours(newTach);
+            double newBlockTime = hoursService.recomputeChain(user, /*useBlockTime=*/true);
+            double newTimeInService  = hoursService.recomputeChain(user, /*useBlockTime=*/false);
+            user.setBlockTimeHours(newBlockTime);
+            user.setTimeInServiceHours(newTimeInService);
             java.time.Instant flightNow = java.time.Instant.now();
-            user.setHobbsUpdatedAt(flightNow);
-            user.setHobbsUpdatedSource("flightlog");
-            user.setTachUpdatedAt(flightNow);
-            user.setTachUpdatedSource("flightlog");
+            user.setBlockTimeUpdatedAt(flightNow);
+            user.setBlockTimeUpdatedSource("flightlog");
+            user.setTimeInServiceUpdatedAt(flightNow);
+            user.setTimeInServiceUpdatedSource("flightlog");
             userRepository.save(user);
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
-            response.put("newHobbs", newHobbs);
-            response.put("newTach", newTach);
+            response.put("newBlockTime", newBlockTime);
+            response.put("newTimeInService", newTimeInService);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    /**
-     * Meter-snapshot recompute: the airframe meter only goes up.
-     *
-     * Displayed hours = max(manualBaseline, highest hobbsIn/tachIn across user's logs).
-     *
-     * If the baseline has never been written (legacy users), seed it from the
-     * user's current hobbsHours/tachHours so log activity can never silently
-     * lower the displayed value. After this call, the baseline is locked in
-     * and subsequent operations behave predictably.
-     */
-    private double computeDisplayedHours(User user, List<FlightLog> logs, boolean useHobbs) {
-        Double baselineBoxed = useHobbs ? user.getHobbsManualBaseline() : user.getTachManualBaseline();
-        if (baselineBoxed == null) {
-            // Seed once from the existing displayed value. Mutates the user;
-            // caller is expected to persist it.
-            double seed = useHobbs ? user.getHobbsHours() : user.getTachHours();
-            if (useHobbs) user.setHobbsManualBaseline(seed);
-            else          user.setTachManualBaseline(seed);
-            baselineBoxed = seed;
-        }
-        double baseline = baselineBoxed;
-
-        double maxFromLogs = 0.0;
-        boolean anyReading = false;
-        for (FlightLog log : logs) {
-            Double reading = useHobbs ? log.getHobbsIn() : log.getTachIn();
-            if (reading != null) {
-                if (!anyReading || reading > maxFromLogs) maxFromLogs = reading;
-                anyReading = true;
-            }
-        }
-        return anyReading ? Math.max(baseline, maxFromLogs) : baseline;
-    }
+    // Superseded by HoursService.recomputeChain, which does the same
+    // baseline-floor job but also keeps every individual log's Out/In
+    // accurate by real flight time instead of just tracking the max.
 
     // Drops blank entries and any custom option that duplicates a built-in
     // (case-insensitive). Self-heals legacy bad rows on first dashboard load

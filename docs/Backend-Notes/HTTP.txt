@@ -1,8 +1,109 @@
 What is HTTP article: https://www.cloudflare.com/learning/ddos/glossary/hypertext-transfer-protocol-http/
 
 HTTP stands for Hyper Text Transfer Protocol. HTTP is a protocol that is used to load web pages using hypertext links. HTTP
-is a protocol on the application layer that sends information between networked devices. The typical flow over HTTP is a client 
-sending a request to a server and getting a response in return.
+is a protocol on the application layer that sends information between networked devices especially browsers and web servers. 
+HTTP can also be used for machine-to-machine communication and progrommatic access to API's. The typical flow over HTTP is a 
+client sending a request to a server and getting a response in return. 
+
+HTTP follows a classic client server model where a client initiates a connection with a server and waits to receive a response
+from the server. HTTP is a stateless protocol meaning the server does not maintain session data between the two requests. As far 
+as HTTP is concerned each request is seperate. A later addition, cookies, adds state to some client server interactions. 
+
+In this project and in many web applications a session is created to keep users logged in across requests. HTTP is stateless
+so the session supplies the memory containing a "cookie". 
+
+When a user submits the login form with there credentials the request is intercepted by Spring Security's filter chain before it
+ever reaches a controller. Spring Security checks the username and password by calling UserDetailsService in SecurityConfig.java 
+and compares the password using BCrypt. 
+
+On success Spring creates a session in the servers memory and places your identity inside it. Tomcat generates a random session Id
+and returns it to the brownser in a response header: Set-Cookie: JSESSIONID=A1B2C3... My browser saves this cookie and every 
+subsequent request the server checks the cookie. On each request, the filter chain reads the cookie, looks up the matching session, 
+confirms the user is authenticated and then Spring MVC hands the controller the Authentication parameter. 
+
+A cookie is created in the servers memory and then a cookie is an recepit returned represent it. 
+
+Example: 
+Logging in with Username: Daniel Ibarra Password: DI
+Cookie: 11E38762E559AF5E1E74C4596760BF09
+
+Request sent under Daniel Ibarra
+accept
+application/json, text/plain, */*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en-US,en;q=0.9
+cache-control
+no-cache
+connection
+keep-alive
+content-length
+49
+content-type
+application/json
+cookie
+JSESSIONID=11E38762E559AF5E1E74C4596760BF09
+
+HTTP is an extensible protocol that involves many concepts including resources and URI or Universal Resource Identifier
+a basic message structure, and a client server model.
+
+Request URL
+http://localhost:8080/updateUserInfo 
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[::1]:8080
+Referrer Policy
+strict-origin-when-cross-origin
+
+http://localhost:8080/updateUserInfo <------ URL 
+/updateUserInfo <------ URI
+
+HTTP is a protocol sent over TCP or over a TLS encrypted TCP connection, although any reliable transport protocol can be used.
+HTTP itself is just a set of riles for the message - like the format of a letter that specifies who its to, what it says and
+how to reply. A letter needs an secure envelope and a delivery system to get to its destination. Thats TCP.
+
+TCP is the delivery system: It makes sure the message arrives, arrives in ordeer and nothing gets lost or corrupted along the way.
+TCP is the reliable courier that hands you your package and gets a signature - as opposed to just tossing it off a truck and hoping
+it arrives (more like UDP)
+
+TLS is like putting that letter in a locked, tamper proof box before handing it to the courier. It's still TCP delivering it but 
+now the contents are encrypted so no one along the way can read or alter them. 
+
+Because of HTTP's extensiblity not only is it used to fetch hyper text documents but it can also be used to fetch images and
+videos or post content to servers. HTTP can also be used to fetch parts of a document to update web pages on demand. 
+
+Most of the time the client sending a request in HTTP is a browser but it can be anything. Each individual request is sent to 
+a server which then provides a response. Along the way there are other devices collectively called proxies and perform different
+operations and act as gateways or caches for example. 
+
+To display a webpage the browser makes an original request for an html page. The browser then parses then file and makes more 
+requests for execution scripts, styling documents (css) and subresources within the page such as images and videos. Scripts 
+executed by the browser can fetch more documents and update the web page accordingly.
+
+The opposite end of the communication channel is the Web Server is the software that serves resources to the browser. A web 
+server appears as one machine virtually but can be a collection of servers sharing the load (load balancing) or other software 
+such as caches, a database server that are totally or partially generating the document on demand. 
+
+A server is not necessarily one machine but a machine can hold several software instances. With HTTP/1.1 and the Host header
+then may share the same ip address.
+
+HTTP is extensible meaning alot of things have been added which has allowed for more controll and functionality over the web. 
+Cache and authentication were handled early in HTTP's history compared to the ability to relax the origin
+constraint which was added in the 2010's. The following is a list of common features controllable by HTTP:
+
+1.Caching: HTTP can tell the browser what and how resources are cached. The server can instruct proxies how long to store the 
+cached resources and the browser can ignore them. 
+2. authentication - Some web pages require authentication so only some users can access them. Basic authentication can be provided by HTTP either
+by using the WWW-Authenticate and similar headers. Or by setting a specific session by using HTTP cookies. 
+3.relaxing the origin constraint - to prevent snooping and other privacy invasions web browsers enforce strict seperation between
+websites. Only pages from the same origin can access all information from a web page. This can be limiting to some web apps / servers so relaxing the origin constraints relaxes this by allowing other domains to talk to your
+server. In this project I don't have multiple domains talking to my server so CORS is not required. 
+4.proxy and tunneling
+5.sessions
 
 A HTTP request includes this information:
 Request URL, Request Method, Status Code, Request Headers & Request Body

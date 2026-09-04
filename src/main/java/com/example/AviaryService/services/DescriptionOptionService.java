@@ -2,12 +2,11 @@ package com.example.AviaryService.services;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.AviaryService.entity.DescriptionOption;
 import com.example.AviaryService.entity.User;
 import com.example.AviaryService.repositories.DescriptionOptionRepository;
-
-import jakarta.transaction.Transactional;
 
 import java.util.List;
 

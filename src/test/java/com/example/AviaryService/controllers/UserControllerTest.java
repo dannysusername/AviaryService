@@ -131,13 +131,13 @@ class UserControllerTest {
     @WithMockUser(username = "user1", roles = {"USER"})
     void testUpdateHoursStampsManualSource() throws Exception {
         mockMvc.perform(post("/updateHours")
-                .param("newTachTime", "123.4")
+                .param("newTimeInService", "123.4")
                 .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk());
 
         User user = userRepository.findByUsername("user1");
-        assertTrue(user.getTachUpdatedAt() != null, "tachUpdatedAt should be set after a manual edit");
-        assertTrue("manual".equals(user.getTachUpdatedSource()), "tach source should be 'manual'");
+        assertTrue(user.getTimeInServiceUpdatedAt() != null, "timeInServiceUpdatedAt should be set after a manual edit");
+        assertTrue("manual".equals(user.getTimeInServiceUpdatedSource()), "timeInService source should be 'manual'");
     }
 
     @Test
@@ -145,18 +145,18 @@ class UserControllerTest {
     void testAddFlightLogStampsFlightlogSource() throws Exception {
         mockMvc.perform(post("/addflightlog")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"fromAirport\":\"KAAA\",\"toAirport\":\"KBBB\",\"hobbsOut\":10.0,\"hobbsIn\":11.0,\"tachOut\":9.0,\"tachIn\":10.0}")
+                .content("{\"fromAirport\":\"KAAA\",\"toAirport\":\"KBBB\",\"blockTimeOut\":10.0,\"blockTimeIn\":11.0,\"timeInServiceOut\":9.0,\"timeInServiceIn\":10.0}")
                 .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk());
 
         User user = userRepository.findByUsername("user2");
-        assertTrue("flightlog".equals(user.getTachUpdatedSource()), "tach source should be 'flightlog'");
-        assertTrue(user.getTachUpdatedAt() != null, "tachUpdatedAt should be set after a flight log");
+        assertTrue("flightlog".equals(user.getTimeInServiceUpdatedSource()), "timeInService source should be 'flightlog'");
+        assertTrue(user.getTimeInServiceUpdatedAt() != null, "timeInServiceUpdatedAt should be set after a flight log");
     }
 
     // ── Regression tests for the meter-snapshot rewrite ───────────────────────
     // These pin down the three bugs from the original /addflightlog logic:
-    //   1. Partial entry (e.g. only tachOut) used to wipe BOTH meters to 0.
+    //   1. Partial entry (e.g. only timeInServiceOut) used to wipe BOTH meters to 0.
     //   2. Manual edits used to be silently overwritten by log activity.
     //   3. Deleting a log used to set hours to 0 instead of reverting.
 
@@ -165,23 +165,23 @@ class UserControllerTest {
     void testAddFlightLogRejectsPartialPairAndPreservesHours() throws Exception {
         // Set up a user with manually-entered hours.
         User u = userRepository.findByUsername("user3");
-        u.setHobbsHours(100.0);
-        u.setHobbsManualBaseline(100.0);
-        u.setTachHours(100.0);
-        u.setTachManualBaseline(100.0);
+        u.setBlockTimeHours(100.0);
+        u.setBlockTimeManualBaseline(100.0);
+        u.setTimeInServiceHours(100.0);
+        u.setTimeInServiceManualBaseline(100.0);
         userRepository.save(u);
 
-        // The original bug: posting a log with only tachOut filled in.
+        // The original bug: posting a log with only timeInServiceOut filled in.
         mockMvc.perform(post("/addflightlog")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"fromAirport\":\"KAAA\",\"toAirport\":\"KBBB\",\"tachOut\":500.0}")
+                .content("{\"fromAirport\":\"KAAA\",\"toAirport\":\"KBBB\",\"timeInServiceOut\":500.0}")
                 .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isBadRequest());
 
         // Critical: the meters must NOT have been touched.
         User after = userRepository.findByUsername("user3");
-        assertEquals(100.0, after.getHobbsHours(), 0.0001, "Hobbs hours must not be wiped by a rejected partial entry");
-        assertEquals(100.0, after.getTachHours(), 0.0001, "Tach hours must not be wiped by a rejected partial entry");
+        assertEquals(100.0, after.getBlockTimeHours(), 0.0001, "BlockTime hours must not be wiped by a rejected partial entry");
+        assertEquals(100.0, after.getTimeInServiceHours(), 0.0001, "TimeInService hours must not be wiped by a rejected partial entry");
         assertTrue(flightLogRepository.findByUser(after).isEmpty(), "No partial log should have been saved");
     }
 
@@ -190,22 +190,22 @@ class UserControllerTest {
     void testManualBaselineActsAsFloorAgainstLowerLogReadings() throws Exception {
         // User manually claims 200 hours on the airframe.
         User u = userRepository.findByUsername("user4");
-        u.setHobbsHours(200.0);
-        u.setHobbsManualBaseline(200.0);
-        u.setTachHours(200.0);
-        u.setTachManualBaseline(200.0);
+        u.setBlockTimeHours(200.0);
+        u.setBlockTimeManualBaseline(200.0);
+        u.setTimeInServiceHours(200.0);
+        u.setTimeInServiceManualBaseline(200.0);
         userRepository.save(u);
 
-        // Add a complete log whose hobbsIn=50 is well BELOW the manual floor.
+        // Add a complete log whose blockTimeIn=50 is well BELOW the manual floor.
         mockMvc.perform(post("/addflightlog")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"hobbsOut\":49.5,\"hobbsIn\":50.0,\"tachOut\":49.5,\"tachIn\":50.0}")
+                .content("{\"blockTimeOut\":49.5,\"blockTimeIn\":50.0,\"timeInServiceOut\":49.5,\"timeInServiceIn\":50.0}")
                 .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk());
 
         User after = userRepository.findByUsername("user4");
-        assertEquals(200.0, after.getHobbsHours(), 0.0001, "Manual baseline must not be overwritten by a lower log reading");
-        assertEquals(200.0, after.getTachHours(), 0.0001, "Manual baseline must not be overwritten by a lower log reading");
+        assertEquals(200.0, after.getBlockTimeHours(), 0.0001, "Manual baseline must not be overwritten by a lower log reading");
+        assertEquals(200.0, after.getTimeInServiceHours(), 0.0001, "Manual baseline must not be overwritten by a lower log reading");
     }
 
     @Test
@@ -213,22 +213,22 @@ class UserControllerTest {
     void testDeleteFlightLogRevertsToBaseline() throws Exception {
         // Start at a manual baseline of 100.
         User u = userRepository.findByUsername("user5");
-        u.setHobbsHours(100.0);
-        u.setHobbsManualBaseline(100.0);
-        u.setTachHours(100.0);
-        u.setTachManualBaseline(100.0);
+        u.setBlockTimeHours(100.0);
+        u.setBlockTimeManualBaseline(100.0);
+        u.setTimeInServiceHours(100.0);
+        u.setTimeInServiceManualBaseline(100.0);
         userRepository.save(u);
 
-        // Add a log that raises hobbs to 150 and tach to 145.
+        // Add a log that raises blockTime to 150 and timeInService to 145.
         mockMvc.perform(post("/addflightlog")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"hobbsOut\":100.0,\"hobbsIn\":150.0,\"tachOut\":100.0,\"tachIn\":145.0}")
+                .content("{\"blockTimeOut\":100.0,\"blockTimeIn\":150.0,\"timeInServiceOut\":100.0,\"timeInServiceIn\":145.0}")
                 .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk());
 
         User afterAdd = userRepository.findByUsername("user5");
-        assertEquals(150.0, afterAdd.getHobbsHours(), 0.0001, "Hobbs should be raised by the log");
-        assertEquals(145.0, afterAdd.getTachHours(), 0.0001, "Tach should be raised by the log");
+        assertEquals(150.0, afterAdd.getBlockTimeHours(), 0.0001, "BlockTime should be raised by the log");
+        assertEquals(145.0, afterAdd.getTimeInServiceHours(), 0.0001, "TimeInService should be raised by the log");
 
         // Delete that log — meters must revert to the baseline, not crash to 0.
         List<FlightLog> logs = flightLogRepository.findByUser(afterAdd);
@@ -240,7 +240,7 @@ class UserControllerTest {
                 .andExpect(status().isOk());
 
         User afterDelete = userRepository.findByUsername("user5");
-        assertEquals(100.0, afterDelete.getHobbsHours(), 0.0001, "Delete must revert Hobbs to the manual baseline");
-        assertEquals(100.0, afterDelete.getTachHours(), 0.0001, "Delete must revert Tach to the manual baseline");
+        assertEquals(100.0, afterDelete.getBlockTimeHours(), 0.0001, "Delete must revert BlockTime to the manual baseline");
+        assertEquals(100.0, afterDelete.getTimeInServiceHours(), 0.0001, "Delete must revert TimeInService to the manual baseline");
     }
 }

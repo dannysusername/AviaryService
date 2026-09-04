@@ -1,0 +1,18 @@
+Spring is a giant toolbox with a ton of tools for building Java applications - dependency injection, web MVC, security, data access etc.
+It is powerful but you have to add and configure all the tools in the right version yourself (XML files, bean writing, picking compatible
+versions of a dozen libraries)
+
+Spring Boot is a layer on top of Spring that sets that all up for you with sensible defaults, so you can just start writing code instead
+of configuring plumbing.
+
+Spring is like a fully stocked professional kitchen - every appliance and ingrediant you could want, but you have to know how to hook up
+the gas line, calibrate the oven and organize the pantry youself before you can cook. Spring Boot is that same kitchen except it comes pre
+installed and pre calibrated, with a starter kit for whatever dish your making (web app, database app etc) already laid out on the counter.
+
+org.springframework.boot:spring-boot-starter-web gives you an embedded web server (Tomcat) and Spring MVC, auto-configured, with almost 
+zero setup.
+spring-boot-starter-data-jpa -> wires up JPA/Hibernate database access automatically
+spring-boot-starter-security -> sets up Spring Security with working defaults out of the box
+spring-boot-devtools -> boot specific convenience 
+
+Under the hood these starts are just pulling in the underlying Spring tools from the Spring framework. 
