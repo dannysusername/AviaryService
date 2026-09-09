@@ -1,0 +1,202 @@
+package com.example.AviaryService.services;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.example.AviaryService.entity.AlertPreference;
+import com.example.AviaryService.entity.ServiceTimeline;
+import com.example.AviaryService.entity.User;
+import com.example.AviaryService.repositories.ServiceTimelineRepository;
+import com.example.AviaryService.util.DueDates;
+import com.example.AviaryService.util.Formatting;
+
+// Evaluates a user's Service Timeline against their alert thresholds and renders
+// the digest. Two entry points:
+//   buildDigest(...)  -- read-only; decides shouldSend and builds subject/body
+//   markFired(...)     -- writes each item's alertLevel / alertLastFiredAt so the
+//                         next evaluation only fires on a genuine change
+// See docs/ALERTS_SPEC.md ("How it fires", "Digest content").
+@Service
+public class AlertDigestService {
+
+    private static final DateTimeFormatter STAMP =
+        DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a 'UTC'").withZone(ZoneOffset.UTC);
+
+    private final ServiceTimelineRepository serviceTimelineRepository;
+
+    public AlertDigestService(ServiceTimelineRepository serviceTimelineRepository) {
+        this.serviceTimelineRepository = serviceTimelineRepository;
+    }
+
+    public AlertDigest buildDigest(User user, AlertPreference prefs, boolean baseline) {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        Double tis = user.getTimeInServiceHours();
+
+        List<ServiceTimeline> rows = serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user);
+
+        List<Row> evaluated = new ArrayList<>();
+        for (ServiceTimeline t : rows) {
+            if (t.getIsTitle()) {
+                continue;
+            }
+            AlertLevel current = DueDates.classify(
+                t.getDueDateDate(), t.getDueDateHours(), tis, today,
+                prefs.getLeadTimeDays(), prefs.getLeadTimeHours());
+            AlertLevel previous = AlertLevel.parse(t.getAlertLevel());
+            evaluated.add(new Row(t, current, previous, timeLeftText(t, tis, today)));
+        }
+
+        int overdue = (int) evaluated.stream().filter(r -> r.current == AlertLevel.OVERDUE).count();
+        int dueSoon = (int) evaluated.stream().filter(r -> r.current == AlertLevel.DUE_SOON).count();
+
+        List<Row> changed = evaluated.stream().filter(r -> r.current.worseThan(r.previous)).toList();
+
+        boolean renudgeDue = evaluated.stream().anyMatch(r ->
+            r.current == AlertLevel.OVERDUE
+                && r.row.getAlertLastFiredAt() != null
+                && ChronoUnit.DAYS.between(r.row.getAlertLastFiredAt(), Instant.now()) >= prefs.getOverdueRenudgeDays());
+
+        boolean shouldSend = baseline || !changed.isEmpty() || renudgeDue;
+
+        String subject = buildSubject(user, overdue, dueSoon);
+        String body = buildBody(user, evaluated, changed, baseline, overdue, dueSoon);
+
+        return new AlertDigest(shouldSend, subject, body, overdue, dueSoon);
+    }
+
+    // Persist current levels so the next run only fires on a change. Called after
+    // a successful send and for the baseline.
+    public void markFired(User user, AlertPreference prefs) {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        Double tis = user.getTimeInServiceHours();
+        Instant now = Instant.now();
+
+        List<ServiceTimeline> rows = serviceTimelineRepository.findByUserOrderByTimelineOrderAsc(user);
+        for (ServiceTimeline t : rows) {
+            if (t.getIsTitle()) {
+                continue;
+            }
+            AlertLevel current = DueDates.classify(
+                t.getDueDateDate(), t.getDueDateHours(), tis, today,
+                prefs.getLeadTimeDays(), prefs.getLeadTimeHours());
+            t.setAlertLevel(current.stored());
+            if (current != AlertLevel.OK) {
+                t.setAlertLastFiredAt(now);
+            }
+        }
+        serviceTimelineRepository.saveAll(rows);
+    }
+
+    // -- rendering --
+
+    private String buildSubject(User user, int overdue, int dueSoon) {
+        String tail = user.getTailNumber() == null || user.getTailNumber().isBlank()
+            ? "Your aircraft" : user.getTailNumber();
+        if (overdue == 0 && dueSoon == 0) {
+            return tail + " — maintenance status";
+        }
+        List<String> parts = new ArrayList<>();
+        if (overdue > 0) parts.add(overdue + " overdue");
+        if (dueSoon > 0) parts.add(dueSoon + " due soon");
+        return tail + " — " + String.join(", ", parts);
+    }
+
+    private String buildBody(User user, List<Row> evaluated, List<Row> changed,
+                             boolean baseline, int overdue, int dueSoon) {
+        StringBuilder sb = new StringBuilder();
+
+        String tail = orDash(user.getTailNumber());
+        String makeModel = orDash(user.getMakeModel());
+        sb.append("Maintenance status for ").append(tail);
+        if (!"—".equals(makeModel)) {
+            sb.append(" (").append(makeModel).append(')');
+        }
+        sb.append("\nas of ").append(STAMP.format(Instant.now())).append("\n");
+
+        if (baseline) {
+            sb.append("\nAlerts are now ON. This is your starting picture — from here you'll only\n");
+            sb.append("get an email when something changes or an overdue item needs another nudge.\n");
+        } else if (!changed.isEmpty()) {
+            sb.append("\nWhat changed:\n");
+            for (Row r : changed) {
+                sb.append("  • ").append(label(r.current)).append("  ")
+                  .append(r.row.getItem()).append(" — ").append(r.timeLeft).append('\n');
+            }
+        }
+
+        sb.append("\nFull status (").append(overdue).append(" overdue, ")
+          .append(dueSoon).append(" due soon):\n");
+        List<Row> sorted = new ArrayList<>(evaluated);
+        sorted.sort(Comparator.comparingInt((Row r) -> -r.current.ordinal()));
+        if (sorted.isEmpty()) {
+            sb.append("  (no maintenance items)\n");
+        }
+        for (Row r : sorted) {
+            sb.append("  ").append(String.format("%-9s", label(r.current))).append(' ')
+              .append(r.row.getItem());
+            if (r.timeLeft != null && !r.timeLeft.isBlank() && !"N/A".equals(r.timeLeft)) {
+                sb.append(" — ").append(r.timeLeft.replace('\n', ' '));
+            }
+            sb.append('\n');
+        }
+
+        sb.append("\nAircraft hours: Hobbs ").append(hours(user.getBlockTimeHours()))
+          .append(" · Tach ").append(hours(user.getTimeInServiceHours())).append('\n');
+
+        return sb.toString();
+    }
+
+    private static String label(AlertLevel level) {
+        return switch (level) {
+            case OVERDUE -> "OVERDUE";
+            case DUE_SOON -> "DUE SOON";
+            case OK -> "ok";
+        };
+    }
+
+    private static String timeLeftText(ServiceTimeline t, Double tis, LocalDate today) {
+        StringBuilder sb = new StringBuilder();
+        Long days = DueDates.daysUntil(t.getDueDateDate(), today);
+        if (days != null) {
+            sb.append(days < 0 ? Math.abs(days) + " days overdue" : days + " days left");
+        }
+        Double hrs = DueDates.hoursUntil(t.getDueDateHours(), tis);
+        if (hrs != null) {
+            double rounded = Math.round(hrs * 10.0) / 10.0;
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(rounded < 0 ? Math.abs(rounded) + " hrs overdue" : rounded + " hrs left");
+        }
+        return sb.length() == 0 ? "" : sb.toString();
+    }
+
+    private static String hours(Double v) {
+        return v == null ? "—" : Formatting.formatHours(v);
+    }
+
+    private static String orDash(String s) {
+        return s == null || s.isBlank() ? "—" : s;
+    }
+
+    // Plain holder (fields accessed directly below, not record-style).
+    private static final class Row {
+        final ServiceTimeline row;
+        final AlertLevel current;
+        final AlertLevel previous;
+        final String timeLeft;
+
+        Row(ServiceTimeline row, AlertLevel current, AlertLevel previous, String timeLeft) {
+            this.row = row;
+            this.current = current;
+            this.previous = previous;
+            this.timeLeft = timeLeft;
+        }
+    }
+}

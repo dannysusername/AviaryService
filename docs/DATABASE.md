@@ -11,20 +11,23 @@
 All ids are `@GeneratedValue(IDENTITY)`. Every row belongs to a `User` via `user_id` (FK, not null).
 
 ### `users` (`User`)
-`id`, `username` (unique, not null), `password` (BCrypt, not null), `hobbsHours` (Double), `tachHours` (Double), `makeModel`, `tailNumber`, `ownerName`, `makeModelSN`, `hobbsUpdatedAt` / `tachUpdatedAt` (`Instant`, UTC timestamp, nullable), `hobbsUpdatedSource` / `tachUpdatedSource` (String "manual" | "flightlog", nullable).
+`id`, `username` (unique, not null), `password` (BCrypt, not null), `blockTimeHours` (Double), `timeInServiceHours` (Double), `makeModel`, `tailNumber`, `ownerName`, `makeModelSN`, `blockTimeUpdatedAt` / `timeInServiceUpdatedAt` (`Instant`, UTC timestamp, nullable), `blockTimeUpdatedSource` / `timeInServiceUpdatedSource` (String "manual" | "flightlog", nullable), `blockTimeManualBaseline` / `timeInServiceManualBaseline` (Double, manually-set floor so log activity can't silently lower the displayed total), `aeroApiKey` (encrypted, see `AeroApiKeyConverter`).
 One-to-many (cascade ALL) → `serviceTimeline`, `flightLogs`.
 
 ### `service_timelines` (`ServiceTimeline`)
 `id`, `item`, `isTitle` (boolean — title row vs item row), `description`, `cycle`, `lastDone`, `dueDate`, `timeLeft`, `timelineOrder` (Integer, display order), `user_id`.
 
 ### `flight_logs` (`FlightLog`)
-`id`, `fromAirport`, `toAirport`, `hobbsIn`, `hobbsOut`, `tachIn`, `tachOut` (all Double, nullable), `user_id`.
+`id`, `fromAirport`, `toAirport`, `blockTimeIn`, `blockTimeOut`, `timeInServiceIn`, `timeInServiceOut` (all Double, nullable), `blockTimeStart`, `blockTimeEnd` (`Instant`, nullable — engine start/stop, UTC), `timeInServiceStart`, `timeInServiceEnd` (`Instant`, nullable — wheels-off/wheels-on, UTC), `source` (String "manual" | "csv" | "aeroapi", nullable — see `FlightLog.getEffectiveSource()` and `HoursService.recomputeChain`), `faFlightId` (String, nullable — set only when the row came from an accepted `FlightSuggestion`), `user_id`.
 
 ### `description_options` (`DescriptionOption`)
 `id`, `option` (not null), `user_id`. Stores a user's custom Service Timeline description choices.
 
+### `flight_suggestions` (`FlightSuggestion`)
+`id`, `tailNumber`, `faFlightId` (unique per user), `departureTime`, `arrivalTime` (`Instant`), `origin`, `destination`, `status` (String "pending" | "accepted" | "dismissed"), `createdAt`, `user_id`. AeroAPI-detected flights awaiting a user decision — see `docs/ADSB_SYNC_SPEC.md`.
+
 ## Relationships
-`User` 1—* `ServiceTimeline`, `FlightLog` (both cascade ALL, JSON managed/back references to avoid serialization loops). `User` 1—* `DescriptionOption`.
+`User` 1—* `ServiceTimeline`, `FlightLog` (both cascade ALL, JSON managed/back references to avoid serialization loops). `User` 1—* `DescriptionOption`, `FlightSuggestion` (FK only, no mapped collection on `User` — accessed via repository query).
 
 ## Repositories (Spring Data JPA)
 - `UserRepository.findByUsername`

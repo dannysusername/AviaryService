@@ -50,6 +50,16 @@ public class ServiceTimeline {
     @Column
     private Double cycleHours;
 
+    // Maintenance-alerts state (docs/ALERTS_SPEC.md). alertLevel is the level
+    // this item was last alerted at -- null / "DUE_SOON" / "OVERDUE" -- so the
+    // daily sweep only fires when an item gets worse (or an overdue item is due
+    // for its weekly re-nudge). alertLastFiredAt backs that re-nudge timer.
+    @Column
+    private String alertLevel;
+
+    @Column
+    private java.time.Instant alertLastFiredAt;
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
@@ -135,4 +145,10 @@ public class ServiceTimeline {
 
     public Double getCycleHours() { return cycleHours; }
     public void setCycleHours(Double cycleHours) { this.cycleHours = cycleHours; }
+
+    public String getAlertLevel() { return alertLevel; }
+    public void setAlertLevel(String alertLevel) { this.alertLevel = alertLevel; }
+
+    public java.time.Instant getAlertLastFiredAt() { return alertLastFiredAt; }
+    public void setAlertLastFiredAt(java.time.Instant alertLastFiredAt) { this.alertLastFiredAt = alertLastFiredAt; }
 }

@@ -6,7 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/dashboardstyle.css}">
-    
+    <!-- Applied before first paint so switching to Dark in Settings doesn't
+         flash light mode on the next page load. See dashboard.js applyTheme. -->
+    <script>
+        (function() {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            } catch (e) {}
+        })();
+    </script>
 </head>
 <body>
     
@@ -18,12 +27,12 @@
         <div class="header-right">
             <div class="header-share">
                 <div class="share-menu">
-                    <button class="share-btn">Share <i class="fa-solid fa-share-from-square"></i></button>
-                    <div class="share-dropdown" style="display: none;">
-                        <button>Print</button>
-                        <button>Download PDF</button>
-                        <button>Email</button>
-                        <button>Text</button>
+                    <button id="share-toggle-btn" class="share-btn">Share <i class="fa-solid fa-share-from-square"></i></button>
+                    <div id="share-dropdown" class="share-dropdown" style="display: none;">
+                        <button id="share-print-btn">Print</button>
+                        <button id="share-download-pdf-btn">Download PDF</button>
+                        <button class="share-coming-soon" title="Coming soon">Email</button>
+                        <button class="share-coming-soon" title="Coming soon">Text</button>
                     </div>
                 </div>
             </div>
@@ -31,63 +40,178 @@
             <form method="post" th:action="@{/logout}" class="no-print">
                 <button type="submit" class="logout-btn">Logout</button>
             </form>
+
+            <button id="settings" class="no-print"><i class="fa-solid fa-gear"></i></button>
         </div>
     </header>
 
-    <div class = "header">
-        <div class = "buttons">
-            <!--<button id="export-excel" class="no-print">Export to Excel</button> -->
-            <button id="print-dashboard" class="no-print">Print Dashboard</button>
-        </div>
+    <div class="front-page" id="settings-page">
+        <button id="back-to-dashboard">Back to dashboard</button>
+        <table class="settings-table">
+            <tbody>
+                <tr>
+                    <td>Theme</td>
+                    <td>
+                        <select id="theme-select" class="no-print">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Aero API Key</td>
+                    <td>
+                        <input type="text" id="aeroApiKey" name="aeroApiKey" class="user-info-input no-print" th:value="${aeroApiKey}" th:readonly="${hasAeroApiKey}" placeholder="Aero API Key">
+                        <a href="#" id="change-api-key" class="no-print" th:hidden="${!hasAeroApiKey}">Change</a>
+                    </td>
+                </tr>
+                <tr id="aero-usage-row" th:hidden="${!hasAeroApiKey}">
+                    <td>AeroAPI usage</td>
+                    <td><span id="aero-usage-display">—</span></td>
+                </tr>
+                <tr>
+                    <td>Flight sync</td>
+                    <td>
+                        <input type="text" id="sync-registration" class="no-print" th:value="${subscribedRegistration}"
+                               th:readonly="${subscriptionActive}" placeholder="e.g. N12345" autocomplete="off">
+                        <button id="subscribe" class="no-print" th:text="${subscriptionActive} ? 'Unsubscribe' : 'Subscribe'">Subscribe</button>
+                        <i class="fa-solid fa-trash-can no-print" id="delete-subscription" title="Delete subscription"
+                           th:hidden="${!subscriptionExists}" th:classappend="${subscriptionActive} ? ' disabled' : ''"></i>
+                        <button id="check-now-btn" class="no-print" th:hidden="${!subscriptionActive}">Check flights now</button>
+                        <i class="fa-solid fa-circle-info check-now-info no-print" id="check-now-info" th:hidden="${!subscriptionActive}"
+                           th:title="'By default this checks up to ' + ${aeroDefaultLookbackDays} + ' days back. Use the custom check range below to pick different dates (start: up to ' + ${aeroMaxStartDaysBack} + ' days back, end: up to ' + ${aeroMaxEndDaysAhead} + ' days ahead).'"></i>
+                    </td>
+                </tr>
+                <!-- Optional override for the on-demand Check flights now button above --
+                     leaving both dates blank uses AeroAPI's own default window. -->
+                <tr id="check-now-range-row" th:hidden="${!subscriptionActive}">
+                    <td>Custom check range</td>
+                    <td>
+                        <input type="date" id="check-now-start" class="no-print"
+                               th:attr="data-max-start-days-back=${aeroMaxStartDaysBack},data-max-end-days-ahead=${aeroMaxEndDaysAhead}">
+                        <span>to</span>
+                        <input type="date" id="check-now-end" class="no-print">
+                        <button id="clear-check-now-range" class="no-print" type="button">Use default</button>
+                        <div class="settings-hint" th:text="'Leave blank to use the default window (up to ' + ${aeroDefaultLookbackDays} + ' days back).'"></div>
+                    </td>
+                </tr>
+                <!-- See docs/ADSB_SYNC_SPEC.md "Poll interval" -- background schedule,
+                     separate from the on-demand Check flights now button above. -->
+                <tr id="sync-schedule-row" th:hidden="${!subscriptionActive}">
+                    <td>Check automatically every</td>
+                    <td>
+                        <select id="poll-interval-days">
+                            <option th:each="d : ${#numbers.sequence(1, 9)}" th:value="${d}" th:text="${d} + (${d} == 1 ? ' day' : ' days')" th:selected="${d == pollIntervalDays}"></option>
+                        </select>
+                        at
+                        <select id="preferred-check-hour">
+                            <option th:each="h : ${#numbers.sequence(0, 23)}" th:value="${h}" th:text="${h} + ':00'" th:selected="${h == preferredCheckHour}"></option>
+                        </select>
+                        (local time)
+                        <button id="save-sync-settings">Save</button>
+                    </td>
+                </tr>
 
-        <!--Hobbs hours and Tach hours display and edit-->
-        <div class="my-hours">
-            <h3>My Hours</h3>
-            <div class="hours-display-and-editbutton-container">
-                <div class="hours-block">
-                    <span class="current-hobbs-display" id="current-hobbs-display" th:text="'Hobbs Time: ' + ${hobbsHours}"></span>
-                    <span class="hours-updated" id="hobbs-updated" th:attr="data-updated=${hobbsUpdatedAt},data-source=${hobbsUpdatedSource}"></span>
-                </div>
-                <div class="hours-block">
-                    <span class="current-tach-display" id="current-tach-display" th:text="'Tach Time: ' + ${tachHours}"></span>
-                    <span class="hours-updated" id="tach-updated" th:attr="data-updated=${tachUpdatedAt},data-source=${tachUpdatedSource}"></span>
-                </div>
-                <button class="edit-hours-btn no-print">Edit</button>
-            </div>
-            <div class="edit-hours-section no-print" style="display: none;">
-                <div class="hours-edit-row">
-                    <label>Edit Hobbs:</label>
-                    <input type="number" id="current-hobbs" th:value="${hobbsHours}" step="0.1" min="0" placeholder="Edit current Hobbs">
-                </div>
-                <div class="hours-edit-row">
-                    <label>Edit Tach:</label>
-                    <input type="number" id="current-tach" th:value="${tachHours}" step="0.1" min="0" placeholder="Edit current Tach">
-                </div>
-                <div class="hours-add-row">
-                    <span>Add Hobbs:</span>
-                    <input type="number" id="add-hobbs-time" step="0.1" placeholder="Enter Hobbs to add">
-                    <button id="add-hobbs-btn" class="add-btn">Add Hobbs</button>
-                </div>
-                <div class="hours-add-row">
-                    <span>Add Tach:</span>
-                    <input type="number" id="add-tach-time" step="0.1" placeholder="Enter Tach to add">
-                    <button id="add-tach-btn" class="add-btn">Add Tach</button>
-                </div>
-            </div>
-        </div>
+                <!-- Maintenance alerts -- see docs/ALERTS_SPEC.md. All values load
+                     from GET /alerts/preferences and GET /alerts/recipients when
+                     the settings page opens. -->
+                <tr>
+                    <td>Maintenance alerts</td>
+                    <td>
+                        <label class="no-print">
+                            <input type="checkbox" id="alerts-enabled"> Email me (and my recipients) when maintenance is due
+                        </label>
+                        <div class="settings-hint" id="alerts-readiness"></div>
+                        <button id="alerts-send-now" class="no-print" type="button">Send alert now</button>
+                        <span id="alerts-send-now-result" class="settings-hint"></span>
+                    </td>
+                </tr>
+                <tr id="alerts-schedule-row">
+                    <td>Alert schedule</td>
+                    <td>
+                        Check daily at
+                        <select id="alerts-check-hour">
+                            <option th:each="h : ${#numbers.sequence(0, 23)}" th:value="${h}" th:text="${h} + ':00'"></option>
+                        </select>
+                        (local time). Warn
+                        <input type="number" id="alerts-lead-days" min="0" style="width:4rem"> days /
+                        <input type="number" id="alerts-lead-hours" min="0" style="width:4rem"> hours before due.
+                        Re-nudge overdue every
+                        <input type="number" id="alerts-renudge-days" min="1" style="width:4rem"> days.
+                        <button id="alerts-save-schedule" class="no-print" type="button">Save</button>
+                    </td>
+                </tr>
+                <tr id="alerts-recipients-row">
+                    <td>Alert recipients</td>
+                    <td>
+                        <div class="no-print">
+                            <select id="alert-recipient-channel">
+                                <option value="EMAIL">Email</option>
+                                <option value="SMS">Text (coming soon)</option>
+                            </select>
+                            <input type="text" id="alert-recipient-destination" placeholder="name@example.com" autocomplete="off">
+                            <input type="text" id="alert-recipient-label" placeholder="label (optional)" autocomplete="off">
+                            <button id="alert-recipient-add" type="button">Add</button>
+                            <span id="alert-recipient-error" class="settings-hint"></span>
+                        </div>
+                        <ul id="alert-recipient-list" class="alert-recipient-list"></ul>
+                        <div class="settings-hint">Each person gets a confirmation link and receives nothing until they accept.</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <div class="tabs no-print">
-        <button class="tab-button active" data-tab="service-tab">Service Timeline</button>
-        <button class="tab-button" data-tab="logbook-tab">Log Book</button>
-    </div>
+    <div class="front-page active" id="dashboard-page">
+    
+        <div class = "header">
+            <div class = "buttons">
+                <!--<button id="export-excel" class="no-print">Export to Excel</button> -->
+                <button id="print-dashboard" class="no-print">Print Dashboard</button>
 
-    <!-- New aircraft info table -->
+            </div>
 
-    <div id="service-tab" class="tab-content">
-        <div class = "main">
-            <h2 class="print-only tab-print-title">Service Timeline</h2>
+            <!--Block time hours and Time in Service hours display and edit-->
+            <div class="my-hours">
+                <h3>My Hours</h3>
+                <div class="hours-display-and-editbutton-container">
+                    <div class="hours-block">
+                        <span class="current-block-time-display" id="current-block-time-display" th:text="'Block Time: ' + ${blockTimeHours}"></span>
+                        <span class="hours-updated" id="block-time-updated" th:attr="data-updated=${blockTimeUpdatedAt},data-source=${blockTimeUpdatedSource}"></span>
+                    </div>
+                    <div class="hours-block">
+                        <span class="current-time-in-service-display" id="current-time-in-service-display" th:text="'Time in Service: ' + ${timeInServiceHours}"></span>
+                        <span class="hours-updated" id="time-in-service-updated" th:attr="data-updated=${timeInServiceUpdatedAt},data-source=${timeInServiceUpdatedSource}"></span>
+                    </div>
+                    <button class="edit-hours-btn no-print">Edit</button>
+                </div>
+                <div class="edit-hours-section no-print" style="display: none;">
+                    <div class="hours-edit-row">
+                        <label>Edit Block Time:</label>
+                        <input type="number" id="current-block-time" th:value="${blockTimeHours}" step="0.1" min="0" placeholder="Edit current block time">
+                    </div>
+                    <div class="hours-edit-row">
+                        <label>Edit Time in Service:</label>
+                        <input type="number" id="current-time-in-service" th:value="${timeInServiceHours}" step="0.1" min="0" placeholder="Edit current time in service">
+                    </div>
+                    <div class="hours-add-row">
+                        <span>Add Block Time:</span>
+                        <input type="number" id="add-block-time" step="0.1" placeholder="Enter block time to add">
+                        <button id="add-block-time-btn" class="add-btn">Add Block Time</button>
+                    </div>
+                    <div class="hours-add-row">
+                        <span>Add Time in Service:</span>
+                        <input type="number" id="add-time-in-service" step="0.1" placeholder="Enter time in service to add">
+                        <button id="add-time-in-service-btn" class="add-btn">Add Time in Service</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Aircraft info -- shared across both tabs. Wrapped in the same
+             .main class the tab content uses, so it gets identical padding
+             instead of a guessed-at margin rule. -->
+        <div class="main">
             <table class="aircraft-info-table">
                 <tbody>
                     <tr>
@@ -108,47 +232,168 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
 
-            <!-- Existing first table follows here -->
-            <table id="sortable-info-table">
-                <thead class = "sortable-head">
-                    <tr>
-                        <th class = "grip-column no-print"></th> <!-- Grip column hidden in print -->
-                        <th class = "print">Item</th>
-                        <th class = "print">Description</th>
-                        <th class = "print">Cycle</th>
-                        <th class = "print">Last Done</th>
-                        <th class = "print">Due Date</th>
-                        <th class = "print">Time Left</th>
-                        <!--<th class = "status-header">Status</th>-->
-                        <th class = "complete-header no-print"></th>
-                        <th class = "delete-header"></th>
-                    </tr>
-                </thead>
-                <tbody class = "sortable">
-                    <!-- Existing timelines 
-                    Where title rows or item rows are dynamically rendered,  
-                    -->
+        <div class="tabs no-print">
+            <button class="tab-button active" data-tab="service-tab">Service Timeline</button>
+            <button class="tab-button" data-tab="logbook-tab">Log Book</button>
+        </div>
 
-                    <th:block th:each="timeline : ${timelines}">
-                        <!-- Title row -->
-                        <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
-                            <td class = "grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
-                            <td colspan="6" class="title-cell" th:text="${timeline.item}"></td>
-                            <td class="complete-cell no-print"></td>
-                            <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
+        <div id="service-tab" class="tab-content">
+            <div class = "main">
+                <h2 class="print-only tab-print-title">Service Timeline</h2>
+
+                <!-- Existing first table follows here -->
+                <table id="sortable-info-table">
+                    <thead class = "sortable-head">
+                        <tr>
+                            <th class = "grip-column no-print"></th> <!-- Grip column hidden in print -->
+                            <th class = "print">Item</th>
+                            <th class = "print">Description</th>
+                            <th class = "print">Cycle</th>
+                            <th class = "print">Last Done</th>
+                            <th class = "print">Due Date</th>
+                            <th class = "print">Time Left</th>
+                            <!--<th class = "status-header">Status</th>-->
+                            <th class = "complete-header no-print"></th>
+                            <th class = "delete-header"></th>
                         </tr>
-                        <!-- Regular item row -->
-                        <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDoneDate="${timeline.lastDoneDate}" th:data-lastDoneHours="${timeline.lastDoneHours}" th:data-dueDateDate="${timeline.dueDateDate}" th:data-dueDateHours="${timeline.dueDateHours}" class="auto-save-row">                           
-                            <td class = "grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
-                            <td data-label="Item"><textarea name="item" rows="1" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea><i class="fa-solid fa-chevron-down card-caret no-print"></i>
-                                <span class="print-only" th:text="${timeline.item}"></span></td>
+                    </thead>
+                    <tbody class = "sortable">
+                        <!-- Existing timelines 
+                        Where title rows or item rows are dynamically rendered,  
+                        -->
+
+                        <th:block th:each="timeline : ${timelines}">
+                            <!-- Title row -->
+                            <tr th:if="${timeline.isTitle}" class="title-row" th:data-id="${timeline.id}">
+                                <td class = "grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
+                                <td colspan="6" class="title-cell" th:text="${timeline.item}"></td>
+                                <td class="complete-cell no-print"></td>
+                                <td class="delete-cell"><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
+                            </tr>
+                            <!-- Regular item row -->
+                            <tr th:unless="${timeline.isTitle}" th:data-id="${timeline.id}" th:data-lastDoneDate="${timeline.lastDoneDate}" th:data-lastDoneHours="${timeline.lastDoneHours}" th:data-dueDateDate="${timeline.dueDateDate}" th:data-dueDateHours="${timeline.dueDateHours}" class="auto-save-row">                           
+                                <td class = "grip-cell"><span class="grip-icon no-print"><i class="fa-solid fa-grip-vertical"></i></span></td>
+                                <td data-label="Item"><textarea name="item" rows="1" th:text="${timeline.item}" oninput="autoSave(this)" class="no-print"></textarea><i class="fa-solid fa-chevron-down card-caret no-print"></i>
+                                    <span class="print-only" th:text="${timeline.item}"></span></td>
+                                <td data-label="Description">
+                                    <div class="custom-dropdown no-print">
+                                        <div class="selected-option no-print"></div>
+                                        <input type="hidden" name="description" th:value="${timeline.description}">
+                                        <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
+                                        <div class="dropdown-options no-print">
+                                            <div class="option" data-value="">--None--</div>
+                                            <div class="option" data-value="Inspect">Inspect</div>
+                                            <div class="option" data-value="Test">Test</div>
+                                            <div class="option" data-value="Replace">Replace</div>
+                                            <div class="option" data-value="Overhaul">Overhaul</div>
+                                            <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:data-option-id="${option.id}">
+                                                <span th:text="${option.option}"></span>
+                                                <button class="remove-option-btn" th:data-option-id="${option.id}">x</button>
+                                            </div>
+                                            <div class="add-option-container">
+                                                <input type="text" class="custom-description" placeholder="New option">
+                                                <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="print-only" th:text="${timeline.description}"></span>
+                                </td>
+                                <td data-label="Cycle">
+                                    <div class="cycle-structured no-print">
+                                        <div class="cycle-row">
+                                            <input type="number" min="1" step="1" name="cycleCalendarValue"
+                                                class="cycle-num" placeholder="#"
+                                                th:value="${timeline.cycleCalendarValue}"
+                                                oninput="autoSave(this)">
+                                            <select name="cycleCalendarUnit" class="cycle-unit" onchange="autoSave(this)">
+                                                <option value="" th:selected="${timeline.cycleCalendarUnit == null}">unit</option>
+                                                <option value="DAYS"   th:selected="${timeline.cycleCalendarUnit == 'DAYS'}">days</option>
+                                                <option value="MONTHS" th:selected="${timeline.cycleCalendarUnit == 'MONTHS'}">months</option>
+                                                <option value="YEARS"  th:selected="${timeline.cycleCalendarUnit == 'YEARS'}">years</option>
+                                            </select>
+                                        </div>
+                                        <div class="cycle-row">
+                                            <input type="number" min="0.1" step="0.1" name="cycleHours"
+                                                class="cycle-num-hours" placeholder="#"
+                                                th:value="${timeline.cycleHours}"
+                                                oninput="autoSave(this)">
+                                            <span class="cycle-unit-label">hrs</span>
+                                        </div>
+                                    </div>
+                                    <span class="print-only"></span>
+                                </td>
+                                <td data-label="Last Done">
+                                    <div class="input-with-dropdown no-print">
+                                        <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
+                                        <div class="type-dropdown" style="display: none;">
+                                            <div class="type-option">
+                                                <span>Calendar</span>
+                                                <button class="add-type" data-type="calendar">+</button>
+                                            </div>
+                                            <div class="type-option">
+                                                <span>Clock</span>
+                                                <button class="add-type" data-type="clock">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="print-only" th:text="${timeline.lastDoneDate != null ? timeline.lastDoneDate : (timeline.lastDoneHours != null ? timeline.lastDoneHours + ' hrs' : '')}"></span>
+                                </td>
+                                <td data-label="Due Date">
+                                    <div class="input-with-dropdown no-print">
+                                        <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
+                                        <div class="type-dropdown" style="display: none;">
+                                            <div class="type-option">
+                                                <span>Calendar</span>
+                                                <button class="add-type" data-type="calendar">+</button>
+                                            </div>
+                                            <div class="type-option">
+                                                <span>Clock</span>
+                                                <button class="add-type" data-type="clock">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="print-only" th:text="${timeline.dueDateDate != null ? timeline.dueDateDate : (timeline.dueDateHours != null ? timeline.dueDateHours + ' hrs' : '')}"></span>
+                                </td>
+                                <td data-label="Time Left"><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
+                                <!--<td class="status-cell"><span class="save-status no-print">✓</span></td>-->
+                                <td class="complete-cell no-print" data-label="">
+                                    <button type="button" class="complete-btn"
+                                            title="Mark maintenance complete: sets Last Done to today/current hours and rolls Due Date forward by the cycle."
+                                            onclick="completeMaintenance(this)">
+                                        <i class="fa-solid fa-rotate-right"></i>
+                                        <span class="complete-btn-label">Mark complete</span>
+                                    </button>
+                                </td>
+                                <td class="delete-cell" data-label=""><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                        
+                    <tbody #add-row>
+                        <tr class="add-row no-print"> <!-- Add row -->
+                            <td class="grip-column"></td>
+                            <td data-label="Item">
+                                <div class="row-type-selector"> <!--Choose Item/Title-->
+                                    <span class="row-type-option" data-type="item" onclick="selectRowType('item', this)">Item</span> <!-- Item button -->
+                                    <span class="row-type-option" data-type="title" onclick="selectRowType('title', this)">Title</span> <!-- Title button -->
+                                </div>
+                                <div id="itemInput" style="display: none;"> <!--"Enter Item" item textarea div-->
+                                    <textarea name="item" rows="1" placeholder="Enter item"></textarea> <!--Item textarea-->
+                                </div>
+                                <div id="titleInput" style="display: none;"> <!--"Enter Title" title -->
+                                    <input type="text" name="title" placeholder="Enter title" class="title-input">
+                                </div>
+                                <input type="hidden" name="item" id="itemHidden">
+                                <input type="hidden" name="isTitle" id="isTitleHidden" value="false">
+                            </td>
                             <td data-label="Description">
                                 <div class="custom-dropdown no-print">
                                     <div class="selected-option no-print"></div>
-                                    <input type="hidden" name="description" th:value="${timeline.description}">
+                                    <input type="hidden" name="description" value="">
                                     <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                                    <div class="dropdown-options no-print">
+                                    <div class="dropdown-options" style="display: none;">
                                         <div class="option" data-value="">--None--</div>
                                         <div class="option" data-value="Inspect">Inspect</div>
                                         <div class="option" data-value="Test">Test</div>
@@ -164,248 +409,177 @@
                                         </div>
                                     </div>
                                 </div>
-                                <span class="print-only" th:text="${timeline.description}"></span>
                             </td>
                             <td data-label="Cycle">
-                                <div class="cycle-structured no-print">
+                                <div class="cycle-structured">
                                     <div class="cycle-row">
-                                        <input type="number" min="1" step="1" name="cycleCalendarValue"
-                                            class="cycle-num" placeholder="#"
-                                            th:value="${timeline.cycleCalendarValue}"
-                                            oninput="autoSave(this)">
-                                        <select name="cycleCalendarUnit" class="cycle-unit" onchange="autoSave(this)">
-                                            <option value="" th:selected="${timeline.cycleCalendarUnit == null}">unit</option>
-                                            <option value="DAYS"   th:selected="${timeline.cycleCalendarUnit == 'DAYS'}">days</option>
-                                            <option value="MONTHS" th:selected="${timeline.cycleCalendarUnit == 'MONTHS'}">months</option>
-                                            <option value="YEARS"  th:selected="${timeline.cycleCalendarUnit == 'YEARS'}">years</option>
+                                        <input type="number" min="1" step="1" name="cycleCalendarValue" class="cycle-num" placeholder="#">
+                                        <select name="cycleCalendarUnit" class="cycle-unit">
+                                            <option value="" selected>unit</option>
+                                            <option value="DAYS">days</option>
+                                            <option value="MONTHS">months</option>
+                                            <option value="YEARS">years</option>
                                         </select>
                                     </div>
                                     <div class="cycle-row">
-                                        <input type="number" min="0.1" step="0.1" name="cycleHours"
-                                            class="cycle-num-hours" placeholder="#"
-                                            th:value="${timeline.cycleHours}"
-                                            oninput="autoSave(this)">
+                                        <input type="number" min="0.1" step="0.1" name="cycleHours" class="cycle-num-hours" placeholder="#">
                                         <span class="cycle-unit-label">hrs</span>
                                     </div>
                                 </div>
-                                <span class="print-only"></span>
                             </td>
                             <td data-label="Last Done">
-                                <div class="input-with-dropdown no-print">
+                                <div class="input-with-dropdown">
                                     <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                     <div class="type-dropdown" style="display: none;">
-                                        <div class="type-option">
-                                            <span>Calendar</span>
-                                            <button class="add-type" data-type="calendar">+</button>
-                                        </div>
-                                        <div class="type-option">
-                                            <span>Clock</span>
-                                            <button class="add-type" data-type="clock">+</button>
-                                        </div>
+                                        <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
+                                        <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
                                     </div>
                                 </div>
-                                <span class="print-only" th:text="${timeline.lastDoneDate != null ? timeline.lastDoneDate : (timeline.lastDoneHours != null ? timeline.lastDoneHours + ' hrs' : '')}"></span>
+                                <input type="hidden" name="lastDone" id="lastDoneHidden">
                             </td>
                             <td data-label="Due Date">
-                                <div class="input-with-dropdown no-print">
+                                <div class="input-with-dropdown">
                                     <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
                                     <div class="type-dropdown" style="display: none;">
-                                        <div class="type-option">
-                                            <span>Calendar</span>
-                                            <button class="add-type" data-type="calendar">+</button>
-                                        </div>
-                                        <div class="type-option">
-                                            <span>Clock</span>
-                                            <button class="add-type" data-type="clock">+</button>
-                                        </div>
+                                        <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
+                                        <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
                                     </div>
                                 </div>
-                                <span class="print-only" th:text="${timeline.dueDateDate != null ? timeline.dueDateDate : (timeline.dueDateHours != null ? timeline.dueDateHours + ' hrs' : '')}"></span>
+                                <input type="hidden" name="dueDate" id="dueDateHidden">
                             </td>
-                            <td data-label="Time Left"><div class="time-left" th:text="${timeline.timeLeft != null ? timeline.timeLeft : ''}"></div></td>
-                            <!--<td class="status-cell"><span class="save-status no-print">✓</span></td>-->
-                            <td class="complete-cell no-print" data-label="">
-                                <button type="button" class="complete-btn"
-                                        title="Mark maintenance complete: sets Last Done to today/current hours and rolls Due Date forward by the cycle."
-                                        onclick="completeMaintenance(this)">
-                                    <i class="fa-solid fa-rotate-right"></i>
-                                    <span class="complete-btn-label">Mark complete</span>
-                                </button>
+                            <td data-label="Time Left"><div class="time-left"></div></td>
+                            <!--<td class="status-cell"><span class="save-status"></span></td>-->
+                            <!-- add-cell spans 2 columns so the Add button gets room
+                                to breathe AND grows with screen width (those two
+                                columns are 4%+4% of viewport). -->
+                            <td class="add-cell no-print" data-label="" colspan="2">
+                                <form method="post" th:action="@{/dashboard}">
+                                    <input type="hidden" name="item" id="itemHiddenDuplicate">
+                                    <input type="hidden" name="isTitle" id="isTitleHiddenDuplicate" value="false">
+                                    <input type="hidden" name="description" id="descriptionHidden">
+                                    <input type="hidden" name="cycle" id="cycleHidden">
+                                    <input type="hidden" name="lastDone" id="lastDoneHiddenDuplicate">
+                                    <input type="hidden" name="dueDate" id="dueDateHiddenDuplicate">
+                                    <input type="hidden" name="timeLeft" id="timeLeftHidden">
+                                    <button type="submit" class="add-button">Add</button>
+                                </form>
                             </td>
-                            <td class="delete-cell" data-label=""><span class="delete-icon no-print" onclick="deleteRow(this)"><i class="fa-solid fa-trash-can fa-xl"></i></span></td>
                         </tr>
-                    </th:block>
-                </tbody>
-                    
-                <tbody #add-row>
-                    <tr class="add-row no-print"> <!-- Add row -->
-                        <td class="grip-column"></td>
-                        <td data-label="Item">
-                            <div class="row-type-selector"> <!--Choose Item/Title-->
-                                <span class="row-type-option" data-type="item" onclick="selectRowType('item', this)">Item</span> <!-- Item button -->
-                                <span class="row-type-option" data-type="title" onclick="selectRowType('title', this)">Title</span> <!-- Title button -->
-                            </div>
-                            <div id="itemInput" style="display: none;"> <!--"Enter Item" item textarea div-->
-                                <textarea name="item" rows="1" placeholder="Enter item"></textarea> <!--Item textarea-->
-                            </div>
-                            <div id="titleInput" style="display: none;"> <!--"Enter Title" title -->
-                                <input type="text" name="title" placeholder="Enter title" class="title-input">
-                            </div>
-                            <input type="hidden" name="item" id="itemHidden">
-                            <input type="hidden" name="isTitle" id="isTitleHidden" value="false">
-                        </td>
-                        <td data-label="Description">
-                            <div class="custom-dropdown no-print">
-                                <div class="selected-option no-print"></div>
-                                <input type="hidden" name="description" value="">
-                                <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                                <div class="dropdown-options" style="display: none;">
-                                    <div class="option" data-value="">--None--</div>
-                                    <div class="option" data-value="Inspect">Inspect</div>
-                                    <div class="option" data-value="Test">Test</div>
-                                    <div class="option" data-value="Replace">Replace</div>
-                                    <div class="option" data-value="Overhaul">Overhaul</div>
-                                    <div th:each="option : ${descriptionOptions}" class="option custom-option" th:data-value="${option.option}" th:data-option-id="${option.id}">
-                                        <span th:text="${option.option}"></span>
-                                        <button class="remove-option-btn" th:data-option-id="${option.id}">x</button>
-                                    </div>
-                                    <div class="add-option-container">
-                                        <input type="text" class="custom-description" placeholder="New option">
-                                        <button class="add-option-btn" onclick="addCustomDescription(this)">Add</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td data-label="Cycle">
-                            <div class="cycle-structured">
-                                <div class="cycle-row">
-                                    <input type="number" min="1" step="1" name="cycleCalendarValue" class="cycle-num" placeholder="#">
-                                    <select name="cycleCalendarUnit" class="cycle-unit">
-                                        <option value="" selected>unit</option>
-                                        <option value="DAYS">days</option>
-                                        <option value="MONTHS">months</option>
-                                        <option value="YEARS">years</option>
-                                    </select>
-                                </div>
-                                <div class="cycle-row">
-                                    <input type="number" min="0.1" step="0.1" name="cycleHours" class="cycle-num-hours" placeholder="#">
-                                    <span class="cycle-unit-label">hrs</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td data-label="Last Done">
-                            <div class="input-with-dropdown">
-                                <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                                <div class="type-dropdown" style="display: none;">
-                                    <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
-                                    <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="lastDone" id="lastDoneHidden">
-                        </td>
-                        <td data-label="Due Date">
-                            <div class="input-with-dropdown">
-                                <i class="fa-solid fa-chevron-down trigger-dropdown"></i>
-                                <div class="type-dropdown" style="display: none;">
-                                    <div class="type-option"><span>Calendar</span><button type="button" class="add-type" data-type="calendar">+</button></div>
-                                    <div class="type-option"><span>Clock</span><button type="button" class="add-type" data-type="clock">+</button></div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="dueDate" id="dueDateHidden">
-                        </td>
-                        <td data-label="Time Left"><div class="time-left"></div></td>
-                        <!--<td class="status-cell"><span class="save-status"></span></td>-->
-                        <!-- add-cell spans 2 columns so the Add button gets room
-                             to breathe AND grows with screen width (those two
-                             columns are 4%+4% of viewport). -->
-                        <td class="add-cell no-print" data-label="" colspan="2">
-                            <form method="post" th:action="@{/dashboard}">
-                                <input type="hidden" name="item" id="itemHiddenDuplicate">
-                                <input type="hidden" name="isTitle" id="isTitleHiddenDuplicate" value="false">
-                                <input type="hidden" name="description" id="descriptionHidden">
-                                <input type="hidden" name="cycle" id="cycleHidden">
-                                <input type="hidden" name="lastDone" id="lastDoneHiddenDuplicate">
-                                <input type="hidden" name="dueDate" id="dueDateHiddenDuplicate">
-                                <input type="hidden" name="timeLeft" id="timeLeftHidden">
-                                <button type="submit" class="add-button">Add</button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-    
-    <div id="logbook-tab" class="tab-content">
-        <h2 class="print-only tab-print-title">Flight Logs</h2>
+        
+        <div id="logbook-tab" class="tab-content">
+            <h2 class="print-only tab-print-title">Flight Logs</h2>
 
-        <div class = "upload-csv no-print">
-            <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
-            <button id="upload-csv-btn">Upload GARMIN CSV File</button>
-        </div>
+            <div class = "upload-csv no-print">
+                <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                <button id="upload-csv-btn">Upload GARMIN CSV File</button>
+            </div>
 
-        <div class="main">
-            <table class="logbook-table">
-                <thead>
-                    <tr>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Hobbs Out</th>
-                        <th>Hobbs In</th>
-                        <th>Tach Out</th>
-                        <th>Tach In</th>
-                        <th class="delete-header"></th>
-                    </tr>
-                </thead>
-                <tbody id="logbook-body">
-                    <tr th:each="log : ${flightlogs}" class="log-row" th:data-id="${log.id}">
-                        <td data-label="From">
-                            <span class="print-only" th:text="${log.fromAirport}"></span>
-                            <input type="text" name="fromAirport" class="no-print" th:value="${log.fromAirport}" readonly>
-                        </td>
-                        <td data-label="To">
-                            <span class="print-only" th:text="${log.toAirport}"></span>
-                            <input type="text" name="toAirport" class="no-print" th:value="${log.toAirport}" readonly>
-                        </td>
-                        <td data-label="Hobbs Out">
-                            <span class="print-only" th:text="${log.hobbsOut}"></span>
-                            <input type="number" name="hobbsOut" class="no-print" th:value="${log.hobbsOut}" readonly step="0.1">
-                        </td>
-                        <td data-label="Hobbs In">
-                            <span class="print-only" th:text="${log.hobbsIn}"></span>
-                            <input type="number" name="hobbsIn" class="no-print" th:value="${log.hobbsIn}" readonly step="0.1">
-                        </td>
-                        <td data-label="Tach Out">
-                            <span class="print-only" th:text="${log.tachOut}"></span>
-                            <input type="number" name="tachOut" class="no-print" th:value="${log.tachOut}" readonly step="0.1">
-                        </td>
-                        <td data-label="Tach In">
-                            <span class="print-only" th:text="${log.tachIn}"></span>
-                            <input type="number" name="tachIn" class="no-print" th:value="${log.tachIn}" readonly step="0.1">
-                        </td>
-                        <td class="delete-cell no-print" data-label="">
-                            <button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button>
-                        </td>
-                    </tr>
-                    <!-- Empty state: visible only while there are no log rows
-                         (CSS :has() hides it the moment a .log-row exists). -->
-                    <tr class="empty-log-row no-print">
-                        <td colspan="7">No flights logged yet — add your first flight below.</td>
-                    </tr>
-                    <!-- NEW: Add row for new log -->
-                    <tr class="add-log-row no-print">
-                        <td data-label="From"><input type="text" id="fromAirport" name="fromAirport" autocomplete="fromAirport" placeholder="From Airport"></td>
-                        <td data-label="To"><input type="text" id="toAirport" name="toAirport" autocomplete="toAirport" placeholder="To Airport"></td>
-                        <td data-label="Hobbs Out"><input type="number" id="hobbsOut" name="hobbsOut" autocomplete="hobbsOut" placeholder="Hobbs Out" step="0.01"></td>
-                        <td data-label="Hobbs In"><input type="number" id="hobbsIn" name="hobbsIn" autocomplete="hobbsIn" placeholder="Hobbs In" step="0.01"></td>
-                        <td data-label="Tach Out"><input type="number" id="tachOut" name="tachOut" autocomplete="tachOut" placeholder="Tach Out" step="0.01"></td>
-                        <td data-label="Tach In"><input type="number" id="tachIn" name="tachIn" autocomplete="tachIn" placeholder="Tach In" step="0.01"></td>
-                        <td class="add-cell" data-label="">
-                            <button id="add-log-button" class="add-log-button">Add</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <!-- AeroAPI-detected flights awaiting Add/Dismiss. See docs/ADSB_SYNC_SPEC.md "UX flow". -->
+            <div class="flight-suggestions no-print" th:if="${!flightSuggestions.isEmpty()}">
+                <h3>✈ <span th:text="${flightSuggestions.size()}"></span> flight(s) detected</h3>
+                <div class="flight-suggestion-row" th:each="s : ${flightSuggestions}" th:data-id="${s.id}">
+                    <span th:text="${s.origin} + ' → ' + ${s.destination}"></span>
+                    <span th:text="${#numbers.formatDecimal(s.minutesAirborne / 60.0, 1, 1)} + ' hrs'"></span>
+                    <button class="suggestion-accept-btn">Add</button>
+                    <button class="suggestion-dismiss-btn">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Every AeroAPI suggestion ever seen, any status -- a record that
+                 survives deleting the FlightLog row it became. See docs/CHANGES.md. -->
+            <details id="all-suggestions-details" class="no-print">
+                <summary>View all suggested flights</summary>
+                <table class="all-suggestions-table">
+                    <thead>
+                        <tr><th>From</th><th>To</th><th>Departed</th><th>Arrived</th><th>Airborne</th><th>Status</th><th></th></tr>
+                    </thead>
+                    <tbody id="all-suggestions-body"></tbody>
+                </table>
+            </details>
+
+            <div class="main">
+                <table class="logbook-table">
+                    <thead>
+                        <tr>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Block Time Out</th>
+                            <th>Block Time In</th>
+                            <th>Time in Service Out</th>
+                            <th>Time in Service In</th>
+                            <th class="delete-header"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="logbook-body">
+                        <tr th:each="log : ${flightlogs}" class="log-row" th:data-id="${log.id}">
+                            <td data-label="From">
+                                <span class="print-only" th:text="${log.fromAirport}"></span>
+                                <input type="text" name="fromAirport" class="no-print" th:value="${log.fromAirport}" readonly>
+                            </td>
+                            <td data-label="To">
+                                <span class="print-only" th:text="${log.toAirport}"></span>
+                                <input type="text" name="toAirport" class="no-print" th:value="${log.toAirport}" readonly>
+                            </td>
+                            <td data-label="Block Time Out">
+                                <span class="print-only" th:text="${log.blockTimeOut}"></span>
+                                <input type="number" name="blockTimeOut" class="no-print" th:value="${log.blockTimeOut}" readonly step="0.1">
+                                <span class="log-timestamp no-print" th:attr="data-timestamp=${log.blockTimeStart}"></span>
+                            </td>
+                            <td data-label="Block Time In">
+                                <span class="print-only" th:text="${log.blockTimeIn}"></span>
+                                <input type="number" name="blockTimeIn" class="no-print" th:value="${log.blockTimeIn}" readonly step="0.1">
+                                <span class="log-timestamp no-print" th:attr="data-timestamp=${log.blockTimeEnd}"></span>
+                            </td>
+                            <td data-label="Time in Service Out">
+                                <span class="print-only" th:text="${log.timeInServiceOut}"></span>
+                                <input type="number" name="timeInServiceOut" class="no-print" th:value="${log.timeInServiceOut}" readonly step="0.1">
+                                <span class="log-timestamp no-print" th:attr="data-timestamp=${log.timeInServiceStart}"></span>
+                            </td>
+                            <td data-label="Time in Service In">
+                                <span class="print-only" th:text="${log.timeInServiceIn}"></span>
+                                <input type="number" name="timeInServiceIn" class="no-print" th:value="${log.timeInServiceIn}" readonly step="0.1">
+                                <span class="log-timestamp no-print" th:attr="data-timestamp=${log.timeInServiceEnd}"></span>
+                            </td>
+                            <td class="delete-cell no-print" data-label="">
+                                <button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button>
+                            </td>
+                        </tr>
+                        <!-- Empty state: visible only while there are no log rows
+                            (CSS :has() hides it the moment a .log-row exists). -->
+                        <tr class="empty-log-row no-print">
+                            <td colspan="7">No flights logged yet — add your first flight below.</td>
+                        </tr>
+                        <!-- NEW: Add row for new log -->
+                        <tr class="add-log-row no-print">
+                            <td data-label="From"><input type="text" id="fromAirport" name="fromAirport" autocomplete="fromAirport" placeholder="From Airport"></td>
+                            <td data-label="To"><input type="text" id="toAirport" name="toAirport" autocomplete="toAirport" placeholder="To Airport"></td>
+                            <td data-label="Block Time Out">
+                                <input type="number" id="blockTimeOut" name="blockTimeOut" autocomplete="blockTimeOut" placeholder="Block Time Out" step="0.01">
+                                <input type="datetime-local" id="blockTimeStart" name="blockTimeStart" class="log-timestamp-input" title="When this reading was taken">
+                            </td>
+                            <td data-label="Block Time In">
+                                <input type="number" id="blockTimeIn" name="blockTimeIn" autocomplete="blockTimeIn" placeholder="Block Time In" step="0.01">
+                                <input type="datetime-local" id="blockTimeEnd" name="blockTimeEnd" class="log-timestamp-input" title="When this reading was taken">
+                            </td>
+                            <td data-label="Time in Service Out">
+                                <input type="number" id="timeInServiceOut" name="timeInServiceOut" autocomplete="timeInServiceOut" placeholder="Time in Service Out" step="0.01">
+                                <input type="datetime-local" id="timeInServiceStart" name="timeInServiceStart" class="log-timestamp-input" title="When this reading was taken">
+                            </td>
+                            <td data-label="Time in Service In">
+                                <input type="number" id="timeInServiceIn" name="timeInServiceIn" autocomplete="timeInServiceIn" placeholder="Time in Service In" step="0.01">
+                                <input type="datetime-local" id="timeInServiceEnd" name="timeInServiceEnd" class="log-timestamp-input" title="When this reading was taken">
+                            </td>
+                            <td class="add-cell" data-label="">
+                                <button id="add-log-button" class="add-log-button">Add</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>

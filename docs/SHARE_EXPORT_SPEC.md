@@ -1,11 +1,52 @@
 # Share / Export Feature Spec
 
-Status: **Designed, not yet built** · Last updated: 2026-06-14
+Status: **Print/Download PDF done 2026-09-06 (server-side rendering, see below); Email/Text still not built** · Last updated: 2026-09-06
 
 Lets a user print, download, email, or text a PDF of their maintenance data.
-Replaces the standalone "Print Dashboard" button and groups all output actions
-under one menu. The existing **Upload GARMIN CSV** button stays separate (it is
-an *import*; everything here is *export/share*).
+Groups all output actions under one menu, alongside the separate standalone
+**Print Dashboard** button (which the Share menu's Print item reuses directly
+rather than replacing). The existing **Upload GARMIN CSV** button stays
+separate (it is an *import*; everything here is *export/share*).
+
+## Current state (2026-09-06)
+
+- **Print** calls the browser's native `window.print()` (same as the
+  existing `#print-dashboard` button), using the `.no-print`/`.print-only`
+  CSS that already builds the print-ready document.
+- **Download PDF** generates a real PDF **server-side**, via
+  `PdfExportService` + [openhtmltopdf](https://github.com/danfickle/openhtmltopdf)
+  (`GET /pdf`, `templates/pdf-export.html`). Real vector text and tables —
+  small file (~7KB for a typical dashboard vs. ~550KB for the earlier
+  approach below), selectable/searchable text, smooth scrolling in any PDF
+  viewer, one click starts the download immediately (no dialog).
+
+  **First attempt was client-side** (`html2pdf.js` / html2canvas+jsPDF):
+  screenshotted the print-ready DOM and saved the image as a PDF. Worked,
+  but every "page" was one full-resolution raster image — the user reported
+  it scrolled laggy in PDF viewers, and inspecting the file confirmed why
+  (`pdfinfo`/`pdfimages`: 2 pages, each a single ~2000×1000px JPEG, no real
+  text). Replaced with the server-side approach above.
+
+  **openhtmltopdf constraint worth knowing:** it parses its input as strict
+  XML, not lenient HTML5 — `pdf-export.html` is hand-written as well-formed
+  XHTML for this reason (self-closed tags, and critically, no `--` inside
+  HTML comments, which is invalid XML and throws
+  `SAXParseException: The string "--" is not permitted within comments` —
+  hit this twice while building it). It also only supports CSS 2.1 plus
+  some CSS3 — no flexbox/grid, no CSS custom properties (`var()`) — so
+  `pdf-export.html` is a standalone template with its own plain
+  tables/blocks and literal colors, not a shared fragment with
+  `dashboard.html`.
+
+There's no shared dialog, no scope selector, no recipient/message fields —
+those only make sense once Email/Text exist, since Print/Download need no
+configuration at all.
+
+Email and Text are visible in the menu but disabled (`.share-coming-soon`,
+shows a "Coming soon" toast) until SendGrid/Twilio are actually set up. The
+full design below (shared dialog, scope selector, per-channel recipient
+fields) is still the plan **for when Email/Text get built** — Print/Download
+intentionally bypass all of it.
 
 ## UX flow
 
@@ -93,9 +134,17 @@ them to pixel-identical is a later investment.
 
 ## Build order
 
-1. **Phase 1 — server-side PDF generation.** Foundation for download/email/text.
-   No external accounts needed. Add PDF lib (openhtmltopdf), build a
-   print-friendly template, expose `/pdf?scope=...` to download + eyeball.
+**Print, Download PDF, and server-side PDF generation are all done**
+(2026-09-06) — Print triggers `window.print()`; Download PDF and the
+`PdfExportService`/`GET /pdf` it's built on are covered in "Current state"
+above. Phase 1 below is therefore already satisfied by that same service —
+Email/Text can call `PdfExportService.generateDashboardPdf(user)` directly
+for their attachment/link instead of building their own renderer.
+
+1. ~~Phase 1 — server-side PDF generation.~~ **Done** — see `PdfExportService`
+   above. Originally scoped as Email/Text-only groundwork; turned out to be
+   needed sooner, for Download PDF itself, once the client-side approach
+   proved too slow to scroll.
 2. **Phase 2 — Email + attachment** via SendGrid (needs SendGrid account + API
    key, SPF/DKIM DNS for deliverability).
 3. **Phase 3 — Twilio SMS** with tokenized PDF link (needs Twilio number +

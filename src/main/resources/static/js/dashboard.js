@@ -2,9 +2,13 @@ console.log('dashboard.js loaded');
 
 let timeout;
 let userInfoTimeout;
-let hoursTimeout; // For debouncing hours updates
-let previousHobbsHours = document.getElementById('current-hobbs')?.value || 0;
-let previousTachHours = document.getElementById('current-tach')?.value || 0;
+let previousBlockTimeHours = document.getElementById('current-block-time')?.value || 0;
+let previousTimeInServiceHours = document.getElementById('current-time-in-service')?.value || 0;
+// True from a successful CSV parse until the next Add (or a fresh upload) --
+// tells the server this Out/In pair was computed from CSV data, not typed by
+// hand, so HoursService.recomputeChain can keep it in sync automatically
+// instead of treating it as a fixed manual reading. See UserController.addFlightLog.
+let csvPrefilled = false;
 
 
 // ── Lightweight toast + confirm UI (replaces native alert()/confirm()) ──
@@ -91,6 +95,70 @@ function renderUpdatedFromData(elId) {
     if (el) el.textContent = formatUpdated(el.getAttribute('data-updated'), el.getAttribute('data-source'));
 }
 
+// When a Block Time / Time in Service reading was actually taken -- distinct
+// from formatUpdated above, which is "when this field was last edited."
+function formatLogTimestamp(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// Fills every .log-timestamp[data-timestamp] left blank by the server
+// (Thymeleaf can't format an Instant into the user's local time zone the
+// way the browser can). Call again after inserting rows via JS.
+function renderLogTimestamps(root) {
+    (root || document).querySelectorAll('.log-timestamp[data-timestamp]').forEach(el => {
+        el.textContent = formatLogTimestamp(el.getAttribute('data-timestamp'));
+    });
+}
+
+// A datetime-local input's value ("2026-04-21T05:07") is naive local wall
+// time with no timezone -- `new Date(...)` interprets it as the browser's
+// local time, which is exactly what we want to send as a real UTC instant.
+function datetimeLocalToIso(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// Reverse of the above, for prefilling a datetime-local input from a UTC
+// instant string (e.g. what the CSV parser returns).
+function isoToDatetimeLocal(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// One flight log row's HTML -- shared by every place that (re)builds the
+// table so a row always looks the same regardless of how it got there.
+// Dark/light mode. The actual switch to dark happens even earlier, in a
+// tiny inline script in dashboard.html's <head> (before CSS paints) so a
+// returning user doesn't see a light-mode flash -- this is what Settings'
+// theme dropdown calls when the user changes it.
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+    try { localStorage.setItem('theme', theme); } catch (e) {}
+}
+
+function buildLogRowHtml(log) {
+    return `
+        <td data-label="From"><span class="print-only">${log.fromAirport || ''}</span><input type="text" name="fromAirport" class="no-print" value="${log.fromAirport || ''}" readonly></td>
+        <td data-label="To"><span class="print-only">${log.toAirport || ''}</span><input type="text" name="toAirport" class="no-print" value="${log.toAirport || ''}" readonly></td>
+        <td data-label="Block Time Out"><span class="print-only">${log.blockTimeOut ?? ''}</span><input type="number" name="blockTimeOut" class="no-print" value="${log.blockTimeOut ?? ''}" readonly step="0.1"><span class="log-timestamp no-print">${formatLogTimestamp(log.blockTimeStart)}</span></td>
+        <td data-label="Block Time In"><span class="print-only">${log.blockTimeIn ?? ''}</span><input type="number" name="blockTimeIn" class="no-print" value="${log.blockTimeIn ?? ''}" readonly step="0.1"><span class="log-timestamp no-print">${formatLogTimestamp(log.blockTimeEnd)}</span></td>
+        <td data-label="Time in Service Out"><span class="print-only">${log.timeInServiceOut ?? ''}</span><input type="number" name="timeInServiceOut" class="no-print" value="${log.timeInServiceOut ?? ''}" readonly step="0.1"><span class="log-timestamp no-print">${formatLogTimestamp(log.timeInServiceStart)}</span></td>
+        <td data-label="Time in Service In"><span class="print-only">${log.timeInServiceIn ?? ''}</span><input type="number" name="timeInServiceIn" class="no-print" value="${log.timeInServiceIn ?? ''}" readonly step="0.1"><span class="log-timestamp no-print">${formatLogTimestamp(log.timeInServiceEnd)}</span></td>
+        <td class="delete-cell no-print" data-label=""><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
+    `;
+}
+
 // Live render after a change we just made (now + known source)
 function markUpdatedNow(elId, source) {
     const el = document.getElementById(elId);
@@ -151,11 +219,11 @@ function autoSave(input) {
 
     const timeLeftSpan = row.querySelector('td:nth-child(7) .time-left');
     if (timeLeftSpan) {
-        const currentTachHoursInput = document.getElementById('current-tach');
-        const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
+        const currentTimeInServiceHoursInput = document.getElementById('current-time-in-service');
+        const currentTimeInServiceHours = currentTimeInServiceHoursInput ? parseFloat(currentTimeInServiceHoursInput.value) || 0 : 0;
         const dueDateCal = data.dueDateDate || '';
         const dueDateHrs = data.dueDateHours || '';
-        setTimeLeftText(timeLeftSpan, calculateTimeLeft(dueDateCal, dueDateHrs, currentTachHours));
+        setTimeLeftText(timeLeftSpan, calculateTimeLeft(dueDateCal, dueDateHrs, currentTimeInServiceHours));
         data.timeLeft = timeLeftSpan.textContent;
     }
 
@@ -183,6 +251,19 @@ function autoSave(input) {
     }, 500);
 }
 
+async function loadAeroApiUsage() {
+    const display = document.getElementById('aero-usage-display');
+    if (!display) return;
+    display.textContent = 'checking…';
+    try {
+        const response = await axios.get('/aeroapi/usage');
+        const { totalCost, totalCalls, totalFailedCalls } = response.data;
+        display.textContent = `$${totalCost.toFixed(2)} used this month (${totalCalls} calls${totalFailedCalls ? `, ${totalFailedCalls} failed` : ''})`;
+    } catch (error) {
+        display.textContent = error.response?.data?.error || 'Could not check usage.';
+    }
+}
+
 function autoSaveUserInfo(input) {
     clearTimeout(userInfoTimeout);
 
@@ -198,13 +279,25 @@ function autoSaveUserInfo(input) {
         })
         .then(response => {
             console.log('User info saved successfully: ');
-            console.log(data);
+            console.log(input.name === 'aeroApiKey' ? '[redacted]' : data);
             // Optionally add a status indicator next to the input if needed
 
             // NEW: Update the adjacent print-only span with the new value
             const printSpan = input.nextElementSibling;
             if (printSpan && printSpan.classList.contains('print-only')) {
                 printSpan.textContent = input.value;
+            }
+
+            // The API key is sensitive: after a successful save, re-mask it
+            // (last 4 chars) and lock the field, same as on page load.
+            if (input.name === 'aeroApiKey' && input.value) {
+                const last4 = input.value.slice(-4);
+                input.value = '••••' + last4;
+                input.readOnly = true;
+                const changeLink = document.getElementById('change-api-key');
+                if (changeLink) changeLink.hidden = false;
+                document.getElementById('aero-usage-row').hidden = false;
+                loadAeroApiUsage(); // also serves as "does this key actually work"
             }
         })
         .catch(error => {
@@ -502,7 +595,7 @@ function updateDropdownWidths() {
     });
 }
 
-function calculateTimeLeft(dueDateCal, dueDateHrs, currentTachHours) {
+function calculateTimeLeft(dueDateCal, dueDateHrs, currentTimeInServiceHours) {
     //Change to dueDateCal and dueDatehrs
 
     if (!dueDateCal && !dueDateHrs) return 'N/A';
@@ -524,8 +617,8 @@ function calculateTimeLeft(dueDateCal, dueDateHrs, currentTachHours) {
     // Calculate hours if dueDate has a clock value
     if (dueDateTimeValue) {
         const dueDateHours = parseFloat(dueDateTimeValue);
-        if (!isNaN(dueDateHours) && !isNaN(currentTachHours)) {
-            const hoursLeft = Math.round((dueDateHours - currentTachHours) * 10) / 10;
+        if (!isNaN(dueDateHours) && !isNaN(currentTimeInServiceHours)) {
+            const hoursLeft = Math.round((dueDateHours - currentTimeInServiceHours) * 10) / 10;
             const hoursText = hoursLeft < 0 ? `${Math.abs(hoursLeft)} hours overdue` : `${hoursLeft} hours left`;
             output += output ? `\n${hoursText}` : hoursText;
         }
@@ -543,8 +636,8 @@ function setTimeLeftText(cell, text) {
 
 // Function to update all Time Left cells in real-time
 function updateAllTimeLeft() {
-    const currentTachHoursInput = document.getElementById('current-tach');
-    const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
+    const currentTimeInServiceHoursInput = document.getElementById('current-time-in-service');
+    const currentTimeInServiceHours = currentTimeInServiceHoursInput ? parseFloat(currentTimeInServiceHoursInput.value) || 0 : 0;
 
     document.querySelectorAll('.auto-save-row').forEach(row => {
         const dueDateContainer = row.querySelector('td:nth-child(6) .input-with-dropdown');
@@ -554,7 +647,7 @@ function updateAllTimeLeft() {
             const dueDateText = dueDateContainer.querySelector('input[type="text"].extra-input');
             const dueDateCal = dueDateDate ? dueDateDate.value : '';
             const dueDateHrs = dueDateText ? dueDateText.value : '';
-            const timeLeftText = calculateTimeLeft(dueDateCal, dueDateHrs, currentTachHours);
+            const timeLeftText = calculateTimeLeft(dueDateCal, dueDateHrs, currentTimeInServiceHours);
             setTimeLeftText(timeLeftCell, timeLeftText);
         }
         
@@ -562,8 +655,8 @@ function updateAllTimeLeft() {
 }
 
 function updateAddRowTimeLeft() {
-    const currentTachHoursInput = document.getElementById('current-tach');
-    const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
+    const currentTimeInServiceHoursInput = document.getElementById('current-time-in-service');
+    const currentTimeInServiceHours = currentTimeInServiceHoursInput ? parseFloat(currentTimeInServiceHoursInput.value) || 0 : 0;
     const addRow = document.querySelector('.add-row');
     const dueDateContainer = addRow.querySelector('td:nth-child(6) .input-with-dropdown');
     const timeLeftCell = addRow.querySelector('td:nth-child(7) .time-left');
@@ -574,7 +667,7 @@ function updateAddRowTimeLeft() {
         const dueDateCal = dueDateDate ? dueDateDate.value : '';
         const dueDateHrs = dueDateText ? dueDateText.value : '';
 
-        setTimeLeftText(timeLeftCell, calculateTimeLeft(dueDateCal, dueDateHrs, currentTachHours));
+        setTimeLeftText(timeLeftCell, calculateTimeLeft(dueDateCal, dueDateHrs, currentTimeInServiceHours));
     }
 }
 
@@ -630,11 +723,36 @@ document.addEventListener('DOMContentLoaded', () => {
     scheduleMidnightUpdate();
 
     // My Hours "last updated" lines (initial render from server data)
-    renderUpdatedFromData('hobbs-updated');
-    renderUpdatedFromData('tach-updated');
-    
+    renderUpdatedFromData('block-time-updated');
+    renderUpdatedFromData('time-in-service-updated');
+
+    // Flight log rows: when each Block Time/Time in Service reading was taken
+    renderLogTimestamps();
+
+    // Theme dropdown: reflect whatever the <head> script already applied,
+    // and switch themes live when changed.
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+        themeSelect.value = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
+    }
+
+    const usageRow = document.getElementById('aero-usage-row');
+    if (usageRow && !usageRow.hidden) loadAeroApiUsage();
+
     document.querySelectorAll('.user-info-input').forEach(input => {
         input.addEventListener('input', () => autoSaveUserInfo(input));
+    });
+
+    // API key is masked (••••xxxx) once saved; clicking "Change" clears the
+    // field and unlocks it so a new key can be typed and auto-saved as usual.
+    document.getElementById('change-api-key')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('aeroApiKey');
+        input.value = '';
+        input.readOnly = false;
+        input.focus();
+        e.target.hidden = true;
     });
 
 
@@ -780,12 +898,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Hide the dropdown after action
             button.closest('.type-dropdown').style.display = 'none';
         } else if (event.target.classList.contains('edit-hours-btn')) {
-            document.getElementById('add-tach-time').value = '';
-            document.getElementById('add-hobbs-time').value = '';
+            document.getElementById('add-time-in-service').value = '';
+            document.getElementById('add-block-time').value = '';
             const editSection = document.querySelector('.edit-hours-section');
             editSection.style.display = editSection.style.display === 'flex' ? 'none' : 'flex';
-        } else if (event.target.classList.contains('.share-menu')) {
-            
         }
     });
     
@@ -926,90 +1042,106 @@ document.addEventListener('DOMContentLoaded', () => {
         options.forEach(option => option.onclick = () => selectOption(option));
     });
 
-    let previousHobbsHours = 0;
-    let previousTachHours = 0;
-    let hoursTimeout;
+    let previousBlockTimeHours = 0;
+    let previousTimeInServiceHours = 0;
 
-    const currentHobbsHoursInput = document.getElementById('current-hobbs');
-    const currentTachHoursInput = document.getElementById('current-tach');
+    // One timer per field. A single shared timer meant that typing in TimeInService
+    // within 500ms of typing in BlockTime cancelled the pending BlockTime save.
+    let blockTimeout;
+    let timeInServiceTimeout;
 
-    if (currentHobbsHoursInput) {
-        previousHobbsHours = currentHobbsHoursInput.value || 0;
-        currentHobbsHoursInput.addEventListener('input', function() {
+    // The typed value still waiting out the 500ms debounce, or null if none.
+    let pendingBlockTimeSet = null;
+    let pendingTimeInServiceSet = null;
+
+    const currentBlockTimeHoursInput = document.getElementById('current-block-time');
+    const currentTimeInServiceHoursInput = document.getElementById('current-time-in-service');
+
+    function csrfHeaders() {
+        const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        return { [header]: token };
+    }
+
+    // Sends "set hours to exactly this". Returns a promise so callers can wait
+    // for it to land before doing anything else.
+    async function sendSetHours(kind, value) {
+        const isBlockTime = kind === 'blockTime';
+        const input = isBlockTime ? currentBlockTimeHoursInput : currentTimeInServiceHoursInput;
+        const displayId = isBlockTime ? 'current-block-time-display' : 'current-time-in-service-display';
+        const label = isBlockTime ? 'Block Time' : 'Time in Service';
+        const previous = isBlockTime ? previousBlockTimeHours : previousTimeInServiceHours;
+
+        const params = new URLSearchParams();
+        params.append(isBlockTime ? 'newBlockTime' : 'newTimeInService', parseFloat(value));
+
+        try {
+            const response = await axios.post('/updateHours', params, { headers: csrfHeaders() });
+            if (response.data.status === 'success') {
+                if (isBlockTime) previousBlockTimeHours = value; else previousTimeInServiceHours = value;
+                document.getElementById(displayId).textContent = `${label}: ${value}`;
+                markUpdatedNow(isBlockTime ? 'block-time-updated' : 'time-in-service-updated', 'manual');
+                console.log(`${label} hours updated successfully:`,
+                    isBlockTime ? response.data.newBlockTime : response.data.newTimeInService);
+                return true;
+            }
+            console.error(`Failed to update ${label} hours:`, response.data.message);
+        } catch (error) {
+            console.error('Error updating hours:', error.response ? error.response.data : error);
+        }
+        if (input) input.value = previous;
+        document.getElementById(displayId).textContent = `${label}: ${previous}`;
+        showToast(`Failed to update ${label} hours.`, 'error');
+        return false;
+    }
+
+    // Send anything still sitting in a debounce right now, and wait for it.
+    // Called before "add hours" so a delayed set can never land afterwards and
+    // overwrite the addition.
+    async function flushPendingHours() {
+        clearTimeout(blockTimeout);
+        clearTimeout(timeInServiceTimeout);
+        const blockTime = pendingBlockTimeSet;
+        const timeInService = pendingTimeInServiceSet;
+        pendingBlockTimeSet = null;
+        pendingTimeInServiceSet = null;
+        if (blockTime !== null) await sendSetHours('blockTime', blockTime);
+        if (timeInService !== null) await sendSetHours('timeInService', timeInService);
+    }
+
+    if (currentBlockTimeHoursInput) {
+        previousBlockTimeHours = currentBlockTimeHoursInput.value || 0;
+        currentBlockTimeHoursInput.addEventListener('input', function() {
             updateAllTimeLeft();
             updateAddRowTimeLeft();
-            clearTimeout(hoursTimeout);
-            const newHobbsHours = this.value.trim();
-            if (newHobbsHours === '' || isNaN(parseFloat(newHobbsHours))) {
+            clearTimeout(blockTimeout);
+            const newBlockTimeHours = this.value.trim();
+            if (newBlockTimeHours === '' || isNaN(parseFloat(newBlockTimeHours))) {
+                pendingBlockTimeSet = null;
                 return;
             }
-            hoursTimeout = setTimeout(() => {
-                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                const params = new URLSearchParams();
-                params.append('newHobbsTime', parseFloat(newHobbsHours));
-                axios.post('/updateHours', params, {
-                    headers: { [csrfHeader]: csrfToken }
-                })
-                .then(response => {
-                    if (response.data.status === 'success') {
-                        previousHobbsHours = newHobbsHours;
-                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbsHours}`;
-                        markUpdatedNow('hobbs-updated', 'manual');
-                        console.log('Hobbs hours updated successfully:', response.data.newHobbs);
-                    } else {
-                        this.value = previousHobbsHours;
-                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
-                        console.error('Failed to update hobbs hours:', response.data.message);
-                        showToast('Failed to update Hobbs hours.', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating hours:', error.response ? error.response.data : error);
-                    this.value = previousHobbsHours;
-                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${previousHobbsHours}`;
-                    showToast('Failed to update Hobbs hours.', 'error');
-                });
+            pendingBlockTimeSet = newBlockTimeHours;
+            blockTimeout = setTimeout(() => {
+                pendingBlockTimeSet = null;
+                sendSetHours('blockTime', newBlockTimeHours);
             }, 500);
         });
     }
-    if (currentTachHoursInput) {
-        previousTachHours = currentTachHoursInput.value || 0;
-        currentTachHoursInput.addEventListener('input', function() {
+    if (currentTimeInServiceHoursInput) {
+        previousTimeInServiceHours = currentTimeInServiceHoursInput.value || 0;
+        currentTimeInServiceHoursInput.addEventListener('input', function() {
             updateAllTimeLeft();
             updateAddRowTimeLeft();
-            clearTimeout(hoursTimeout);
-            const newTachHours = this.value.trim();
-            if (newTachHours === '' || isNaN(parseFloat(newTachHours))) {
+            clearTimeout(timeInServiceTimeout);
+            const newTimeInServiceHours = this.value.trim();
+            if (newTimeInServiceHours === '' || isNaN(parseFloat(newTimeInServiceHours))) {
+                pendingTimeInServiceSet = null;
                 return;
             }
-            hoursTimeout = setTimeout(() => {
-                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                const params = new URLSearchParams();
-                params.append('newTachTime', parseFloat(newTachHours));
-                axios.post('/updateHours', params, {
-                    headers: { [csrfHeader]: csrfToken }
-                })
-                .then(response => {
-                    if (response.data.status === 'success') {
-                        previousTachHours = newTachHours;
-                        document.getElementById('current-tach-display').textContent = `Tach Time: ${newTachHours}`;
-                        markUpdatedNow('tach-updated', 'manual');
-                        console.log('Tach hours updated successfully:', response.data.newTach);
-                    } else {
-                        this.value = previousTachHours;
-                        document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
-                        console.error('Failed to update tach hours:', response.data.message);
-                        showToast('Failed to update Tach hours.', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating hours:', error.response ? error.response.data : error);
-                    this.value = previousTachHours;
-                    document.getElementById('current-tach-display').textContent = `Tach Time: ${previousTachHours}`;
-                    showToast('Failed to update Tach hours.', 'error');
-                });
+            pendingTimeInServiceSet = newTimeInServiceHours;
+            timeInServiceTimeout = setTimeout(() => {
+                pendingTimeInServiceSet = null;
+                sendSetHours('timeInService', newTimeInServiceHours);
             }, 500);
         });
     }
@@ -1354,26 +1486,179 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', function(event) {
         
-        if (event.target.id === 'add-hobbs-btn') {
-            const hobbsTimeToAdd = document.getElementById('add-hobbs-time').value.trim();
-            addHobbsHours(hobbsTimeToAdd);
+        if (event.target.id === 'add-block-time-btn') {
+            const blockTimeToAdd = document.getElementById('add-block-time').value.trim();
+            addBlockTimeHours(blockTimeToAdd);
 
-        } else if (event.target.id === 'add-tach-btn') {
-            const tachTimeToAdd = document.getElementById('add-tach-time').value.trim();
-            addTachHours(tachTimeToAdd);
+        } else if (event.target.id === 'add-time-in-service-btn') {
+            const timeInServiceToAdd = document.getElementById('add-time-in-service').value.trim();
+            addTimeInServiceHours(timeInServiceToAdd);
         }
     });
+
+    // Audit list: every suggestion AeroAPI has ever produced, any status.
+    // Fetched the first time the <details> is opened, and re-fetched (see
+    // allSuggestionsStale below) any time accept/dismiss changes something.
+    const allSuggestionsDetails = document.getElementById('all-suggestions-details');
+    let allSuggestionsStale = true;
+    async function loadAllSuggestionsIfStale() {
+        if (!allSuggestionsDetails || !allSuggestionsDetails.open || !allSuggestionsStale) return;
+        allSuggestionsStale = false;
+        const body = document.getElementById('all-suggestions-body');
+        try {
+            const response = await axios.get('/flightsuggestions/all');
+            body.innerHTML = response.data.map(s => `
+                <tr data-id="${s.id}">
+                    <td>${s.origin || ''}</td>
+                    <td>${s.destination || ''}</td>
+                    <td>${new Date(s.departureTime).toLocaleString()}</td>
+                    <td>${new Date(s.arrivalTime).toLocaleString()}</td>
+                    <td>${(s.minutesAirborne / 60).toFixed(1)} hrs</td>
+                    <td>${s.status}</td>
+                    <td>
+                        <button class="audit-add-btn">Add to log</button>
+                        <button class="audit-delete-btn">Delete</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7">No suggestions yet.</td></tr>';
+        } catch (error) {
+            body.innerHTML = '<tr><td colspan="6">Could not load suggestions.</td></tr>';
+        }
+    }
+    if (allSuggestionsDetails) {
+        allSuggestionsDetails.addEventListener('toggle', loadAllSuggestionsIfStale);
+    }
+
+    // Re-fetches every flight log (already sorted chronologically by the
+    // server) and rebuilds the table from scratch. Needed instead of
+    // patching in just the one row that changed: adding or deleting a log
+    // can shift the Out/In numbers on OTHER rows too now that
+    // HoursService.recomputeChain keeps CSV/AeroAPI rows chronologically
+    // accurate, so those rows have to be re-rendered as well. Still no full
+    // page reload -- just this table.
+    async function refreshLogbookRows() {
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        const response = await axios.get('/flightlogs', { headers: { [csrfHeader]: csrfToken } });
+
+        document.querySelectorAll('#logbook-body .log-row').forEach(row => row.remove());
+        const tbody = document.getElementById('logbook-body');
+        const addLogRow = document.querySelector('.add-log-row');
+
+        response.data.forEach(log => {
+            const newRow = document.createElement('tr');
+            newRow.className = 'log-row';
+            newRow.dataset.id = log.id;
+            newRow.innerHTML = buildLogRowHtml(log);
+            if (addLogRow) tbody.insertBefore(newRow, addLogRow); else tbody.appendChild(newRow);
+            wireDeleteLogButton(newRow.querySelector('.delete-log-icon'));
+        });
+
+        updateAllTimeLeft();
+        updateAddRowTimeLeft();
+    }
+
+    // Shared by both places a suggestion can be turned into a log entry:
+    // the pending-banner Add button, and the audit list's Add button.
+    async function insertAcceptedFlightLogRow(log) {
+        await refreshLogbookRows();
+
+        if (log.newTimeInService !== undefined && log.newTimeInService !== null) {
+            document.getElementById('current-time-in-service').value = log.newTimeInService;
+            document.getElementById('current-time-in-service-display').textContent = `Time in Service: ${log.newTimeInService}`;
+            previousTimeInServiceHours = log.newTimeInService;
+            markUpdatedNow('time-in-service-updated', 'flightlog');
+        }
+    }
+
+    // Audit list row actions: Add back to log book, or permanently delete.
+    document.addEventListener('click', async function(event) {
+        const isAdd = event.target.classList.contains('audit-add-btn');
+        const isDelete = event.target.classList.contains('audit-delete-btn');
+        if (!isAdd && !isDelete) return;
+
+        const row = event.target.closest('tr');
+        const id = row.getAttribute('data-id');
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+        if (isDelete) {
+            const confirmed = await showConfirm(
+                'Permanently delete this suggested flight? This cannot be undone.', 'Delete');
+            if (!confirmed) return;
+            try {
+                await axios.delete(`/flightsuggestions/${id}`, { headers: { [csrfHeader]: csrfToken } });
+                row.remove();
+                showToast('Suggested flight deleted.', 'success');
+            } catch (error) {
+                showToast(error.response?.data?.message || 'Could not delete that flight.', 'error');
+            }
+            return;
+        }
+
+        try {
+            const response = await axios.post(`/flightsuggestions/${id}/accept`, {},
+                { headers: { [csrfHeader]: csrfToken } });
+            await insertAcceptedFlightLogRow(response.data);
+            row.querySelector('td:nth-last-child(2)').textContent = 'accepted'; // status column
+            showToast('Added to your flight log.', 'success');
+        } catch (error) {
+            showToast(error.response?.data?.message || 'Could not add that flight.', 'error');
+        }
+    });
+
+    // AeroAPI-detected flights: Add/Dismiss. See docs/ADSB_SYNC_SPEC.md "UX flow".
+    document.addEventListener('click', function(event) {
+        const isAccept = event.target.classList.contains('suggestion-accept-btn');
+        const isDismiss = event.target.classList.contains('suggestion-dismiss-btn');
+        if (!isAccept && !isDismiss) return;
+
+        const row = event.target.closest('.flight-suggestion-row');
+        const id = row.getAttribute('data-id');
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        const url = `/flightsuggestions/${id}/${isAccept ? 'accept' : 'dismiss'}`;
+
+        axios.post(url, {}, { headers: { [csrfHeader]: csrfToken } })
+            .then(response => {
+                row.remove();
+                allSuggestionsStale = true;
+                loadAllSuggestionsIfStale(); // no-op unless the audit list is open
+
+                // Update the "N flight(s) detected" count, hide the whole
+                // banner once nothing's left -- stay on this tab, no reload.
+                const banner = document.querySelector('.flight-suggestions');
+                if (banner) {
+                    const remaining = banner.querySelectorAll('.flight-suggestion-row').length;
+                    if (remaining === 0) {
+                        banner.hidden = true;
+                    } else {
+                        banner.querySelector('h3 span').textContent = remaining;
+                    }
+                }
+
+                if (isAccept) {
+                    insertAcceptedFlightLogRow(response.data);
+                }
+            })
+            .catch(error => {
+                console.error('Flight suggestion action failed:', error.response ? error.response.data : error);
+                showToast(error.response?.data?.message || 'Could not update that flight.', 'error');
+            });
+    });
     
-    async function addHobbsHours(hobbsTimeToAdd) {
-        if (hobbsTimeToAdd && !isNaN(hobbsTimeToAdd)) {
-            await updateHours({ hobbsTimeToAdd: parseFloat(hobbsTimeToAdd) });
+    async function addBlockTimeHours(blockTimeToAdd) {
+        if (blockTimeToAdd && !isNaN(blockTimeToAdd)) {
+            await flushPendingHours();
+            await updateHours({ blockTimeToAdd: parseFloat(blockTimeToAdd) });
         }
     }
     
-    // Updated addTachHours (now uses updateHours)
-    async function addTachHours(tachTimeToAdd) {
-        if (tachTimeToAdd && !isNaN(tachTimeToAdd)) {
-            await updateHours({ tachTimeToAdd: parseFloat(tachTimeToAdd) });
+    // Updated addTimeInServiceHours (now uses updateHours)
+    async function addTimeInServiceHours(timeInServiceToAdd) {
+        if (timeInServiceToAdd && !isNaN(timeInServiceToAdd)) {
+            await flushPendingHours();
+            await updateHours({ timeInServiceToAdd: parseFloat(timeInServiceToAdd) });
         }
     }
 
@@ -1394,24 +1679,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     
             if (response.data.status === 'success') {
-                const { newHobbs, newTach } = response.data;
+                const { newBlockTime, newTimeInService } = response.data;
     
-                if (newHobbs !== undefined) {
-                    document.getElementById('current-hobbs').value = newHobbs;
-                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
-                    previousHobbsHours = newHobbs;
-                    console.log('Hobbs updated successfully:', newHobbs);
+                if (newBlockTime !== undefined) {
+                    document.getElementById('current-block-time').value = newBlockTime;
+                    document.getElementById('current-block-time-display').textContent = `Block Time: ${newBlockTime}`;
+                    previousBlockTimeHours = newBlockTime;
+                    console.log('Block time updated successfully:', newBlockTime);
                 }
     
-                if (newTach !== undefined) {
-                    document.getElementById('current-tach').value = newTach;
-                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
-                    previousTachHours = newTach;
-                    console.log('Tach updated successfully:', newTach);
+                if (newTimeInService !== undefined) {
+                    document.getElementById('current-time-in-service').value = newTimeInService;
+                    document.getElementById('current-time-in-service-display').textContent = `Time in Service: ${newTimeInService}`;
+                    previousTimeInServiceHours = newTimeInService;
+                    console.log('Time in Service updated successfully:', newTimeInService);
                 }
     
-                if ('hobbsTimeToAdd' in updateParams) markUpdatedNow('hobbs-updated', 'manual');
-                if ('tachTimeToAdd' in updateParams) markUpdatedNow('tach-updated', 'manual');
+                if ('blockTimeToAdd' in updateParams) markUpdatedNow('block-time-updated', 'manual');
+                if ('timeInServiceToAdd' in updateParams) markUpdatedNow('time-in-service-updated', 'manual');
 
                 // Update time left displays if needed (from your existing functions)
                 updateAllTimeLeft();
@@ -1439,12 +1724,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main export function
     function exportToExcel() {
-        const currentTachHoursInput = document.getElementById('current-tach');
-        const currentTachHours = currentTachHoursInput ? parseFloat(currentTachHoursInput.value) || 0 : 0;
+        const currentTimeInServiceHoursInput = document.getElementById('current-time-in-service');
+        const currentTimeInServiceHours = currentTimeInServiceHoursInput ? parseFloat(currentTimeInServiceHoursInput.value) || 0 : 0;
 
         // Build array of arrays (aoa) for the sheet
         let aoa = [
-            ["Current Hours", currentTachHours], // Row 1: Reference for hour calcs (user can update B1 in Excel)
+            ["Current Hours", currentTimeInServiceHours], // Row 1: Reference for hour calcs (user can update B1 in Excel)
             ["Item", "Description", "Cycle", "Last Done", "Due Date", "Time Left"] // Row 2: Headers
         ];
 
@@ -1478,7 +1763,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Compute initial Time Left for display (using your function)
                 const [dueDateCalPart, dueDateHrsPart] = dueDate.split(' ');
-                const initialTimeLeft = calculateTimeLeft(dueDateCalPart || '', dueDateHrsPart || '', currentTachHours);
+                const initialTimeLeft = calculateTimeLeft(dueDateCalPart || '', dueDateHrsPart || '', currentTimeInServiceHours);
 
                 aoa.push([item, desc, cycle, lastDone, dueDate, initialTimeLeft]);
                 dataRowIndices.push(aoa.length - 1); // Track for formula
@@ -1512,6 +1797,47 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(wb, `Aircraft_Service_Timeline_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
+    // Share menu: toggle open/closed, close on an outside click, and wire the
+    // two buttons that need nothing external. Print and Download PDF are the
+    // same browser action (window.print()) -- there's no separate JS API to
+    // save a PDF straight to disk, only the native print dialog, where
+    // "Save as PDF" is one of the destinations the user picks themselves.
+    // Email/Text stay disabled (.share-coming-soon) until SendGrid/Twilio are
+    // actually set up -- see docs/SHARE_EXPORT_SPEC.md.
+    const shareToggleBtn = document.getElementById('share-toggle-btn');
+    const shareDropdown = document.getElementById('share-dropdown');
+    if (shareToggleBtn && shareDropdown) {
+        shareToggleBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            shareDropdown.style.display = shareDropdown.style.display === 'flex' ? 'none' : 'flex';
+        });
+        document.addEventListener('click', (event) => {
+            if (shareDropdown.style.display === 'flex' && !event.target.closest('.share-menu')) {
+                shareDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    const sharePrintBtn = document.getElementById('share-print-btn');
+    if (sharePrintBtn) {
+        sharePrintBtn.addEventListener('click', () => {
+            shareDropdown.style.display = 'none';
+            printDashboard();
+        });
+    }
+
+    const shareDownloadPdfBtn = document.getElementById('share-download-pdf-btn');
+    if (shareDownloadPdfBtn) {
+        shareDownloadPdfBtn.addEventListener('click', () => {
+            shareDropdown.style.display = 'none';
+            downloadDashboardPdf();
+        });
+    }
+
+    document.querySelectorAll('.share-coming-soon').forEach(button => {
+        button.addEventListener('click', () => showToast('Coming soon.', 'info'));
+    });
+
     // NEW: Print button listener
     const printBtn = document.getElementById('print-dashboard');
     if (printBtn) {
@@ -1519,14 +1845,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // NEW: Function to handle printing
-    function printDashboard() {
-        // Update all time left values (assuming you have updateAllTimeLeft() from existing code)
+    // Shared by Print and Download PDF: refreshes every .print-only span
+    // (which mirrors a live input's current value) so whichever one runs
+    // captures up-to-date numbers, not whatever was on the page at load.
+    function refreshPrintOnlyValues() {
         updateAllTimeLeft();
         updateAddRowTimeLeft();  // If applicable, though add-row is hidden
-
-        // Update My Hours print-only span
-        const currentTachHours = document.getElementById('current-tach').value || '0';
-        const currentHobbsHours = document.getElementById('current-hobbs').value || '0';
 
         // Update print-only spans in table rows with current values
         document.querySelectorAll('.sortable tr:not(.title-row)').forEach(row => {
@@ -1558,9 +1882,240 @@ document.addEventListener('DOMContentLoaded', () => {
             const dueDatePrint = row.querySelector('td:nth-child(6) .print-only');
             if (dueDatePrint) dueDatePrint.textContent = `${dueDateDate} ${dueDateText}`.trim();
         });
+    }
 
-        // Trigger browser print dialog
+    function printDashboard() {
+        refreshPrintOnlyValues();
         window.print();
+    }
+
+    // Download PDF: the server renders real PDF bytes (PdfExportService,
+    // openhtmltopdf) and returns them with Content-Disposition: attachment,
+    // so a plain navigation is enough -- the browser handles the download
+    // natively, no CSRF token needed since GET isn't a protected method.
+    // Replaced an earlier client-side html2canvas+jsPDF approach that
+    // screenshotted the dashboard into a slow-to-scroll rasterized PDF.
+    function downloadDashboardPdf() {
+        window.location.href = '/pdf';
+    }
+
+    const subBtn = document.getElementById('subscribe');
+    if(subBtn) {
+        subBtn.addEventListener('click', subscriptionToggle);
+    }
+
+    const deleteSubBtn = document.getElementById('delete-subscription');
+    if (deleteSubBtn) {
+        deleteSubBtn.addEventListener('click', async () => {
+            if (deleteSubBtn.classList.contains('disabled')) {
+                showToast('Unsubscribe before deleting the subscription.', 'error');
+                return;
+            }
+            const ok = await showConfirm('Delete this subscription and its saved schedule?', 'Delete');
+            if (!ok) return;
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            try {
+                await axios.delete('/subscription', { headers: { [csrfHeader]: csrfToken } });
+                deleteSubBtn.hidden = true;
+                const regInput = document.getElementById('sync-registration');
+                if (regInput) regInput.value = '';
+                showToast('Subscription deleted.', 'info');
+            } catch (error) {
+                showToast(error.response?.data?.error || 'Could not delete subscription.', 'error');
+            }
+        });
+    }
+
+    // Once subscribed, flag it when the tail number shown on the dashboard
+    // isn't the aircraft flight sync is actually watching (case-insensitive),
+    // and offer to line them up. Remembers a "leave it" answer for that exact
+    // pair so it doesn't ask again on every reload.
+    async function maybeOfferTailNumberSync(registration) {
+        const display = document.querySelector('input[name="tailNumber"]');
+        if (!display || !registration) return;
+        const shown = display.value.trim();
+        if (!shown || shown.toUpperCase() === registration.toUpperCase()) return;
+
+        const dismissKey = 'tailMismatchDismissed:' + shown.toUpperCase() + '>' + registration.toUpperCase();
+        try { if (localStorage.getItem(dismissKey)) return; } catch (e) {}
+
+        const ok = await showConfirm(
+            `The tail number on your dashboard ("${shown}") isn't the aircraft flight sync is subscribed to ("${registration}"). ` +
+            `Change the dashboard tail number to "${registration}"?`,
+            'Change it');
+        if (!ok) {
+            try { localStorage.setItem(dismissKey, '1'); } catch (e) {}
+            return;
+        }
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        try {
+            await axios.post('/updateUserInfo', { tailNumber: registration },
+                { headers: { [csrfHeader]: csrfToken } });
+            display.value = registration;
+            const printSpan = display.nextElementSibling;
+            if (printSpan && printSpan.classList.contains('print-only')) printSpan.textContent = registration;
+        } catch (e) {
+            showToast('Could not update the dashboard tail number.', 'error');
+        }
+    }
+
+    function applySubscriptionState(active) {
+        subBtn.textContent = active ? 'Unsubscribe' : 'Subscribe';
+        const regInput = document.getElementById('sync-registration');
+        if (regInput) regInput.readOnly = active;
+        if (deleteSubBtn) {
+            deleteSubBtn.hidden = false;
+            deleteSubBtn.classList.toggle('disabled', active);
+        }
+        for (const id of ['check-now-btn', 'check-now-info', 'check-now-range-row', 'sync-schedule-row']) {
+            const el = document.getElementById(id);
+            if (el) el.hidden = !active;
+        }
+    }
+
+    if (subBtn && subBtn.textContent.trim() === 'Unsubscribe') {
+        const reg = document.getElementById('sync-registration')?.value.trim();
+        if (reg) maybeOfferTailNumberSync(reg);
+    }
+
+    // Date inputs default to no browser-side min/max restriction, so set
+    // them from the server-provided bounds (AeroApiClient.MAX_START_DAYS_BACK
+    // / MAX_END_DAYS_AHEAD via the check-now-start data attributes) -- keeps
+    // the picker from ever offering a date AeroAPI would reject anyway.
+    const checkNowStartInput = document.getElementById('check-now-start');
+    const checkNowEndInput = document.getElementById('check-now-end');
+    if (checkNowStartInput) {
+        const maxStartDaysBack = parseInt(checkNowStartInput.dataset.maxStartDaysBack, 10);
+        const maxEndDaysAhead = parseInt(checkNowStartInput.dataset.maxEndDaysAhead, 10);
+        const toIsoDate = (d) => d.toISOString().slice(0, 10);
+        const today = new Date();
+
+        const minStart = new Date(today);
+        minStart.setDate(minStart.getDate() - maxStartDaysBack);
+        const maxEnd = new Date(today);
+        maxEnd.setDate(maxEnd.getDate() + maxEndDaysAhead);
+
+        checkNowStartInput.min = toIsoDate(minStart);
+        checkNowStartInput.max = toIsoDate(maxEnd);
+        if (checkNowEndInput) {
+            checkNowEndInput.min = toIsoDate(minStart);
+            checkNowEndInput.max = toIsoDate(maxEnd);
+        }
+    }
+
+    const clearCheckNowRangeBtn = document.getElementById('clear-check-now-range');
+    if (clearCheckNowRangeBtn) {
+        clearCheckNowRangeBtn.addEventListener('click', () => {
+            if (checkNowStartInput) checkNowStartInput.value = '';
+            if (checkNowEndInput) checkNowEndInput.value = '';
+        });
+    }
+
+    const checkNowBtn = document.getElementById('check-now-btn');
+    if (checkNowBtn) {
+        checkNowBtn.addEventListener('click', async () => {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            const originalText = checkNowBtn.textContent;
+            checkNowBtn.textContent = 'Checking…';
+            checkNowBtn.disabled = true;
+
+            const params = new URLSearchParams();
+            if (checkNowStartInput?.value) params.append('start', checkNowStartInput.value);
+            if (checkNowEndInput?.value) params.append('end', checkNowEndInput.value);
+
+            try {
+                const response = await axios.post(`/subscription/check-now?${params}`, {},
+                    { headers: { [csrfHeader]: csrfToken } });
+                const newFlights = response.data.newFlights;
+                showToast(newFlights > 0 ? `${newFlights} new flight(s) found.` : 'No new flights.', 'success');
+                loadAeroApiUsage(); // this call just spent against the account's usage
+                if (newFlights > 0) location.reload(); // show them in the banner
+            } catch (error) {
+                showToast(error.response?.data?.error || 'Check failed.', 'error');
+            } finally {
+                checkNowBtn.textContent = originalText;
+                checkNowBtn.disabled = false;
+            }
+        });
+    }
+
+    const saveSyncBtn = document.getElementById('save-sync-settings');
+    if (saveSyncBtn) {
+        saveSyncBtn.addEventListener('click', async () => {
+            const pollIntervalDays = parseInt(document.getElementById('poll-interval-days').value, 10);
+            const preferredCheckHour = parseInt(document.getElementById('preferred-check-hour').value, 10);
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            try {
+                await axios.post('/subscription/settings',
+                    { pollIntervalDays, preferredCheckHour },
+                    { headers: { [csrfHeader]: csrfToken, 'Content-Type': 'application/json' } }
+                );
+                showToast('Sync schedule saved.', 'success');
+            } catch (error) {
+                showToast(error.response?.data?.error || 'Could not save sync schedule.', 'error');
+            }
+        });
+    }
+
+    async function subscriptionToggle() {
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        const isSubscribed = subBtn.textContent.trim() === 'Unsubscribe';
+        const regInput = document.getElementById('sync-registration');
+
+        try {
+            let active;
+            if (isSubscribed) {
+                const response = await axios.post('/subscription/unsubscribe', {},
+                    { headers: { [csrfHeader]: csrfToken } });
+                active = response.data.active;
+            } else {
+                const registration = regInput ? regInput.value.trim() : '';
+                if (!registration) {
+                    showToast('Enter a registration number to subscribe.', 'error');
+                    return;
+                }
+                const response = await axios.post('/subscription/subscribe',
+                    { registration },
+                    { headers: { [csrfHeader]: csrfToken, 'Content-Type': 'application/json' } }
+                );
+                active = response.data.active;
+                if (regInput) regInput.value = response.data.registration;
+            }
+
+            applySubscriptionState(active);
+            showToast(active ? 'Flight sync turned on.' : 'Flight sync turned off.', active ? 'success' : 'info');
+            if (active && regInput) {
+                // Server seeds User.tailNumber from the registration when it was
+                // blank; mirror that in the already-rendered field so it doesn't
+                // look empty until the next reload.
+                const display = document.querySelector('input[name="tailNumber"]');
+                if (display && !display.value.trim()) {
+                    display.value = regInput.value.trim();
+                    const printSpan = display.nextElementSibling;
+                    if (printSpan && printSpan.classList.contains('print-only')) printSpan.textContent = display.value;
+                }
+                maybeOfferTailNumberSync(regInput.value.trim());
+            }
+
+        } catch (error){
+            if(!error.response) {
+                showToast('Could not reach the server. Check your connection.', 'error');
+            } else if (error.response.status === 401) {
+                showToast('Your session expired. Please log in again.', 'error');
+            } else if (error.response.status === 400) {
+                showToast(error.response.data?.error || 'That registration was rejected.', 'error');
+            } else {
+                showToast('Something went wrong. Try again.', 'error');
+            }
+            console.error('Subscription toggle failed:', error.response?.data || error.message);
+        }
+
     }
 
     const activeButton = document.querySelector('.tab-button.active');
@@ -1582,130 +2137,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Settings <-> Dashboard: one-way-door navigation, CSS-driven via the .active class
+    // (.front-page is display:none by default, .front-page.active is display:block --
+    // see dashboardstyle.css). No logic needed: #dashboard-page already has
+    // .active hardcoded in the HTML, so it's visible as soon as the CSS loads.
+    document.getElementById('settings').addEventListener('click', () => {
+        document.getElementById('dashboard-page').classList.remove('active');
+        document.getElementById('settings-page').classList.add('active');
+    });
+
+    document.getElementById('back-to-dashboard').addEventListener('click', () => {
+        document.getElementById('settings-page').classList.remove('active');
+        document.getElementById('dashboard-page').classList.add('active');
+    });
+
+    // NEW: Tab switching
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            button.classList.add('active');
+            document.getElementById(button.dataset.tab).style.display = 'block';
+        });
+    });
+
     // NEW: Add log row via AJAX
-    document.getElementById('add-log-button').addEventListener('click', async () => {  // Note: made async for await if needed
-        // Read raw strings first so an empty input stays null (not 0), letting
-        // the server enforce the "complete pair" rule cleanly.
-        const rawHobbsIn  = parseFloat(parseFloat(document.getElementById('hobbsIn').value.trim()).toFixed(2));
-        const rawHobbsOut = parseFloat(parseFloat(document.getElementById('hobbsOut').value.trim()).toFixed(2));
-        const rawTachIn   = parseFloat(parseFloat(document.getElementById('tachIn').value.trim()).toFixed(2));
-        const rawTachOut  = parseFloat(parseFloat(document.getElementById('tachOut').value.trim()).toFixed(2));
-        const numOrNull = (s) => (s === '' || isNaN(parseFloat(s))) ? null : parseFloat(s);
-
-        const data = {
-            fromAirport: document.getElementById('fromAirport').value,
-            toAirport: document.getElementById('toAirport').value,
-            hobbsOut: numOrNull(rawHobbsOut),
-            hobbsIn:  numOrNull(rawHobbsIn),
-            tachOut:  numOrNull(rawTachOut),
-            tachIn:   numOrNull(rawTachIn),
-        };
-    
-        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-    
-        console.log("!!!NEW flight log row DATA, POST request -->", data); 
-    
-        try {
-            const response = await axios.post('/addflightlog', data, {
-                headers: { 
-                    [csrfHeader]: csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            });
-    
-            const log = response.data;  // Assuming response.data is the saved log
-            console.log("Response: ", log);
-
-            const newRow = document.createElement('tr');
-            newRow.className = 'log-row';
-            newRow.dataset.id = log.id;
-            newRow.innerHTML = `
-                <td data-label="From"><span class="print-only">${log.fromAirport || ''}</span><input type="text" name="fromAirport" class="no-print" value="${log.fromAirport || ''}" readonly></td>
-                <td data-label="To"><span class="print-only">${log.toAirport || ''}</span><input type="text" name="toAirport" class="no-print" value="${log.toAirport || ''}" readonly></td>
-                <td data-label="Hobbs Out"><span class="print-only">${log.hobbsOut || ''}</span><input type="number" name="hobbsOut" class="no-print" value="${log.hobbsOut || ''}" readonly step="0.1"></td>
-                <td data-label="Hobbs In"><span class="print-only">${log.hobbsIn || ''}</span><input type="number" name="hobbsIn" class="no-print" value="${log.hobbsIn || ''}" readonly step="0.1"></td>
-                <td data-label="Tach Out"><span class="print-only">${log.tachOut || ''}</span><input type="number" name="tachOut" class="no-print" value="${log.tachOut || ''}" readonly step="0.1"></td>
-                <td data-label="Tach In"><span class="print-only">${log.tachIn || ''}</span><input type="number" name="tachIn" class="no-print" value="${log.tachIn || ''}" readonly step="0.1"></td>
-                <td class="delete-cell no-print" data-label=""><button class="delete-log-icon"><i class="fa-solid fa-trash-can fa-xl"></i></button></td>
-            `;
-            document.getElementById('logbook-body').insertBefore(newRow, document.querySelector('.add-log-row'));
-
-            // Attach delete listener to only this new row's button
-            const newDeleteButton = newRow.querySelector('.delete-log-icon');
-            newDeleteButton.addEventListener('click', async () => {
-                const row = newDeleteButton.closest('tr');
-                const id = row.dataset.id;
-                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-                try {
-                    const deleteResponse = await axios.delete(`/deleteflightlog/${id}`, {
-                        headers: { [csrfHeader]: csrfToken }
-                    });
-                    row.remove();
-                    const { newHobbs, newTach } = deleteResponse.data;
-                    if (newHobbs !== undefined) {
-                        document.getElementById('current-hobbs').value = newHobbs;
-                        document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
-                        previousHobbsHours = newHobbs;
-                    }
-                    if (newTach !== undefined) {
-                        document.getElementById('current-tach').value = newTach;
-                        document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
-                        previousTachHours = newTach;
-                    }
-                    markUpdatedNow('hobbs-updated', 'flightlog');
-                    markUpdatedNow('tach-updated', 'flightlog');
-                    updateAllTimeLeft();
-                    updateAddRowTimeLeft();
-                } catch (error) {
-                    console.error('Error deleting log:', error);
-                }
-            });
-
-        // Update hours display from backend-calculated totals
-        if (log.newHobbs !== undefined && log.newHobbs !== null) {
-            document.getElementById('current-hobbs').value = log.newHobbs;
-            document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${log.newHobbs}`;
-            previousHobbsHours = log.newHobbs;
-        }
-        if (log.newTach !== undefined && log.newTach !== null) {
-            document.getElementById('current-tach').value = log.newTach;
-            document.getElementById('current-tach-display').textContent = `Tach Time: ${log.newTach}`;
-            previousTachHours = log.newTach;
-        }
-        markUpdatedNow('hobbs-updated', 'flightlog');
-        markUpdatedNow('tach-updated', 'flightlog');
-        updateAllTimeLeft();
-        updateAddRowTimeLeft();
-
-        // Clear inputs
-        document.getElementById('fromAirport').value = '';
-        document.getElementById('toAirport').value = '';
-        document.getElementById('hobbsIn').value = '';
-        document.getElementById('hobbsOut').value = '';
-        document.getElementById('tachIn').value = '';
-        document.getElementById('tachOut').value = '';
-        } catch (error) {
-            // 400 = validation error from the server (e.g. partial pair, negative duration).
-            // Keep the user's typed values intact so they can correct and retry —
-            // the whole point of this code path is "don't hurt the user."
-            const serverMsg = error?.response?.data?.message;
-            const status    = error?.response?.status;
-            if (status === 400 && serverMsg) {
-                showToast(serverMsg, 'error');
-            } else {
-                console.error('Error adding log:', error);
-                showToast('Failed to add flight log.', 'error');
-            }
-        }
-    })
-
-});
-
-    // Delete log row (server-rendered rows)
-    document.querySelectorAll('.delete-log-icon').forEach(button => {
+    // Wire up the delete listener for one flight-log row's delete button.
+    function wireDeleteLogButton(button) {
         button.addEventListener('click', async () => {
+            const confirmed = await showConfirm('Delete this flight log entry?', 'Delete');
+            if (!confirmed) return;
             const row = button.closest('tr');
             const id = row.dataset.id;
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
@@ -1714,23 +2175,184 @@ document.addEventListener('DOMContentLoaded', () => {
                 const deleteResponse = await axios.delete(`/deleteflightlog/${id}`, {
                     headers: { [csrfHeader]: csrfToken }
                 });
-                row.remove();
+                allSuggestionsStale = true; // deleting can reset a suggestion back to pending
+                const { newBlockTime, newTimeInService } = deleteResponse.data;
+                if (newBlockTime !== undefined) {
+                    document.getElementById('current-block-time').value = newBlockTime;
+                    document.getElementById('current-block-time-display').textContent = `Block Time: ${newBlockTime}`;
+                    previousBlockTimeHours = newBlockTime;
+                }
+                if (newTimeInService !== undefined) {
+                    document.getElementById('current-time-in-service').value = newTimeInService;
+                    document.getElementById('current-time-in-service-display').textContent = `Time in Service: ${newTimeInService}`;
+                    previousTimeInServiceHours = newTimeInService;
+                }
+                markUpdatedNow('block-time-updated', 'flightlog');
+                markUpdatedNow('time-in-service-updated', 'flightlog');
+
+                // A delete can shift other rows' Out/In too (see
+                // refreshLogbookRows) -- rebuild the whole table instead of
+                // just removing this one row.
+                await refreshLogbookRows();
+            } catch (error) {
+                console.error('Error deleting log:', error);
+            }
+        });
+    }
+
+    // force=true skips the manual-entry accuracy check (server-side) --
+    // used to resubmit after the user confirms "Add it anyway?".
+    async function submitAddFlightLog(force) {
+        // Read raw strings first so an empty input stays null (not 0), letting
+        // the server enforce the "complete pair" rule cleanly.
+        const rawBlockTimeIn  = parseFloat(parseFloat(document.getElementById('blockTimeIn').value.trim()).toFixed(2));
+        const rawBlockTimeOut = parseFloat(parseFloat(document.getElementById('blockTimeOut').value.trim()).toFixed(2));
+        const rawTimeInServiceIn   = parseFloat(parseFloat(document.getElementById('timeInServiceIn').value.trim()).toFixed(2));
+        const rawTimeInServiceOut  = parseFloat(parseFloat(document.getElementById('timeInServiceOut').value.trim()).toFixed(2));
+        const numOrNull = (s) => (s === '' || isNaN(parseFloat(s))) ? null : parseFloat(s);
+
+        const data = {
+            fromAirport: document.getElementById('fromAirport').value,
+            toAirport: document.getElementById('toAirport').value,
+            blockTimeOut: numOrNull(rawBlockTimeOut),
+            blockTimeIn:  numOrNull(rawBlockTimeIn),
+            timeInServiceOut:  numOrNull(rawTimeInServiceOut),
+            timeInServiceIn:   numOrNull(rawTimeInServiceIn),
+            blockTimeStart: datetimeLocalToIso(document.getElementById('blockTimeStart').value),
+            blockTimeEnd: datetimeLocalToIso(document.getElementById('blockTimeEnd').value),
+            timeInServiceStart: datetimeLocalToIso(document.getElementById('timeInServiceStart').value),
+            timeInServiceEnd: datetimeLocalToIso(document.getElementById('timeInServiceEnd').value),
+            source: csvPrefilled ? 'csv' : 'manual',
+        };
+
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+        console.log("!!!NEW flight log row DATA, POST request -->", data);
+
+        try {
+            const response = await axios.post(`/addflightlog?force=${force}`, data, {
+                headers: {
+                    [csrfHeader]: csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const log = response.data;  // Assuming response.data is the saved log
+            console.log("Response: ", log);
+
+            // Recomputing the chain can shift OTHER rows' Out/In/timestamps
+            // too (a backfilled flight pushes everything after it), so the
+            // whole table is rebuilt from the server's current state rather
+            // than just inserting the one row we added.
+            await refreshLogbookRows();
+
+            // Update hours display from backend-calculated totals
+            if (log.newBlockTime !== undefined && log.newBlockTime !== null) {
+                document.getElementById('current-block-time').value = log.newBlockTime;
+                document.getElementById('current-block-time-display').textContent = `Block Time: ${log.newBlockTime}`;
+                previousBlockTimeHours = log.newBlockTime;
+            }
+            if (log.newTimeInService !== undefined && log.newTimeInService !== null) {
+                document.getElementById('current-time-in-service').value = log.newTimeInService;
+                document.getElementById('current-time-in-service-display').textContent = `Time in Service: ${log.newTimeInService}`;
+                previousTimeInServiceHours = log.newTimeInService;
+            }
+            markUpdatedNow('block-time-updated', 'flightlog');
+            markUpdatedNow('time-in-service-updated', 'flightlog');
+
+            // Clear inputs
+            document.getElementById('fromAirport').value = '';
+            document.getElementById('toAirport').value = '';
+            document.getElementById('blockTimeIn').value = '';
+            document.getElementById('blockTimeOut').value = '';
+            document.getElementById('timeInServiceIn').value = '';
+            document.getElementById('timeInServiceOut').value = '';
+            document.getElementById('blockTimeStart').value = '';
+            document.getElementById('blockTimeEnd').value = '';
+            document.getElementById('timeInServiceStart').value = '';
+            document.getElementById('timeInServiceEnd').value = '';
+            csvPrefilled = false;
+        } catch (error) {
+            const status = error?.response?.status;
+            const responseData = error?.response?.data;
+
+            // 409 = a manual reading that doesn't line up with nearby flights
+            // (HoursService.checkAccuracy) -- not a hard error, ask first.
+            if (status === 409 && responseData?.inaccurate) {
+                const confirmed = await showConfirm(responseData.message, 'Add anyway');
+                if (confirmed) await submitAddFlightLog(true);
+                return;
+            }
+
+            // 400 = validation error from the server (e.g. partial pair, negative duration).
+            // Keep the user's typed values intact so they can correct and retry —
+            // the whole point of this code path is "don't hurt the user."
+            const serverMsg = responseData?.message;
+            if (status === 400 && serverMsg) {
+                showToast(serverMsg, 'error');
+            } else {
+                console.error('Error adding log:', error);
+                showToast('Failed to add flight log.', 'error');
+            }
+        }
+    }
+
+    document.getElementById('add-log-button').addEventListener('click', () => submitAddFlightLog(false));
+
+});
+
+    // Delete log row (server-rendered rows -- this listener block runs at
+    // global scope, outside the DOMContentLoaded closure above, so it can't
+    // call the closure-scoped refreshLogbookRows/wireDeleteLogButton; it
+    // does its own equivalent refetch-and-rebuild using the global
+    // buildLogRowHtml instead.)
+    document.querySelectorAll('.delete-log-icon').forEach(function wireDeleteLogIconGlobal(button) {
+        button.addEventListener('click', async () => {
+            const confirmed = await showConfirm('Delete this flight log entry?', 'Delete');
+            if (!confirmed) return;
+            const row = button.closest('tr');
+            const id = row.dataset.id;
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            try {
+                const deleteResponse = await axios.delete(`/deleteflightlog/${id}`, {
+                    headers: { [csrfHeader]: csrfToken }
+                });
+                allSuggestionsStale = true; // deleting can reset a suggestion back to pending
                 console.log(`Log ${id} deleted`);
-                const { newHobbs, newTach } = deleteResponse.data;
-                if (newHobbs !== undefined) {
-                    document.getElementById('current-hobbs').value = newHobbs;
-                    document.getElementById('current-hobbs-display').textContent = `Hobbs Time: ${newHobbs}`;
-                    previousHobbsHours = newHobbs;
+                const { newBlockTime, newTimeInService } = deleteResponse.data;
+                if (newBlockTime !== undefined) {
+                    document.getElementById('current-block-time').value = newBlockTime;
+                    document.getElementById('current-block-time-display').textContent = `Block Time: ${newBlockTime}`;
+                    previousBlockTimeHours = newBlockTime;
                 }
-                if (newTach !== undefined) {
-                    document.getElementById('current-tach').value = newTach;
-                    document.getElementById('current-tach-display').textContent = `Tach Time: ${newTach}`;
-                    previousTachHours = newTach;
+                if (newTimeInService !== undefined) {
+                    document.getElementById('current-time-in-service').value = newTimeInService;
+                    document.getElementById('current-time-in-service-display').textContent = `Time in Service: ${newTimeInService}`;
+                    previousTimeInServiceHours = newTimeInService;
                 }
-                markUpdatedNow('hobbs-updated', 'flightlog');
-                markUpdatedNow('tach-updated', 'flightlog');
+                markUpdatedNow('block-time-updated', 'flightlog');
+                markUpdatedNow('time-in-service-updated', 'flightlog');
                 updateAllTimeLeft();
                 updateAddRowTimeLeft();
+
+                // A delete can shift other rows' Out/In too now that
+                // HoursService.recomputeChain keeps CSV/AeroAPI rows
+                // chronologically accurate -- rebuild the whole table
+                // instead of just removing this one row.
+                const logsResponse = await axios.get('/flightlogs', { headers: { [csrfHeader]: csrfToken } });
+                document.querySelectorAll('#logbook-body .log-row').forEach(r => r.remove());
+                const tbody = document.getElementById('logbook-body');
+                const addLogRow = document.querySelector('.add-log-row');
+                logsResponse.data.forEach(log => {
+                    const newRow = document.createElement('tr');
+                    newRow.className = 'log-row';
+                    newRow.dataset.id = log.id;
+                    newRow.innerHTML = buildLogRowHtml(log);
+                    if (addLogRow) tbody.insertBefore(newRow, addLogRow); else tbody.appendChild(newRow);
+                    wireDeleteLogIconGlobal(newRow.querySelector('.delete-log-icon'));
+                });
             } catch (error) {
                 console.error('Error deleting log:', error);
             }
@@ -1765,10 +2387,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = response.data;
             showToast("CSV parsed successfully", 'info');
 
-            document.getElementById("hobbsOut").value = data.hobbsOut ?? '';
-            document.getElementById("hobbsIn").value = data.hobbsIn ?? '';
-            document.getElementById("tachOut").value = data.tachOut ?? '';
-            document.getElementById("tachIn").value = data.tachIn ?? '';
+            document.getElementById("blockTimeOut").value = data.blockTimeOut ?? '';
+            document.getElementById("blockTimeIn").value = data.blockTimeIn ?? '';
+            document.getElementById("timeInServiceOut").value = data.timeInServiceOut ?? '';
+            document.getElementById("timeInServiceIn").value = data.timeInServiceIn ?? '';
+            document.getElementById("blockTimeStart").value = isoToDatetimeLocal(data.blockTimeStart);
+            document.getElementById("blockTimeEnd").value = isoToDatetimeLocal(data.blockTimeEnd);
+            document.getElementById("timeInServiceStart").value = isoToDatetimeLocal(data.timeInServiceStart);
+            document.getElementById("timeInServiceEnd").value = isoToDatetimeLocal(data.timeInServiceEnd);
+            csvPrefilled = true;
 
             if (data.warning) {
                 showToast(data.warning, 'error');
@@ -1782,7 +2409,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(errorMessage, 'error');
 
             console.log(errorData?.error);        // "Could not detect airtime or block time"
-            console.log(errorData?.blockStart);   // "10:30:00" (LocalTime serializes as string)
+            console.log(errorData?.blockStart);   // ISO instant string
             console.log(errorData?.blockEnd);
             console.log(errorData?.airborneStart);
             console.log(errorData?.airborneEnd);
@@ -1791,3 +2418,153 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     }
+
+
+// ── Maintenance alerts settings (docs/ALERTS_SPEC.md) ────────────────────────
+// Standalone DOMContentLoaded block: talks to /alerts/* and is independent of
+// the large closure above.
+document.addEventListener('DOMContentLoaded', () => {
+    const $ = (id) => document.getElementById(id);
+    const enabledBox   = $('alerts-enabled');
+    if (!enabledBox) return; // alerts UI not on this page
+
+    const readiness    = $('alerts-readiness');
+    const checkHour    = $('alerts-check-hour');
+    const leadDays     = $('alerts-lead-days');
+    const leadHours    = $('alerts-lead-hours');
+    const renudgeDays  = $('alerts-renudge-days');
+    const saveSchedule = $('alerts-save-schedule');
+    const sendNowBtn   = $('alerts-send-now');
+    const sendNowMsg   = $('alerts-send-now-result');
+    const chanSel      = $('alert-recipient-channel');
+    const destInput    = $('alert-recipient-destination');
+    const labelInput   = $('alert-recipient-label');
+    const addBtn       = $('alert-recipient-add');
+    const addError     = $('alert-recipient-error');
+    const listEl       = $('alert-recipient-list');
+
+    function csrf() {
+        const t = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const h = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+        return h ? { [h]: t } : {};
+    }
+    const jsonHeaders = () => ({ 'Content-Type': 'application/json', ...csrf() });
+
+    async function loadPrefs() {
+        try {
+            const r = await fetch('/alerts/preferences');
+            if (!r.ok) return;
+            const p = await r.json();
+            enabledBox.checked = !!p.enabled;
+            checkHour.value    = p.checkHour;
+            leadDays.value     = p.leadTimeDays;
+            leadHours.value    = p.leadTimeHours;
+            renudgeDays.value  = p.overdueRenudgeDays;
+            const missing = (p.readiness && p.readiness.missing) || [];
+            readiness.textContent = missing.length
+                ? 'Before turning on: ' + missing.join('; ')
+                : 'Ready to turn on.';
+        } catch (e) { /* leave defaults */ }
+    }
+
+    function statusBadge(s) {
+        const map = { PENDING: 'Pending', ACCEPTED: 'Accepted', DECLINED: 'Declined', EXPIRED: 'Expired' };
+        return map[s] || s;
+    }
+
+    async function loadRecipients() {
+        try {
+            const r = await fetch('/alerts/recipients');
+            if (!r.ok) return;
+            const { recipients } = await r.json();
+            listEl.innerHTML = '';
+            if (!recipients.length) {
+                listEl.innerHTML = '<li class="alert-recipient-empty">No recipients yet.</li>';
+                return;
+            }
+            for (const rec of recipients) {
+                const li = document.createElement('li');
+                li.dataset.id = rec.id;
+                const who = rec.label ? `${rec.label} — ${rec.destination}` : rec.destination;
+                li.innerHTML =
+                    `<span class="alert-recipient-who">${who}</span>` +
+                    `<span class="alert-recipient-status status-${rec.status.toLowerCase()}">${statusBadge(rec.status)}</span>` +
+                    `<button type="button" class="alert-recipient-resend no-print">Resend</button>` +
+                    `<button type="button" class="alert-recipient-remove no-print">Remove</button>`;
+                listEl.appendChild(li);
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    async function savePrefs(extra) {
+        const body = {
+            enabled: enabledBox.checked,
+            checkHour: Number(checkHour.value),
+            leadTimeDays: Number(leadDays.value),
+            leadTimeHours: Number(leadHours.value),
+            overdueRenudgeDays: Number(renudgeDays.value),
+            ...extra,
+        };
+        const r = await fetch('/alerts/preferences', {
+            method: 'PUT', headers: jsonHeaders(), body: JSON.stringify(body),
+        });
+        if (r.ok) { const p = await r.json(); enabledBox.checked = !!p.enabled; }
+        return r.ok;
+    }
+
+    enabledBox.addEventListener('change', async () => {
+        const ok = await savePrefs();
+        if (typeof showToast === 'function') {
+            showToast(ok ? (enabledBox.checked ? 'Alerts turned on' : 'Alerts turned off') : 'Could not save', ok ? 'info' : 'error');
+        }
+        if (!ok) enabledBox.checked = !enabledBox.checked;
+    });
+
+    saveSchedule.addEventListener('click', async () => {
+        const ok = await savePrefs();
+        if (typeof showToast === 'function') showToast(ok ? 'Alert schedule saved' : 'Could not save', ok ? 'info' : 'error');
+    });
+
+    sendNowBtn.addEventListener('click', async () => {
+        sendNowMsg.textContent = 'Sending…';
+        try {
+            const r = await fetch('/alerts/send-now', { method: 'POST', headers: csrf() });
+            const d = await r.json();
+            sendNowMsg.textContent = r.ok ? `Sent to ${d.sent} recipient(s).` : (d.error || 'Failed.');
+        } catch (e) { sendNowMsg.textContent = 'Failed.'; }
+    });
+
+    addBtn.addEventListener('click', async () => {
+        addError.textContent = '';
+        const params = new URLSearchParams();
+        params.set('channel', chanSel.value);
+        params.set('destination', destInput.value.trim());
+        if (labelInput.value.trim()) params.set('label', labelInput.value.trim());
+        try {
+            const r = await fetch('/alerts/recipients', { method: 'POST', headers: csrf(), body: params });
+            const d = await r.json();
+            if (!r.ok) { addError.textContent = d.error || 'Could not add.'; return; }
+            destInput.value = ''; labelInput.value = '';
+            loadRecipients();
+        } catch (e) { addError.textContent = 'Could not add.'; }
+    });
+
+    listEl.addEventListener('click', async (ev) => {
+        const li = ev.target.closest('li[data-id]');
+        if (!li) return;
+        const id = li.dataset.id;
+        if (ev.target.classList.contains('alert-recipient-remove')) {
+            const r = await fetch('/alerts/recipients/' + id, { method: 'DELETE', headers: csrf() });
+            if (r.ok) loadRecipients();
+        } else if (ev.target.classList.contains('alert-recipient-resend')) {
+            const r = await fetch('/alerts/recipients/' + id + '/resend', { method: 'POST', headers: csrf() });
+            if (r.ok && typeof showToast === 'function') showToast('Confirmation resent', 'info');
+            loadRecipients();
+        }
+    });
+
+    const settingsBtn = document.getElementById('settings');
+    if (settingsBtn) settingsBtn.addEventListener('click', () => { loadPrefs(); loadRecipients(); });
+    loadPrefs();
+    loadRecipients();
+});

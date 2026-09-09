@@ -1,0 +1,35 @@
+When a user inputs an API key I have to make sure its secure in my web app. The way my web app saves users API key is intended to keep 
+it safe. When a user inputs there API into the table in the settings tab JavsScript sends a POST request is sent through /updateUserInfo in which the
+userService "updateUserInfo" method is called. The API will be written in plain text in memory for a tiny amount of time. This method
+attempts call UserRepository.save(user) which hands Spring Data JPA the user object, which hands it to Hibernate to build the SQL to updateUserInfo UPDATE 
+the database. As Hibernate walks down the entity to see what to bind to the SQL it sees @Converter under the aeroApiKey field
+@Converter(AeroApiKeyConverter.class) annoation and automatically runs AeroApiKeyConverter.convertToDatabaseColumn(plaintextKey)
+-> CryptoUtil.encrypt(plaintextKey, AeroKeyHolder.get())
+-> returns ciphertext to Postgres
+
+The loadpath
+
+When /dashboard is called runs userRepository.findByUsername(user) Hibernate pulls the row back from Postgres it sees cipher text in 
+the API key column and automatically runs covertToEntityAttribute() then the decrypt method in CryptoUtil class before the User object 
+is handed back to my controller. Controller and service code never see the cipher text in either direction. 
+
+HTML input box -> JS -> controller -> service -> repository.save() -> [CryptoUtil.encrypt] -> Postgres
+
+Postgres -> Hibernate calls converter -> [CryptoUtil.decrypt] -> Controller gets plaintext User Object -> Thymeleaf bakes it into the
+HTML -> HTML input box
+
+AeroKeyHolder.java only purpose is to grab the aero api key in .env and turn it into a secretKey object at startup so my app. Then it 
+holds that key in a static field until I need to call it anywhere in my app with AeroKeyHolder.get()
+
+AeroApiKeyConverter is the gateway that calls the encrypt and decrypt methods when the api key is getting saved to postgres or called
+from postgres. 
+
+CryptoUtil.class -> encrypt and decrypto
+AeroKeyHolder -> turns key into secret key at startup to be used anywhere
+AeroKeyConverter.class -> calls encrypt and decrypt when necessary from both directions. 
+
+@Convert(converter = AeroApiKeyConverter.class) -> Field in User.java; Hibernate sees @Convert on the way in and out and calls AeroApiKeyConverter class
+    @Column
+    private String aeroApiKey;
+
+    

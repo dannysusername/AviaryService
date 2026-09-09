@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<!--
+  Standalone template for server-side PDF generation (openhtmltopdf), NOT a
+  shared fragment with dashboard.html. openhtmltopdf's CSS engine is CSS 2.1
+  plus some CSS3, with no flexbox/grid and no CSS custom properties (var()),
+  so this deliberately uses plain tables/blocks and literal color values
+  instead of dashboard.html's flexbox layout and custom-property palette.
+  Note: this file is parsed as strict XML, not lenient HTML5, so keep every
+  comment and tag well-formed (no double hyphens inside a comment body).
+  See docs/SHARE_EXPORT_SPEC.md.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Aviary Dashboard</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 18pt;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 9pt;
+            color: #1B2B23;
+        }
+        h1 {
+            font-size: 16pt;
+            margin: 0 0 2pt 0;
+        }
+        .generated-at {
+            font-size: 8pt;
+            color: #5E7A6A;
+            margin: 0 0 12pt 0;
+        }
+        h2 {
+            font-size: 11pt;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+            color: #5E7A6A;
+            margin: 16pt 0 6pt 0;
+            -fs-page-break-after: avoid;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td, th {
+            padding: 4pt 6pt;
+            border: 1px solid #D8E6DE;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #2C9B6F;
+            color: #FFFFFF;
+        }
+        .info-table td:first-child {
+            font-weight: bold;
+            width: 18%;
+            background-color: #F5F8F6;
+        }
+        tr.title-row td {
+            background-color: #2C9B6F;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+        table {
+            -fs-table-paginate: paginate;
+        }
+        tr {
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+    <h1><span th:text="${makeModel}">Make/Model</span> &#8212; <span th:text="${tailNumber}">Tail Number</span></h1>
+    <p class="generated-at">Generated <span th:text="${generatedAt}">date</span></p>
+
+    <table class="info-table">
+        <tbody>
+            <tr>
+                <td>Owner</td>
+                <td th:text="${ownerName}"></td>
+                <td>Make/Model S/N</td>
+                <td th:text="${makeModelSN}"></td>
+            </tr>
+            <tr>
+                <td>Block Time</td>
+                <td th:text="${blockTimeHours}"></td>
+                <td>Time in Service</td>
+                <td th:text="${timeInServiceHours}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Service Timeline</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th>Cycle</th>
+                <th>Last Done</th>
+                <th>Due Date</th>
+                <th>Time Left</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:if="${timelineRows.isEmpty()}">
+                <td colspan="6">No service timeline items yet.</td>
+            </tr>
+            <tr th:each="row : ${timelineRows}" th:class="${row.isTitle} ? 'title-row' : ''">
+                <td th:if="${row.isTitle}" colspan="6" th:text="${row.item}"></td>
+                <td th:unless="${row.isTitle}" th:text="${row.item}"></td>
+                <td th:unless="${row.isTitle}" th:text="${row.description}"></td>
+                <td th:unless="${row.isTitle}" th:text="${row.cycle}"></td>
+                <td th:unless="${row.isTitle}" th:text="${row.lastDone}"></td>
+                <td th:unless="${row.isTitle}" th:text="${row.dueDate}"></td>
+                <td th:unless="${row.isTitle}" th:text="${row.timeLeft}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Flight Logs</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>From</th>
+                <th>To</th>
+                <th>Block Time Out</th>
+                <th>Block Time In</th>
+                <th>Time in Service Out</th>
+                <th>Time in Service In</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:if="${logRows.isEmpty()}">
+                <td colspan="6">No flights logged yet.</td>
+            </tr>
+            <tr th:each="row : ${logRows}">
+                <td th:text="${row.fromAirport}"></td>
+                <td th:text="${row.toAirport}"></td>
+                <td th:text="${row.blockTimeOut}"></td>
+                <td th:text="${row.blockTimeIn}"></td>
+                <td th:text="${row.timeInServiceOut}"></td>
+                <td th:text="${row.timeInServiceIn}"></td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

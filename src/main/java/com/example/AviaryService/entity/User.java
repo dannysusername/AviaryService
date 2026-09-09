@@ -2,6 +2,8 @@ package com.example.AviaryService.entity;
 
 import jakarta.persistence.*;
 import java.util.List;
+
+import com.example.AviaryService.config.AeroApiKeyConverter;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
@@ -26,10 +28,10 @@ public class User {
     private List<FlightLog> flightLogs;
 
     @Column
-    private Double hobbsHours;
+    private Double blockTimeHours;
 
     @Column
-    private Double tachHours;
+    private Double timeInServiceHours;
 
     @Column
     private String makeModel;
@@ -44,25 +46,29 @@ public class User {
     private String makeModelSN;
 
     @Column
-    private java.time.Instant hobbsUpdatedAt;
+    private java.time.Instant blockTimeUpdatedAt;
 
     @Column
-    private java.time.Instant tachUpdatedAt;
+    private java.time.Instant timeInServiceUpdatedAt;
 
     @Column
-    private String hobbsUpdatedSource;
+    private String blockTimeUpdatedSource;
 
     @Column
-    private String tachUpdatedSource;
+    private String timeInServiceUpdatedSource;
 
     // Manual "floor" for the airframe meter. Any manual edit on /updateHours
     // writes this column too; log-book activity can only raise the displayed
     // value above this floor, never below it. See computeDisplayedHours().
     @Column
-    private Double hobbsManualBaseline;
+    private Double blockTimeManualBaseline;
 
     @Column
-    private Double tachManualBaseline;
+    private Double timeInServiceManualBaseline;
+
+    @Convert(converter = AeroApiKeyConverter.class)
+    @Column
+    private String aeroApiKey;
 
     public User(){
 
@@ -71,20 +77,21 @@ public class User {
     public User(String username, String password){
         this.username = username;
         this.password = password;
-        this.hobbsHours = 0.0;
-        this.tachHours = 0.0;
+        this.blockTimeHours = 0.0;
+        this.timeInServiceHours = 0.0;
         this.makeModel = ""; 
         this.tailNumber = "";
         this.ownerName = "";
         this.makeModelSN = "";
+        this.aeroApiKey = "";
 
     }
 
-    public User(String username, String password, double hobbsHours, double tachHours){
+    public User(String username, String password, double blockTimeHours, double timeInServiceHours){
         this.username = username;
         this.password = password;
-        this.hobbsHours = hobbsHours;
-        this.tachHours = tachHours;
+        this.blockTimeHours = blockTimeHours;
+        this.timeInServiceHours = timeInServiceHours;
         this.makeModel = ""; 
         this.tailNumber = "";
         this.ownerName = "";
@@ -108,20 +115,20 @@ public class User {
         return serviceTimeline;
     }
     
-    public Double getHobbsHours() {
-        return hobbsHours !=null ? hobbsHours : 0.0;
+    public Double getBlockTimeHours() {
+        return blockTimeHours !=null ? blockTimeHours : 0.0;
     }
 
-    public void setHobbsHours(Double hobbsHours) {
-        this.hobbsHours = (hobbsHours != null) ? hobbsHours : 0.0;
+    public void setBlockTimeHours(Double blockTimeHours) {
+        this.blockTimeHours = (blockTimeHours != null) ? blockTimeHours : 0.0;
     }
 
-    public Double getTachHours() {
-        return tachHours !=null ? tachHours : 0.0;
+    public Double getTimeInServiceHours() {
+        return timeInServiceHours !=null ? timeInServiceHours : 0.0;
     }
 
-    public void setTachHours(Double tachHours) {
-        this.tachHours = (tachHours != null) ? tachHours : 0.0;
+    public void setTimeInServiceHours(Double timeInServiceHours) {
+        this.timeInServiceHours = (timeInServiceHours != null) ? timeInServiceHours : 0.0;
     }
 
     public void setId(long id) {
@@ -179,22 +186,30 @@ public class User {
         this.flightLogs = flightLogs;
     }
 
-    public java.time.Instant getHobbsUpdatedAt() { return hobbsUpdatedAt; }
-    public void setHobbsUpdatedAt(java.time.Instant hobbsUpdatedAt) { this.hobbsUpdatedAt = hobbsUpdatedAt; }
+    public java.time.Instant getBlockTimeUpdatedAt() { return blockTimeUpdatedAt; }
+    public void setBlockTimeUpdatedAt(java.time.Instant blockTimeUpdatedAt) { this.blockTimeUpdatedAt = blockTimeUpdatedAt; }
 
-    public java.time.Instant getTachUpdatedAt() { return tachUpdatedAt; }
-    public void setTachUpdatedAt(java.time.Instant tachUpdatedAt) { this.tachUpdatedAt = tachUpdatedAt; }
+    public java.time.Instant getTimeInServiceUpdatedAt() { return timeInServiceUpdatedAt; }
+    public void setTimeInServiceUpdatedAt(java.time.Instant timeInServiceUpdatedAt) { this.timeInServiceUpdatedAt = timeInServiceUpdatedAt; }
 
-    public String getHobbsUpdatedSource() { return hobbsUpdatedSource; }
-    public void setHobbsUpdatedSource(String hobbsUpdatedSource) { this.hobbsUpdatedSource = hobbsUpdatedSource; }
+    public String getBlockTimeUpdatedSource() { return blockTimeUpdatedSource; }
+    public void setBlockTimeUpdatedSource(String blockTimeUpdatedSource) { this.blockTimeUpdatedSource = blockTimeUpdatedSource; }
 
-    public String getTachUpdatedSource() { return tachUpdatedSource; }
-    public void setTachUpdatedSource(String tachUpdatedSource) { this.tachUpdatedSource = tachUpdatedSource; }
+    public String getTimeInServiceUpdatedSource() { return timeInServiceUpdatedSource; }
+    public void setTimeInServiceUpdatedSource(String timeInServiceUpdatedSource) { this.timeInServiceUpdatedSource = timeInServiceUpdatedSource; }
 
     // Nullable on purpose: callers must distinguish "never set" from "set to 0".
-    public Double getHobbsManualBaseline() { return hobbsManualBaseline; }
-    public void setHobbsManualBaseline(Double hobbsManualBaseline) { this.hobbsManualBaseline = hobbsManualBaseline; }
+    public Double getBlockTimeManualBaseline() { return blockTimeManualBaseline; }
+    public void setBlockTimeManualBaseline(Double blockTimeManualBaseline) { this.blockTimeManualBaseline = blockTimeManualBaseline; }
 
-    public Double getTachManualBaseline() { return tachManualBaseline; }
-    public void setTachManualBaseline(Double tachManualBaseline) { this.tachManualBaseline = tachManualBaseline; }
+    public Double getTimeInServiceManualBaseline() { return timeInServiceManualBaseline; }
+    public void setTimeInServiceManualBaseline(Double timeInServiceManualBaseline) { this.timeInServiceManualBaseline = timeInServiceManualBaseline; }
+
+    public String getAeroApiKey() {
+        return aeroApiKey;
+    }
+
+    public void setAeroApiKey(String aeroApiKey) {
+        this.aeroApiKey = aeroApiKey;
+    }
 }
