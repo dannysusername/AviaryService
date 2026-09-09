@@ -131,3 +131,130 @@ what's there:
   anything happened since I last checked" poll, lighter than a full
   `/flights/{ident}` call. Could replace the current call if per-call cost
   ever matters.
+
+## Heroku Scheduler one-off entrypoint for the sweeps
+
+**BUILT 2026-09-09** — `config/SyncRunner.java`. The Eco web dyno sleeps
+after 30 min idle, so the in-process `@Scheduled` sweeps in
+`FlightSyncService` (`0 0 * * * *`) and `AlertScheduler` (`0 5 * * * *`)
+don't fire reliably. `SyncRunner` is an `ApplicationRunner` gated on
+`@ConditionalOnProperty("app.run-sync"=true)` that runs both sweeps once
+(each independently) then `System.exit`s. Heroku Scheduler runs it hourly
+on a short-lived one-off dyno:
+
+```
+java -jar build/libs/AviaryService-0.0.1-SNAPSHOT.jar --app.run-sync=true --server.port=0
+```
+
+Notes:
+- `app.run-sync` must be a **command-line arg, never a config var** — as a
+  config var every web boot would run the sweep and exit.
+- Can't pass `--spring.main.web-application-type=none`: `SecurityConfig`
+  uses `MvcRequestMatcher`, which needs Spring MVC beans, so the one-off
+  dyno boots the full app (Tomcat included) then exits. One-off dynos have
+  no 60s boot timeout, so this is fine. `--server.port=0` avoids any port
+  clash.
+- Cost: ~1 min/run on Eco × hourly ≈ ~12 hrs/month from the 1000-hour Eco
+  pool. The `@Scheduled` annotations are left in place as a no-op backup
+  (they still won't fire while the dyno sleeps).
+
+**Follow-up not done:** loosen `FlightSyncService.isDue()` from
+"currentHour == preferredCheckHour" to "preferred hour has passed today
+and hasn't run today yet", so a late or skipped hourly run doesn't drop a
+user for the whole day.
+
+## Multiple aircraft per user
+
+**What:** a user tracks more than one airplane. Each aircraft has its own
+Service Timeline, aircraft-info card, flight logs, Hobbs/Tach hours, and
+AeroAPI subscription — one aircraft shown per page, with a switcher to
+pick the active one. Essentially every per-user thing becomes per-aircraft.
+
+**Current model (what has to change):** everything hangs off `User`
+directly — `User.tailNumber`, `User.hobbsHours`/`tachHours`, the
+`makeModel`/`ownerName`/`makeModelSN` fields, `User.aeroApiKey`; and
+`ServiceTimeline`, `FlightLog`, `DescriptionOption`, `Subscription`,
+`FlightSuggestion`, `AlertPreference`/`AlertRecipient` are all
+`@ManyToOne User`. `Subscription.user_id` even carries a `unique = true`
+("one subscription per user") — that constraint is the first thing to go.
+
+**What's involved:**
+1. New `Aircraft` entity `@ManyToOne User`, owning: makeModel, tailNumber,
+   ownerName, serial, hobbsHours/tachHours + their
+   `*UpdatedAt`/`*UpdatedSource` stamps. Decide: `aeroApiKey` per-aircraft,
+   or keep one key on `User` shared across their planes.
+2. Re-parent `ServiceTimeline`, `FlightLog`, `DescriptionOption`,
+   `Subscription`, `FlightSuggestion`, `AlertPreference`/`AlertRecipient`
+   from `user_id` to `aircraft_id`.
+3. Move the `unique` constraint off `Subscription.user_id` and onto
+   `aircraft_id` (one AeroAPI sync per plane).
+4. Every repository `findByUser(...)` → `findByAircraft(...)`; every
+   controller lookup switches from "the authenticated user's X" to "the
+   active aircraft's X". Active aircraft id in the session or as a
+   `?aircraftId=` param.
+5. Dashboard gets an aircraft switcher (dropdown / tabs).
+6. Registration flow creates the user + their first aircraft together, so
+   the dashboard is never aircraft-less. (Ties into the default-rows item
+   below — the default Service Timeline seeds the first aircraft.)
+7. Migration: create `aircraft`; for each existing user insert one row
+   from their current `User.*` values; backfill `aircraft_id` on every
+   child table; then drop the moved columns from `users`.
+
+**Why it's deferred:** biggest schema change in the app — touches nearly
+every entity, repository, controller method, the seeder, and needs a data
+migration on prod Postgres. Its own branch.
+
+## Tier-aware AeroAPI endpoints
+
+**What:** let users whose FlightAware plan allows it use AeroAPI endpoints
+beyond the current `/flights/{ident}` + `/account/usage`. The free
+"Personal" tier can't hit the historical `/history/*` endpoints (and has
+shallow `/flights/*` history depth); paid tiers can, and also open up
+things like `/aircraft/{ident}/owner`, `/aircraft/{ident}/blocked`,
+`/foresight/*`, scheduled-flight lookups, and `POST /alerts` webhooks.
+
+**Check the site:** FlightAware documents which endpoints each subscription
+class permits, and it changes — when this is picked up, pull the current
+tier→endpoint matrix from the live AeroAPI docs / pricing page rather than
+baking in a stale list. Don't hard-assume the free tier.
+
+**How it could work:**
+- `/account/usage` (already the key-validity check) does not report the
+  plan tier. Either (a) probe one representative gated endpoint once on
+  key-connect (tiny `/history/...` range) and cache 200 vs 401/403 per
+  user, or (b) let each feature call its endpoint and degrade on 402/403.
+- Gate the UI: features backed by gated endpoints show locked with a
+  "requires a paid AeroAPI plan" note until the probe says otherwise.
+- `AeroApiClient` already funnels every call through one `get()` with
+  error translation — map 402/403 there to a typed `AeroApiTierException`
+  the controllers turn into a clean message.
+
+**Why it's deferred:** needs the live tier→endpoint mapping plus a
+probe/cache design; not worth it until a second endpoint is actually in use.
+
+## Default Service Timeline rows for new users
+
+**What:** a new account starts with a set of generic Service Timeline rows
+already there — **item name, description, and cycle** (calendar or hours)
+filled in, but **last-done and due-date fields left blank** for the user
+to set once they know their aircraft's history.
+
+**Content:** the common, type-agnostic recurring items every piston GA
+aircraft has. Roughly the `DataSeeder` list minus the dates/hours and
+minus anything model-specific:
+- Annual Inspection — 12 months (FAR 91.409)
+- 100-Hour Inspection — 100 hours (FAR 91.409(b))
+- Oil & Filter Change — ~50 hours
+- Transponder Test — 24 months (FAR 91.413)
+- Pitot-Static / Altimeter Test — 24 months (FAR 91.411)
+- VOR Check — 30 days (FAR 91.171, IFR only)
+- ELT Inspection — 12 months; ELT Battery — per TSO-C91a
+No tail- or engine-specific items (those vary by manufacturer).
+
+**How:** on registration, insert these rows for the new user — or, once
+"Multiple aircraft per user" lands, for the user's first aircraft. A small
+hardcoded template list in code, separate from `DataSeeder` (which only
+seeds the two demo logins).
+
+**Open choice:** one-time at creation only — let the user clear/edit them
+freely and never re-add on later logins.
