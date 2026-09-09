@@ -19,8 +19,10 @@ public class Subscription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    // One flight-sync subscription per user. Every lookup is by user alone now,
+    // so this row is the single source of truth for "what is the poller watching".
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
     private String tailNumber;
     private boolean active;

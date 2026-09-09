@@ -26,6 +26,8 @@ import com.example.AviaryService.services.DescriptionOptionService;
 import com.example.AviaryService.services.FlightSuggestionService;
 import com.example.AviaryService.services.FlightSyncService;
 import com.example.AviaryService.services.HoursService;
+import com.example.AviaryService.services.PdfExportService;
+import com.example.AviaryService.services.SendGridEmailService;
 import com.example.AviaryService.services.SubscriptionService;
 import com.example.AviaryService.services.TimelineService;
 import com.example.AviaryService.services.UserService;
@@ -67,6 +69,8 @@ public class UserController {
     private final com.example.AviaryService.repositories.SubscriptionRepository subscriptionRepository;
     private final AeroApiClient aeroApiClient;
     private final FlightSyncService flightSyncService;
+    private final PdfExportService pdfExportService;
+    private final SendGridEmailService sendGridEmailService;
 
     public UserController(UserRepository userRepository, ServiceTimelineRepository serviceTimelineRepository,
             PasswordEncoder passwordEncoder, DescriptionOptionRepository descriptionOptionRepository,
@@ -75,7 +79,8 @@ public class UserController {
             FlightSuggestionService flightSuggestionService,
             com.example.AviaryService.repositories.FlightSuggestionRepository flightSuggestionRepository,
             com.example.AviaryService.repositories.SubscriptionRepository subscriptionRepository,
-            AeroApiClient aeroApiClient, FlightSyncService flightSyncService) {
+            AeroApiClient aeroApiClient, FlightSyncService flightSyncService, PdfExportService pdfExportService,
+            SendGridEmailService sendGridEmailService) {
 
         this.userRepository = userRepository;
         this.serviceTimelineRepository = serviceTimelineRepository;
@@ -92,6 +97,8 @@ public class UserController {
         this.subscriptionRepository = subscriptionRepository;
         this.aeroApiClient = aeroApiClient;
         this.flightSyncService = flightSyncService;
+        this.pdfExportService = pdfExportService;
+        this.sendGridEmailService = sendGridEmailService;
     }
 
     @GetMapping("/register")
@@ -150,8 +157,10 @@ public class UserController {
         model.addAttribute("flightSuggestions", flightSuggestionRepository.findByUserAndStatus(user, "pending"));
 
         com.example.AviaryService.entity.Subscription subscription =
-            subscriptionRepository.findByUserAndTailNumber(user, user.getTailNumber());
+            subscriptionRepository.findByUser(user).orElse(null);
         model.addAttribute("subscriptionActive", subscription != null && subscription.isActive());
+        model.addAttribute("subscriptionExists", subscription != null);
+        model.addAttribute("subscribedRegistration", subscription != null ? subscription.getTailNumber() : "");
         model.addAttribute("pollIntervalDays", subscription != null ? subscription.getPollIntervalDays() : 1);
         model.addAttribute("preferredCheckHour", subscription != null ? subscription.getPreferredCheckHour() : 3);
         model.addAttribute("aeroDefaultLookbackDays", AeroApiClient.DEFAULT_LOOKBACK_DAYS);
@@ -159,6 +168,63 @@ public class UserController {
         model.addAttribute("aeroMaxEndDaysAhead", AeroApiClient.MAX_END_DAYS_AHEAD);
 
         return "dashboard";
+    }
+
+    // Share menu's Download PDF. Server-side rendering (openhtmltopdf) --
+    // see docs/SHARE_EXPORT_SPEC.md and PdfExportService. Real vector
+    // text/tables, not the earlier client-side screenshot approach.
+    @GetMapping("/pdf")
+    public ResponseEntity<byte[]> downloadPdf(Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        byte[] pdf = pdfExportService.generateDashboardPdf(user);
+
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
+            .filename("Aviary_Dashboard_" + java.time.LocalDate.now() + ".pdf")
+            .build());
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+    }
+
+    // Share menu's "Email PDF" -- generates the same dashboard PDF as GET /pdf
+    // and sends it to an arbitrary recipient via SendGrid. See
+    // docs/SHARE_EXPORT_SPEC.md ("Channels -> Email"). Note the spec's
+    // cross-cutting concerns: recipient validation and a per-user rate limit
+    // still need to be added before this is exposed in the UI.
+    @PostMapping("/pdf/email")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> emailPdf(@RequestParam String recipient,
+            Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!sendGridEmailService.isConfigured()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "Email sending is not configured on this server."));
+        }
+        if (recipient == null || !recipient.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Enter a valid email address."));
+        }
+
+        byte[] pdf = pdfExportService.generateDashboardPdf(user);
+        String filename = "Aviary_Dashboard_" + java.time.LocalDate.now() + ".pdf";
+        try {
+            sendGridEmailService.sendPdf(
+                recipient.trim(),
+                "Your Aviary maintenance record",
+                "Attached is the maintenance record for " + user.getTailNumber() + ".",
+                pdf,
+                filename);
+        } catch (RuntimeException e) {
+            log.error("Failed to email dashboard PDF to {}", recipient, e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(Map.of("error", "Could not send the email. Please try again later."));
+        }
+        return ResponseEntity.ok(Map.of("status", "sent", "recipient", recipient.trim()));
     }
 
     // Current-period AeroAPI spend for the logged-in user's own key. Doubles
@@ -197,7 +263,7 @@ public class UserController {
             Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName());
         com.example.AviaryService.entity.Subscription subscription =
-            subscriptionRepository.findByUserAndTailNumber(user, user.getTailNumber());
+            subscriptionRepository.findByUser(user).orElse(null);
         if (subscription == null || !subscription.isActive()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Flight sync is not turned on."));
         }
@@ -221,14 +287,10 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> updateSubscriptionSettings(
             @RequestBody Map<String, Object> data, Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName());
-        String tailNumber = (String) data.get("tailNumber");
-        if (tailNumber == null || tailNumber.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "tailNumber is required"));
-        }
         try {
             int pollIntervalDays = ((Number) data.get("pollIntervalDays")).intValue();
             int preferredCheckHour = ((Number) data.get("preferredCheckHour")).intValue();
-            subscriptionService.updateSettings(user, tailNumber.trim().toUpperCase(), pollIntervalDays, preferredCheckHour);
+            subscriptionService.updateSettings(user, pollIntervalDays, preferredCheckHour);
             return ResponseEntity.ok(Map.of("status", "success"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -343,28 +405,51 @@ public class UserController {
         }
     }
 
-    @PostMapping("/subscription/toggle")
-    @ResponseBody 
-    public ResponseEntity <Map<String,Object>> subscribe(@RequestBody Map<String, String> data, Authentication authentication) {
-        String tailNumber = data.get("tailNumber");
-        String name = authentication.getName();
-        User user = userRepository.findByUsername(name);
-
-        if(tailNumber == null || tailNumber.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "tailNumber is required"));
-        }
-        tailNumber = tailNumber.trim().toUpperCase();
-
-        if(user == null) {
+    // One subscription per user. Subscribe needs a registration; unsubscribe
+    // and delete need only the authenticated user, so clearing the dashboard
+    // tail number can never strand an active subscription. See
+    // docs/ADSB_SYNC_SPEC.md.
+    @PostMapping("/subscription/subscribe")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> subscribe(@RequestBody Map<String, String> data, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not authenticated"));
         }
-
         try {
-            boolean active = subscriptionService.toggle(user, tailNumber);
-            return ResponseEntity.ok(Map.of(
-                "tailNumber", tailNumber,
-                "active", active
-            ));
+            com.example.AviaryService.entity.Subscription sub =
+                subscriptionService.subscribe(user, data.get("registration"));
+            return ResponseEntity.ok(Map.of("active", true, "registration", sub.getTailNumber()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/subscription/unsubscribe")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> unsubscribe(Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not authenticated"));
+        }
+        try {
+            subscriptionService.unsubscribe(user);
+            return ResponseEntity.ok(Map.of("active", false));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/subscription")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteSubscription(Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not authenticated"));
+        }
+        try {
+            subscriptionService.delete(user);
+            return ResponseEntity.ok(Map.of("status", "success"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -545,6 +630,14 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(errorBody("User not authenticated"));
         }
+
+        // Clamp readings to hundredths. Real meters never exceed 2dp (Hobbs
+        // 0.1, Tach 0.01), and this keeps CSV-prefilled or client-computed
+        // values from carrying float artifacts into storage.
+        newLog.setBlockTimeOut(Formatting.roundHoursOrNull(newLog.getBlockTimeOut()));
+        newLog.setBlockTimeIn(Formatting.roundHoursOrNull(newLog.getBlockTimeIn()));
+        newLog.setTimeInServiceOut(Formatting.roundHoursOrNull(newLog.getTimeInServiceOut()));
+        newLog.setTimeInServiceIn(Formatting.roundHoursOrNull(newLog.getTimeInServiceIn()));
 
         // ── Validation ─────────────────────────────────────────────────────────
         // Reject incomplete entries before they can corrupt displayed hours.

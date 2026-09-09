@@ -12,6 +12,7 @@ import com.example.AviaryService.entity.FlightLog;
 import com.example.AviaryService.entity.User;
 import com.example.AviaryService.repositories.FlightLogRepository;
 import com.example.AviaryService.repositories.UserRepository;
+import com.example.AviaryService.util.Formatting;
 
 @Service
 public class HoursService {
@@ -41,7 +42,7 @@ public class HoursService {
             updated = true;
         } else if (blockTimeToAdd != null) { //else if blockTimeToAdd has a value
             double currentBlockTime = user.getBlockTimeHours();
-            double computedBlockTime = currentBlockTime + blockTimeToAdd;
+            double computedBlockTime = Formatting.roundHours(currentBlockTime + blockTimeToAdd);
             user.setBlockTimeHours(computedBlockTime);
             user.setBlockTimeManualBaseline(computedBlockTime);
             System.out.println("Adding " + blockTimeToAdd + " to current BlockTime: " + currentBlockTime);
@@ -58,7 +59,7 @@ public class HoursService {
             updated = true;
         } else if (timeInServiceToAdd != null) { //else if timeInServiceToAdd has a value
             double currentTimeInService = user.getTimeInServiceHours();
-            double computedTimeInService = currentTimeInService + timeInServiceToAdd;
+            double computedTimeInService = Formatting.roundHours(currentTimeInService + timeInServiceToAdd);
             user.setTimeInServiceHours(computedTimeInService);
             user.setTimeInServiceManualBaseline(computedTimeInService);
             System.out.println("Adding " + timeInServiceToAdd + " to current Time in Service: " + currentTimeInService);
@@ -168,7 +169,7 @@ public class HoursService {
                 .thenComparing(FlightLog::getId))
             .toList();
 
-        double running = baselineBoxed;
+        double running = Formatting.roundHours(baselineBoxed);
         List<FlightLog> toSave = new ArrayList<>();
         for (FlightLog log : chain) {
             Instant start = useBlockTime ? log.getBlockTimeStart() : log.getTimeInServiceStart();
@@ -176,13 +177,14 @@ public class HoursService {
 
             if (isAnchor) {
                 double in = useBlockTime ? log.getBlockTimeIn() : log.getTimeInServiceIn();
-                running = Math.max(running, in);
+                running = Formatting.roundHours(Math.max(running, in));
             } else {
                 double out = useBlockTime ? log.getBlockTimeOut() : log.getTimeInServiceOut();
                 double in  = useBlockTime ? log.getBlockTimeIn()  : log.getTimeInServiceIn();
-                double duration = in - out;
-                double newOut = running;
-                double newIn  = running + duration;
+                // Round every step so error can't accumulate down the chain.
+                double duration = Formatting.roundHours(in - out);
+                double newOut = Formatting.roundHours(running);
+                double newIn  = Formatting.roundHours(running + duration);
                 if (useBlockTime) {
                     log.setBlockTimeOut(newOut);
                     log.setBlockTimeIn(newIn);

@@ -11,6 +11,7 @@ import com.example.AviaryService.entity.User;
 import com.example.AviaryService.repositories.FlightLogRepository;
 import com.example.AviaryService.repositories.FlightSuggestionRepository;
 import com.example.AviaryService.repositories.UserRepository;
+import com.example.AviaryService.util.Formatting;
 
 // Accept/dismiss for AeroAPI-detected flights. See docs/ADSB_SYNC_SPEC.md,
 // rule 1: a suggestion is never written to the log book on its own -- only
@@ -49,7 +50,7 @@ public class FlightSuggestionService {
         // may be older than flights already logged, so
         // HoursService.recomputeChain (below) is what actually places it in
         // the right spot and fixes the absolute numbers.
-        double duration = suggestion.getMinutesAirborne() / 60.0;
+        double duration = Formatting.roundHours(suggestion.getMinutesAirborne() / 60.0);
         FlightLog flightLog = new FlightLog(
             suggestion.getOrigin(), suggestion.getDestination(),
             null, null, duration, 0.0, user

@@ -45,10 +45,9 @@ public class UserService {
 
             // Update fields if provided in the request
             if (data.containsKey("makeModel")) user.setMakeModel(data.get("makeModel"));
-            // Uppercase here, at the one place tailNumber gets saved from user input,
-            // so it always matches what /subscription/toggle stores on Subscription
-            // (which uppercases too) -- a case mismatch there made every subscription
-            // lookup silently fail.
+            // Normalize to uppercase, matching how SubscriptionService stores the
+            // subscribed registration, so the dashboard-vs-subscription mismatch
+            // check compares like for like.
             if (data.containsKey("tailNumber")) {
                 String tailNumber = data.get("tailNumber");
                 user.setTailNumber(tailNumber == null ? null : tailNumber.trim().toUpperCase());

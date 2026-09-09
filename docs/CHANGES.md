@@ -3,6 +3,73 @@
 Small, scoped things identified while building a feature but deliberately not
 done at the time. Not a full roadmap — just a place to not lose these.
 
+## Maintenance due-date alerts (email/SMS to owner or shop)
+
+**BUILT 2026-09-08** — full backend, email path, and a functional Settings UI.
+See `docs/ALERTS_SPEC.md`. Email is live once `SENDGRID_API_KEY` /
+`AVIARY_SENDGRID_FROM` are set; SMS ships as the recipient/consent model +
+`LoggingSmsSender` only (real Twilio + A2P 10DLC still to do). New: entities
+`AlertPreference` / `AlertRecipient` / `AlertSendLog`, `service_timelines`
+gains `alert_level` + `alert_last_fired_at`, `AlertService` /
+`AlertDigestService` / `NotificationService` / `AlertScheduler`,
+`/alerts/*` endpoints, migration `docs/migrations/2026-09-08_maintenance_alerts.sql`.
+The notes below are the original pre-build plan, kept for context.
+
+**What:** alert the aircraft owner or maintenance shop when a Service
+Timeline item is nearing its due date/hours, instead of relying on someone
+opening the dashboard to notice.
+
+**Checked 2026-09-06: Twilio is NOT actually set up in this project.** No
+Twilio dependency in `build.gradle`, no credentials in `.env`, no SMS code
+anywhere. "Forgot password?" on the login page is a dead link with no
+backing endpoint. `docs/SHARE_EXPORT_SPEC.md` lists Twilio as a *planned*
+Phase 3 for the (also unbuilt) PDF-share-via-text feature — that's likely
+what got remembered as "already set up." There is also currently no email or
+phone number stored anywhere on `User`.
+
+**What already exists to build on:**
+- A `@Scheduled` background job already runs (`FlightSyncService`,
+  `@EnableScheduling` already on at the app level) — the same pattern fits a
+  daily alert-check job, no new scheduling infra needed.
+- "Is this due soon" math already exists, split across two places:
+  `UserController.computeTimeLeftString` (hours, server-side) and
+  `calculateTimeLeft` in `dashboard.js` (calendar dates, client-side only).
+
+**What's missing before this can work:**
+1. A contact channel — at minimum an email field on `User` (decide: alert
+   the pilot, a separate shop contact, or both). Phone number too if SMS is
+   wanted later.
+2. A way to actually send something — email (SendGrid, or free Gmail SMTP
+   to start) is simpler than SMS (Twilio needs a paid account + phone number
+   + A2P 10DLC carrier registration, a multi-day approval process).
+3. A "don't repeat yourself" flag per `ServiceTimeline` row (e.g. "last
+   alerted at") so a daily check doesn't re-alert every single day once an
+   item crosses the threshold.
+4. A due-soon threshold (e.g. 30 days / 10 hours out) — fixed default is
+   fine to start.
+
+**Suggested order:** email first (free, no approval wait, proves the whole
+pipeline) → move the calendar due-date math server-side so a background job
+can check every row, not just what's open in a browser → add the
+already-alerted flag → Twilio/SMS as a later phase, reusing whatever account
+setup the Share feature's texting phase eventually needs too.
+
+## Airport code autocomplete for From/To fields
+
+**What:** a typeahead dropdown under the From/To flight-log inputs that
+filters a list of airports (code, name, city) as the user types, so they can
+type either the code or the city and pick from matches — same pattern
+already used elsewhere in this app (the Service Timeline description
+dropdown), fed by airport data instead.
+
+**Data:** the `deadhead` project has `data/airports.csv` — but it's a
+worldwide dataset, and this app only needs US airports. Decided
+2026-09-06 not to pull the whole world in for now.
+
+**Next step when picked back up:** either trim that CSV down to US-only
+before copying it in, or just grab US airports fresh from a free source
+(OurAirports.com) sized for this app specifically.
+
 ## DONE (2026-09-05): Garmin CSV parser now extracts real timestamps
 
 `FlightLog` gained `blockTimeStart`/`blockTimeEnd` and

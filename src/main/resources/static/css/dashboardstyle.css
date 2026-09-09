@@ -128,6 +128,14 @@ input[type="checkbox"]:focus-visible {
   gap: 5px;
 }
 
+.fixed-header .share-dropdown button.share-coming-soon {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fixed-header .share-dropdown button.share-coming-soon:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 /* ── Shared button base ── */
 .fixed-header .header-right .logout-btn,
 .fixed-header .share-btn,
@@ -410,6 +418,25 @@ input[type="checkbox"]:focus-visible {
   outline: none;
   border-color: var(--primary);
   background: var(--surface);
+}
+
+/* Settings page: the shared rule above leaves fields borderless until focus,
+   which reads as plain text on this static page. Give text fields and dropdowns
+   a visible box so it's obvious they're editable. Checkboxes/radios opt out. */
+.settings-table input:not([type="checkbox"]):not([type="radio"]),
+.settings-table select {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 5px;
+}
+.settings-table input:not([type="checkbox"]):not([type="radio"]):focus,
+.settings-table select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.settings-table input[type="checkbox"],
+.settings-table input[type="radio"] {
+  width: auto;
 }
 
 /* ── Service timeline table ── */
@@ -1760,6 +1787,7 @@ textarea::placeholder { display: none; }
   #toast-container, .confirm-overlay { display: none !important; }
 }
 
+
 /* ── Toasts ── */
 #toast-container {
   position: fixed;
@@ -1907,3 +1935,14 @@ textarea::placeholder { display: none; }
 .audit-add-btn:hover { background: var(--accent-hover); }
 .audit-delete-btn { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 .audit-delete-btn:hover { background: var(--border); }
+
+/* ── Maintenance alert recipients (docs/ALERTS_SPEC.md) ── */
+.alert-recipient-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.alert-recipient-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+.alert-recipient-list .alert-recipient-who { flex: 1; }
+.alert-recipient-empty { color: #888; font-style: italic; }
+.alert-recipient-status { font-size: 0.85em; padding: 0.05rem 0.4rem; border-radius: 0.6rem; border: 1px solid currentColor; }
+.alert-recipient-status.status-accepted { color: #1a7f37; }
+.alert-recipient-status.status-pending  { color: #9a6700; }
+.alert-recipient-status.status-declined,
+.alert-recipient-status.status-expired  { color: #888; }

@@ -69,8 +69,11 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
             .requestMatchers("/register", "/login", "/css/**", "/js/**", "/images/**").permitAll()
+            // Token-guarded alert links clicked from an email inbox -- the opaque
+            // token is the auth, no login. See AlertPublicController.
+            .requestMatchers("/alerts/confirm", "/alerts/decline", "/alerts/unsubscribe").permitAll()
             .anyRequest().authenticated()
-                
+
             )
             .formLogin(form -> form
                 .loginPage("/login")

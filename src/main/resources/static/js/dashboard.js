@@ -902,8 +902,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('add-block-time').value = '';
             const editSection = document.querySelector('.edit-hours-section');
             editSection.style.display = editSection.style.display === 'flex' ? 'none' : 'flex';
-        } else if (event.target.classList.contains('.share-menu')) {
-            
         }
     });
     
@@ -1799,6 +1797,47 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(wb, `Aircraft_Service_Timeline_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
+    // Share menu: toggle open/closed, close on an outside click, and wire the
+    // two buttons that need nothing external. Print and Download PDF are the
+    // same browser action (window.print()) -- there's no separate JS API to
+    // save a PDF straight to disk, only the native print dialog, where
+    // "Save as PDF" is one of the destinations the user picks themselves.
+    // Email/Text stay disabled (.share-coming-soon) until SendGrid/Twilio are
+    // actually set up -- see docs/SHARE_EXPORT_SPEC.md.
+    const shareToggleBtn = document.getElementById('share-toggle-btn');
+    const shareDropdown = document.getElementById('share-dropdown');
+    if (shareToggleBtn && shareDropdown) {
+        shareToggleBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            shareDropdown.style.display = shareDropdown.style.display === 'flex' ? 'none' : 'flex';
+        });
+        document.addEventListener('click', (event) => {
+            if (shareDropdown.style.display === 'flex' && !event.target.closest('.share-menu')) {
+                shareDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    const sharePrintBtn = document.getElementById('share-print-btn');
+    if (sharePrintBtn) {
+        sharePrintBtn.addEventListener('click', () => {
+            shareDropdown.style.display = 'none';
+            printDashboard();
+        });
+    }
+
+    const shareDownloadPdfBtn = document.getElementById('share-download-pdf-btn');
+    if (shareDownloadPdfBtn) {
+        shareDownloadPdfBtn.addEventListener('click', () => {
+            shareDropdown.style.display = 'none';
+            downloadDashboardPdf();
+        });
+    }
+
+    document.querySelectorAll('.share-coming-soon').forEach(button => {
+        button.addEventListener('click', () => showToast('Coming soon.', 'info'));
+    });
+
     // NEW: Print button listener
     const printBtn = document.getElementById('print-dashboard');
     if (printBtn) {
@@ -1806,14 +1845,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // NEW: Function to handle printing
-    function printDashboard() {
-        // Update all time left values (assuming you have updateAllTimeLeft() from existing code)
+    // Shared by Print and Download PDF: refreshes every .print-only span
+    // (which mirrors a live input's current value) so whichever one runs
+    // captures up-to-date numbers, not whatever was on the page at load.
+    function refreshPrintOnlyValues() {
         updateAllTimeLeft();
         updateAddRowTimeLeft();  // If applicable, though add-row is hidden
-
-        // Update My Hours print-only span
-        const currentTimeInServiceHours = document.getElementById('current-time-in-service').value || '0';
-        const currentBlockTimeHours = document.getElementById('current-block-time').value || '0';
 
         // Update print-only spans in table rows with current values
         document.querySelectorAll('.sortable tr:not(.title-row)').forEach(row => {
@@ -1845,14 +1882,102 @@ document.addEventListener('DOMContentLoaded', () => {
             const dueDatePrint = row.querySelector('td:nth-child(6) .print-only');
             if (dueDatePrint) dueDatePrint.textContent = `${dueDateDate} ${dueDateText}`.trim();
         });
+    }
 
-        // Trigger browser print dialog
+    function printDashboard() {
+        refreshPrintOnlyValues();
         window.print();
+    }
+
+    // Download PDF: the server renders real PDF bytes (PdfExportService,
+    // openhtmltopdf) and returns them with Content-Disposition: attachment,
+    // so a plain navigation is enough -- the browser handles the download
+    // natively, no CSRF token needed since GET isn't a protected method.
+    // Replaced an earlier client-side html2canvas+jsPDF approach that
+    // screenshotted the dashboard into a slow-to-scroll rasterized PDF.
+    function downloadDashboardPdf() {
+        window.location.href = '/pdf';
     }
 
     const subBtn = document.getElementById('subscribe');
     if(subBtn) {
         subBtn.addEventListener('click', subscriptionToggle);
+    }
+
+    const deleteSubBtn = document.getElementById('delete-subscription');
+    if (deleteSubBtn) {
+        deleteSubBtn.addEventListener('click', async () => {
+            if (deleteSubBtn.classList.contains('disabled')) {
+                showToast('Unsubscribe before deleting the subscription.', 'error');
+                return;
+            }
+            const ok = await showConfirm('Delete this subscription and its saved schedule?', 'Delete');
+            if (!ok) return;
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            try {
+                await axios.delete('/subscription', { headers: { [csrfHeader]: csrfToken } });
+                deleteSubBtn.hidden = true;
+                const regInput = document.getElementById('sync-registration');
+                if (regInput) regInput.value = '';
+                showToast('Subscription deleted.', 'info');
+            } catch (error) {
+                showToast(error.response?.data?.error || 'Could not delete subscription.', 'error');
+            }
+        });
+    }
+
+    // Once subscribed, flag it when the tail number shown on the dashboard
+    // isn't the aircraft flight sync is actually watching (case-insensitive),
+    // and offer to line them up. Remembers a "leave it" answer for that exact
+    // pair so it doesn't ask again on every reload.
+    async function maybeOfferTailNumberSync(registration) {
+        const display = document.querySelector('input[name="tailNumber"]');
+        if (!display || !registration) return;
+        const shown = display.value.trim();
+        if (!shown || shown.toUpperCase() === registration.toUpperCase()) return;
+
+        const dismissKey = 'tailMismatchDismissed:' + shown.toUpperCase() + '>' + registration.toUpperCase();
+        try { if (localStorage.getItem(dismissKey)) return; } catch (e) {}
+
+        const ok = await showConfirm(
+            `The tail number on your dashboard ("${shown}") isn't the aircraft flight sync is subscribed to ("${registration}"). ` +
+            `Change the dashboard tail number to "${registration}"?`,
+            'Change it');
+        if (!ok) {
+            try { localStorage.setItem(dismissKey, '1'); } catch (e) {}
+            return;
+        }
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        try {
+            await axios.post('/updateUserInfo', { tailNumber: registration },
+                { headers: { [csrfHeader]: csrfToken } });
+            display.value = registration;
+            const printSpan = display.nextElementSibling;
+            if (printSpan && printSpan.classList.contains('print-only')) printSpan.textContent = registration;
+        } catch (e) {
+            showToast('Could not update the dashboard tail number.', 'error');
+        }
+    }
+
+    function applySubscriptionState(active) {
+        subBtn.textContent = active ? 'Unsubscribe' : 'Subscribe';
+        const regInput = document.getElementById('sync-registration');
+        if (regInput) regInput.readOnly = active;
+        if (deleteSubBtn) {
+            deleteSubBtn.hidden = false;
+            deleteSubBtn.classList.toggle('disabled', active);
+        }
+        for (const id of ['check-now-btn', 'check-now-info', 'check-now-range-row', 'sync-schedule-row']) {
+            const el = document.getElementById(id);
+            if (el) el.hidden = !active;
+        }
+    }
+
+    if (subBtn && subBtn.textContent.trim() === 'Unsubscribe') {
+        const reg = document.getElementById('sync-registration')?.value.trim();
+        if (reg) maybeOfferTailNumberSync(reg);
     }
 
     // Date inputs default to no browser-side min/max restriction, so set
@@ -1920,7 +2045,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveSyncBtn = document.getElementById('save-sync-settings');
     if (saveSyncBtn) {
         saveSyncBtn.addEventListener('click', async () => {
-            const tailNumber = document.querySelector('input[name="tailNumber"]').value.trim();
             const pollIntervalDays = parseInt(document.getElementById('poll-interval-days').value, 10);
             const preferredCheckHour = parseInt(document.getElementById('preferred-check-hour').value, 10);
             const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
@@ -1928,7 +2052,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await axios.post('/subscription/settings',
-                    { tailNumber, pollIntervalDays, preferredCheckHour },
+                    { pollIntervalDays, preferredCheckHour },
                     { headers: { [csrfHeader]: csrfToken, 'Content-Type': 'application/json' } }
                 );
                 showToast('Sync schedule saved.', 'success');
@@ -1939,33 +2063,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function subscriptionToggle() {
-        const tailNumber = document.querySelector('input[name="tailNumber"]').value.trim();
         const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        const isSubscribed = subBtn.textContent.trim() === 'Unsubscribe';
+        const regInput = document.getElementById('sync-registration');
 
         try {
-            if(!tailNumber) {
-                showToast('Enter your tail number first.', 'error');
-                return;
-            } 
+            let active;
+            if (isSubscribed) {
+                const response = await axios.post('/subscription/unsubscribe', {},
+                    { headers: { [csrfHeader]: csrfToken } });
+                active = response.data.active;
+            } else {
+                const registration = regInput ? regInput.value.trim() : '';
+                if (!registration) {
+                    showToast('Enter a registration number to subscribe.', 'error');
+                    return;
+                }
+                const response = await axios.post('/subscription/subscribe',
+                    { registration },
+                    { headers: { [csrfHeader]: csrfToken, 'Content-Type': 'application/json' } }
+                );
+                active = response.data.active;
+                if (regInput) regInput.value = response.data.registration;
+            }
 
-            const response = await axios.post(
-                '/subscription/toggle',
-                {tailNumber},
-                {headers: { [csrfHeader]: csrfToken, 'Content-Type': 'application/json'}}
-            );
-            const active = response.data.active;
-            console.log('Subscription toggled:', response.data);
-            subBtn.textContent = active ? 'Unsubscribe' : 'Subscribe';
-            const checkNowBtnEl = document.getElementById('check-now-btn');
-            if (checkNowBtnEl) checkNowBtnEl.hidden = !active;
-            const checkNowInfo = document.getElementById('check-now-info');
-            if (checkNowInfo) checkNowInfo.hidden = !active;
-            const checkNowRangeRow = document.getElementById('check-now-range-row');
-            if (checkNowRangeRow) checkNowRangeRow.hidden = !active;
-            const scheduleRow = document.getElementById('sync-schedule-row');
-            if (scheduleRow) scheduleRow.hidden = !active;
+            applySubscriptionState(active);
             showToast(active ? 'Flight sync turned on.' : 'Flight sync turned off.', active ? 'success' : 'info');
+            if (active && regInput) {
+                // Server seeds User.tailNumber from the registration when it was
+                // blank; mirror that in the already-rendered field so it doesn't
+                // look empty until the next reload.
+                const display = document.querySelector('input[name="tailNumber"]');
+                if (display && !display.value.trim()) {
+                    display.value = regInput.value.trim();
+                    const printSpan = display.nextElementSibling;
+                    if (printSpan && printSpan.classList.contains('print-only')) printSpan.textContent = display.value;
+                }
+                maybeOfferTailNumberSync(regInput.value.trim());
+            }
 
         } catch (error){
             if(!error.response) {
@@ -1973,7 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (error.response.status === 401) {
                 showToast('Your session expired. Please log in again.', 'error');
             } else if (error.response.status === 400) {
-                showToast(error.response.data?.error || 'That tail number was rejected.', 'error');
+                showToast(error.response.data?.error || 'That registration was rejected.', 'error');
             } else {
                 showToast('Something went wrong. Try again.', 'error');
             }
@@ -2282,3 +2418,153 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     }
+
+
+// ── Maintenance alerts settings (docs/ALERTS_SPEC.md) ────────────────────────
+// Standalone DOMContentLoaded block: talks to /alerts/* and is independent of
+// the large closure above.
+document.addEventListener('DOMContentLoaded', () => {
+    const $ = (id) => document.getElementById(id);
+    const enabledBox   = $('alerts-enabled');
+    if (!enabledBox) return; // alerts UI not on this page
+
+    const readiness    = $('alerts-readiness');
+    const checkHour    = $('alerts-check-hour');
+    const leadDays     = $('alerts-lead-days');
+    const leadHours    = $('alerts-lead-hours');
+    const renudgeDays  = $('alerts-renudge-days');
+    const saveSchedule = $('alerts-save-schedule');
+    const sendNowBtn   = $('alerts-send-now');
+    const sendNowMsg   = $('alerts-send-now-result');
+    const chanSel      = $('alert-recipient-channel');
+    const destInput    = $('alert-recipient-destination');
+    const labelInput   = $('alert-recipient-label');
+    const addBtn       = $('alert-recipient-add');
+    const addError     = $('alert-recipient-error');
+    const listEl       = $('alert-recipient-list');
+
+    function csrf() {
+        const t = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const h = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+        return h ? { [h]: t } : {};
+    }
+    const jsonHeaders = () => ({ 'Content-Type': 'application/json', ...csrf() });
+
+    async function loadPrefs() {
+        try {
+            const r = await fetch('/alerts/preferences');
+            if (!r.ok) return;
+            const p = await r.json();
+            enabledBox.checked = !!p.enabled;
+            checkHour.value    = p.checkHour;
+            leadDays.value     = p.leadTimeDays;
+            leadHours.value    = p.leadTimeHours;
+            renudgeDays.value  = p.overdueRenudgeDays;
+            const missing = (p.readiness && p.readiness.missing) || [];
+            readiness.textContent = missing.length
+                ? 'Before turning on: ' + missing.join('; ')
+                : 'Ready to turn on.';
+        } catch (e) { /* leave defaults */ }
+    }
+
+    function statusBadge(s) {
+        const map = { PENDING: 'Pending', ACCEPTED: 'Accepted', DECLINED: 'Declined', EXPIRED: 'Expired' };
+        return map[s] || s;
+    }
+
+    async function loadRecipients() {
+        try {
+            const r = await fetch('/alerts/recipients');
+            if (!r.ok) return;
+            const { recipients } = await r.json();
+            listEl.innerHTML = '';
+            if (!recipients.length) {
+                listEl.innerHTML = '<li class="alert-recipient-empty">No recipients yet.</li>';
+                return;
+            }
+            for (const rec of recipients) {
+                const li = document.createElement('li');
+                li.dataset.id = rec.id;
+                const who = rec.label ? `${rec.label} — ${rec.destination}` : rec.destination;
+                li.innerHTML =
+                    `<span class="alert-recipient-who">${who}</span>` +
+                    `<span class="alert-recipient-status status-${rec.status.toLowerCase()}">${statusBadge(rec.status)}</span>` +
+                    `<button type="button" class="alert-recipient-resend no-print">Resend</button>` +
+                    `<button type="button" class="alert-recipient-remove no-print">Remove</button>`;
+                listEl.appendChild(li);
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    async function savePrefs(extra) {
+        const body = {
+            enabled: enabledBox.checked,
+            checkHour: Number(checkHour.value),
+            leadTimeDays: Number(leadDays.value),
+            leadTimeHours: Number(leadHours.value),
+            overdueRenudgeDays: Number(renudgeDays.value),
+            ...extra,
+        };
+        const r = await fetch('/alerts/preferences', {
+            method: 'PUT', headers: jsonHeaders(), body: JSON.stringify(body),
+        });
+        if (r.ok) { const p = await r.json(); enabledBox.checked = !!p.enabled; }
+        return r.ok;
+    }
+
+    enabledBox.addEventListener('change', async () => {
+        const ok = await savePrefs();
+        if (typeof showToast === 'function') {
+            showToast(ok ? (enabledBox.checked ? 'Alerts turned on' : 'Alerts turned off') : 'Could not save', ok ? 'info' : 'error');
+        }
+        if (!ok) enabledBox.checked = !enabledBox.checked;
+    });
+
+    saveSchedule.addEventListener('click', async () => {
+        const ok = await savePrefs();
+        if (typeof showToast === 'function') showToast(ok ? 'Alert schedule saved' : 'Could not save', ok ? 'info' : 'error');
+    });
+
+    sendNowBtn.addEventListener('click', async () => {
+        sendNowMsg.textContent = 'Sending…';
+        try {
+            const r = await fetch('/alerts/send-now', { method: 'POST', headers: csrf() });
+            const d = await r.json();
+            sendNowMsg.textContent = r.ok ? `Sent to ${d.sent} recipient(s).` : (d.error || 'Failed.');
+        } catch (e) { sendNowMsg.textContent = 'Failed.'; }
+    });
+
+    addBtn.addEventListener('click', async () => {
+        addError.textContent = '';
+        const params = new URLSearchParams();
+        params.set('channel', chanSel.value);
+        params.set('destination', destInput.value.trim());
+        if (labelInput.value.trim()) params.set('label', labelInput.value.trim());
+        try {
+            const r = await fetch('/alerts/recipients', { method: 'POST', headers: csrf(), body: params });
+            const d = await r.json();
+            if (!r.ok) { addError.textContent = d.error || 'Could not add.'; return; }
+            destInput.value = ''; labelInput.value = '';
+            loadRecipients();
+        } catch (e) { addError.textContent = 'Could not add.'; }
+    });
+
+    listEl.addEventListener('click', async (ev) => {
+        const li = ev.target.closest('li[data-id]');
+        if (!li) return;
+        const id = li.dataset.id;
+        if (ev.target.classList.contains('alert-recipient-remove')) {
+            const r = await fetch('/alerts/recipients/' + id, { method: 'DELETE', headers: csrf() });
+            if (r.ok) loadRecipients();
+        } else if (ev.target.classList.contains('alert-recipient-resend')) {
+            const r = await fetch('/alerts/recipients/' + id + '/resend', { method: 'POST', headers: csrf() });
+            if (r.ok && typeof showToast === 'function') showToast('Confirmation resent', 'info');
+            loadRecipients();
+        }
+    });
+
+    const settingsBtn = document.getElementById('settings');
+    if (settingsBtn) settingsBtn.addEventListener('click', () => { loadPrefs(); loadRecipients(); });
+    loadPrefs();
+    loadRecipients();
+});

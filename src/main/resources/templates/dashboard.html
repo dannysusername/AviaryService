@@ -27,12 +27,12 @@
         <div class="header-right">
             <div class="header-share">
                 <div class="share-menu">
-                    <button class="share-btn">Share <i class="fa-solid fa-share-from-square"></i></button>
-                    <div class="share-dropdown" style="display: none;">
-                        <button>Print</button>
-                        <button>Download PDF</button>
-                        <button>Email</button>
-                        <button>Text</button>
+                    <button id="share-toggle-btn" class="share-btn">Share <i class="fa-solid fa-share-from-square"></i></button>
+                    <div id="share-dropdown" class="share-dropdown" style="display: none;">
+                        <button id="share-print-btn">Print</button>
+                        <button id="share-download-pdf-btn">Download PDF</button>
+                        <button class="share-coming-soon" title="Coming soon">Email</button>
+                        <button class="share-coming-soon" title="Coming soon">Text</button>
                     </div>
                 </div>
             </div>
@@ -72,7 +72,11 @@
                 <tr>
                     <td>Flight sync</td>
                     <td>
+                        <input type="text" id="sync-registration" class="no-print" th:value="${subscribedRegistration}"
+                               th:readonly="${subscriptionActive}" placeholder="e.g. N12345" autocomplete="off">
                         <button id="subscribe" class="no-print" th:text="${subscriptionActive} ? 'Unsubscribe' : 'Subscribe'">Subscribe</button>
+                        <i class="fa-solid fa-trash-can no-print" id="delete-subscription" title="Delete subscription"
+                           th:hidden="${!subscriptionExists}" th:classappend="${subscriptionActive} ? ' disabled' : ''"></i>
                         <button id="check-now-btn" class="no-print" th:hidden="${!subscriptionActive}">Check flights now</button>
                         <i class="fa-solid fa-circle-info check-now-info no-print" id="check-now-info" th:hidden="${!subscriptionActive}"
                            th:title="'By default this checks up to ' + ${aeroDefaultLookbackDays} + ' days back. Use the custom check range below to pick different dates (start: up to ' + ${aeroMaxStartDaysBack} + ' days back, end: up to ' + ${aeroMaxEndDaysAhead} + ' days ahead).'"></i>
@@ -105,6 +109,53 @@
                         </select>
                         (local time)
                         <button id="save-sync-settings">Save</button>
+                    </td>
+                </tr>
+
+                <!-- Maintenance alerts -- see docs/ALERTS_SPEC.md. All values load
+                     from GET /alerts/preferences and GET /alerts/recipients when
+                     the settings page opens. -->
+                <tr>
+                    <td>Maintenance alerts</td>
+                    <td>
+                        <label class="no-print">
+                            <input type="checkbox" id="alerts-enabled"> Email me (and my recipients) when maintenance is due
+                        </label>
+                        <div class="settings-hint" id="alerts-readiness"></div>
+                        <button id="alerts-send-now" class="no-print" type="button">Send alert now</button>
+                        <span id="alerts-send-now-result" class="settings-hint"></span>
+                    </td>
+                </tr>
+                <tr id="alerts-schedule-row">
+                    <td>Alert schedule</td>
+                    <td>
+                        Check daily at
+                        <select id="alerts-check-hour">
+                            <option th:each="h : ${#numbers.sequence(0, 23)}" th:value="${h}" th:text="${h} + ':00'"></option>
+                        </select>
+                        (local time). Warn
+                        <input type="number" id="alerts-lead-days" min="0" style="width:4rem"> days /
+                        <input type="number" id="alerts-lead-hours" min="0" style="width:4rem"> hours before due.
+                        Re-nudge overdue every
+                        <input type="number" id="alerts-renudge-days" min="1" style="width:4rem"> days.
+                        <button id="alerts-save-schedule" class="no-print" type="button">Save</button>
+                    </td>
+                </tr>
+                <tr id="alerts-recipients-row">
+                    <td>Alert recipients</td>
+                    <td>
+                        <div class="no-print">
+                            <select id="alert-recipient-channel">
+                                <option value="EMAIL">Email</option>
+                                <option value="SMS">Text (coming soon)</option>
+                            </select>
+                            <input type="text" id="alert-recipient-destination" placeholder="name@example.com" autocomplete="off">
+                            <input type="text" id="alert-recipient-label" placeholder="label (optional)" autocomplete="off">
+                            <button id="alert-recipient-add" type="button">Add</button>
+                            <span id="alert-recipient-error" class="settings-hint"></span>
+                        </div>
+                        <ul id="alert-recipient-list" class="alert-recipient-list"></ul>
+                        <div class="settings-hint">Each person gets a confirmation link and receives nothing until they accept.</div>
                     </td>
                 </tr>
             </tbody>
